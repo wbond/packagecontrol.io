@@ -1,0 +1,6 @@
+*.py[cod]
+venv
+__pycache__
+sftp-config.json
+config/secrets.yml
+assets
