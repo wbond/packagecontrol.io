@@ -1,0 +1,10 @@
+cache_length: 600
+debug: true
+timeout: 10
+user_agent: Sublime Package Control Default Channel Server
+http_cache: true
+install_prereleases: true
+query_string_params:
+    api.github.com:
+        client_id: "Use config.read_secret('github_client_id')"
+        client_secret: "Use config.read_secret('github_client_secret')"

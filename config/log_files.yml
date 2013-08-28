@@ -1,0 +1,2 @@
+location: '/home/backups/logs'
+pattern: 'sublime.wbond.net.log.*.gz'

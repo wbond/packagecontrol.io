@@ -1,0 +1,5 @@
+location: '../../channel/channel.json'
+search: '../../channel'
+replace: 'https://sublime.wbond.net'
+ignore:
+    - 'https://sublime.wbond.net/packages_2.json'
