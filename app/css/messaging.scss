@@ -1,0 +1,143 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+
+div.browser_warning {
+	background-color: #CC4E4E;
+	color: $white;
+	font-size: 1.4em;
+	text-align: center;
+	padding: 10px;
+
+	a {
+		color: #FAD7D7;
+		text-decoration: underline;
+	}
+}
+
+span.top_25 {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $blueLinkHover;
+	}
+}
+
+span.top_100 {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $red;
+	}
+}
+
+span.trending {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $orange;
+	}
+}
+
+span.new {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $green;
+	}
+}
+
+span.missing {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $yellow;
+	}
+}
+
+span.deprecated {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $greyBlue;
+	}
+}
+
+span.versions {
+	white-space: nowrap;
+
+	&.only {
+		background-color: $greyMedium;
+		color: $white;
+	}
+	&.both {
+		background-color: $green;
+		color: $white;
+	}
+}
+
+span.platforms,
+ul.packages li span.platforms,
+body.package div.meta span.platforms {
+	white-space: nowrap;
+	
+	&.windows {
+		background-color: $blue;
+		color: $white;
+	}
+
+	&.osx {
+		background-color: $purple;
+		color: $white;
+	}
+
+	&.linux {
+		background-color: $pink;
+		color: $white;
+	}
+
+	&.also-before {
+		margin-right: 0;
+
+		-moz-border-bottom-right-radius:    0;
+		-webkit-border-bottom-right-radius: 0;
+		border-bottom-right-radius:         0;
+		-moz-border-top-right-radius:       0;
+		-webkit-border-top-right-radius:    0;
+		border-top-right-radius:            0;
+	}
+
+	&.also-after {
+		-moz-border-bottom-left-radius:    0;
+		-webkit-border-bottom-left-radius: 0;
+		border-bottom-left-radius:         0;
+		-moz-border-top-left-radius:       0;
+		-webkit-border-top-left-radius:    0;
+		border-top-left-radius:            0;
+	}
+}
+
+span.versions,
+span.platforms {
+	@include border-radius(2px);
+
+	font-size: 0.85em;
+	padding: 1px 4px;
+	text-transform: uppercase;
+	font-weight: bold;
+}
+
+span.author {
+	color: $grey;
+	margin-right: 10px;
+
+	a {
+		border-bottom: 1px solid $greyLight;
+		color: $greyBlue;
+	}
+}

@@ -1,0 +1,47 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+
+body.labels,
+body.authors {
+	ul {
+		@include box-sizing(border-box);
+
+		width: 33.3%;
+		float: left;
+		list-style-type: none;
+
+		@media (max-width: 950px) {
+			width: 50%;
+		}
+
+		@media (max-width: 600px) {
+			width: auto;
+			float: none;
+		}
+
+		li {
+			margin: 0;
+
+			h3 {
+				margin-top: 0;
+
+				em {
+					@include border-radius(2px);
+
+					font-style: normal;
+					font-weight: bold;
+					background-color: $greyMedium;
+					color: $white;
+					padding: 2px 6px;
+					font-size: 0.7em;
+					min-width: 1.3em;
+					text-align: center;
+					display: inline-block;
+					position: relative;
+					top: -1px;
+					margin-right: 8px;
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,146 @@
+@import "partials/fonts";
+@import "partials/colors";
+@import "partials/cross_browser";
+
+
+body.stats {
+	#content section {
+		@include box-sizing(border-box);
+
+		float: left;
+
+		@media (max-width: 750px) {
+			float: none;
+			width: auto;
+		}
+
+		h2 {
+			margin: 0 0 10px 0;
+		}
+	}
+
+	section.packages {
+		width: 39.5%;
+
+		@media (max-width: 1000px) {
+			width: 57%;
+		}
+
+		div.total div.main {
+			float: left;
+		}
+	}
+	section.users {
+		width: 32.5%;
+
+		@media (max-width: 1000px) {
+			width: 43%;
+		}
+		@media (max-width: 750px) {
+			padding-top: 30px;
+		}
+
+		div.total div.main {
+			float: left;
+		}
+	}
+	section.yesterday {
+		width: 28%;
+
+		@media (max-width: 1000px) {
+			width: auto;
+			clear: left;
+			padding-top: 30px;
+		}
+
+		div.installs div.main {
+			float: left;
+		}
+	}
+
+	div.main {
+		span.number {
+			font-size: 4em;
+			display: block;
+			line-height: 1.2;
+		}
+		span.stat {
+			color: $grey;
+			display: block;
+			padding-left: 5px;
+			text-transform: uppercase;
+
+			a {
+				color: $greyBlue;
+				border-bottom: 1px solid $greyLight;
+			}
+		}
+	}
+
+	div.secondary,
+	div.tertiary {
+		font-size: 0.9em;
+		float: left;
+		margin: 12px 0 0 15px;
+
+		span.platform,
+		span.version {
+			@include border-radius(2px);
+
+			display: block;
+			margin-bottom: 3px;
+			padding: 1px 5px;
+			text-transform: uppercase;
+			text-align: center;
+
+			.number {
+				font-weight: bold;
+			}
+
+			&.st2_st3 {
+				background-color: $green;
+				color: $white;
+			}
+
+			&.st2,
+			&.st3 {
+				background-color: $greyMedium;
+				color: $white;
+			}
+
+			&.windows {
+				background-color: $blue;
+				color: $white;
+			}
+			&.osx {
+				background-color: $purple;
+				color: $white;
+			}
+			&.linux {
+				background-color: $pink;
+				color: $white;
+			}
+		}
+	}
+
+	div.tertiary {
+		margin-left: 8px;
+	}
+
+	div.installs,
+	div.total {
+		overflow: hidden;
+	}
+
+	div.actions,
+	div.json,
+	div.authors {
+		display: block;
+		margin-top: 10px;
+
+		div.main span.number {
+			color: $grey;
+			font-size: 3.0em;
+		}
+	}
+}

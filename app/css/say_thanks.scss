@@ -1,0 +1,33 @@
+.gittip-widget {
+	margin-right: 25px;
+	margin-bottom: 20px;
+}
+
+iframe.FlattrButton {
+	display: inline-block;
+	position: relative;
+	bottom: -10px;
+	margin-right: 20px;
+}
+
+form.paypal {
+	display: inline-block;
+	position: relative;
+	top: -10px;
+	margin-right: 20px;
+}
+
+iframe[src^='https://coinbase.com'] {
+	height: 30px !important;
+	position: relative;
+	top: -8px;
+}
+
+a.coinbase-button,
+a.FlattrButton {
+	display: inline-block;
+	top: -17px;
+	position: relative;
+	font-weight: bold;
+	margin-right: 20px;
+}

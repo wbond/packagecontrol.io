@@ -1,0 +1,29 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+
+
+body.news {
+
+	#content {
+		max-width: 900px;
+	}
+
+	h2 {
+		margin-bottom: 5px;
+
+		&[id] {
+			cursor: pointer;
+		}
+	}
+	p.meta {
+		position: relative;
+		color: $grey;
+		padding-left: 2px;
+
+		span.by,
+		span.time,
+		span.date {
+			font-weight: bold;
+		}
+	}
+}

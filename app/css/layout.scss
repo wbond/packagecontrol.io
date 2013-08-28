@@ -1,0 +1,84 @@
+@import "partials/fonts";
+@import "partials/colors";
+@import "partials/cross_browser";
+
+body.installation,
+body.say_thanks,
+body.browse,
+body.news,
+body.docs,
+body.stats {
+	h1 {
+		color: $grey;
+		font-size: 1.4em;
+		margin-left: 0;
+		text-transform: uppercase;
+	}
+
+	h1 + h2 {
+		margin-top: 0;
+	}
+}
+
+a.context,
+span.context {
+	color: $grey;
+	display: block;
+	font-family: $font-headline;
+	font-size: 1.4em;
+	line-height: 1.2;
+	margin-left: 0;
+	text-transform: uppercase;
+}
+
+a.context {
+	&:hover {
+		color: $greyDark;
+	}
+}
+
+body.installation section.simple,
+body.usage section.primary,
+body.settings section.first,
+body.say_thanks section.first {
+	@include box-sizing(border-box);
+
+	float: left;
+	width: 48%;
+
+	h2:first-child {
+		margin-top: 0;
+	}
+}
+
+body.installation section.manual,
+body.usage section.other,
+body.settings section.second,
+body.say_thanks section.second {
+	@include box-sizing(border-box);
+
+	float: right;
+	width: 48%;
+
+	h2:first-child {
+		margin-top: 0;
+	}
+}
+
+@media (max-width: 800px) {
+	body.installation section.simple,
+	body.usage section.primary,
+	body.settings section.first,
+	body.say_thanks section.first {
+		float: none;
+		width: auto;
+	}
+
+	body.installation section.manual,
+	body.usage section.other,
+	body.settings section.second,
+	body.say_thanks section.second {
+		float: none;
+		width: auto;
+	}
+}

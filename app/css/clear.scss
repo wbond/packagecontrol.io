@@ -1,0 +1,10 @@
+.group:after,
+header section:after,
+div#installs dl:after {
+	clear: both;
+	content: ".";
+	display: block;
+	font-size: 0;
+	height: 0;
+	visibility: hidden;
+}

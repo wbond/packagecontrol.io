@@ -1,0 +1,475 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+
+
+body.package {
+
+	#logo {
+		opacity: 0.3;
+
+		&:hover {
+			opacity: 0.7;
+		}
+	}
+
+	div#packages {
+		@include box-shadow(0 8px 8px -8px $grey);
+
+		margin-bottom: 20px;
+		padding: 5px 10px;
+
+		p:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	div.meta {
+		color: $grey;
+		margin: -20px 0 20px 5px;
+
+		span.trending,
+		span.missing,
+		span.top_100,
+		span.top_25 {
+			text-transform: uppercase;
+			font-size: 0.9em;
+		}
+
+		span.versions,
+		span.platforms {
+			margin-right: 10px;
+		}
+	}
+
+	p.description {
+		font-size: 1.1em;
+		margin-bottom: 30px;
+	}
+
+	div.labels {
+		@include border-radius(2px);
+
+		background-color: $greyLightest;
+		float: left;
+		padding: 2px 10px 2px 10px;
+		margin: -10px 0 20px 0;
+
+		span.title {
+			text-transform: uppercase;
+			font-size: 0.85em;
+			margin-right: 6px;
+			color: $grey;
+		}
+
+		a {
+			color: $greyBlue;
+			border-bottom: 1px solid $greyMedium;
+		}
+	}
+
+	div#details {
+		@include box-sizing(border-box);
+		@include transition(width 0.1s ease-in-out);
+
+		clear: left;
+		float: left;
+		width: 25%;
+		padding-right: 30px;
+
+		@media (max-width: 1150px) {
+			width: 30%;
+		}
+		@media (max-width: 1050px) {
+			width: 35%;
+		}
+		@media (max-width: 850px) {
+			width: 45%;
+		}
+		@media (max-width: 700px) {
+			float: none;
+			width: auto;
+		}
+
+		h2 {
+			margin: 0 0 10px 0;
+		}
+
+		ul.meta {
+			display: table;
+			margin-bottom: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			width: auto;
+
+			li {
+				display: table-row;
+
+				&.last_seen > *,
+				&.modified > * {
+					padding-top: 10px;
+				}
+
+				&.last_seen > *,
+				&.first_seen > * {
+					color: $greyMedium;
+				}
+
+				> label {
+					color: $grey;
+					display: table-cell;
+					font-size: 0.8em;
+					font-weight: normal;
+					padding-right: 10px;
+					text-transform: uppercase;
+				}
+				> span {
+					display: table-cell;
+				}
+			}
+		}
+	}
+
+	dl.totals,
+	dl.readme {
+		dt {
+			color: $grey;
+			display: inline-block;
+			font-size: 0.8em;
+			font-weight: normal;
+			margin: 0;
+			padding: 0 5px 0 0;
+			text-transform: uppercase;
+		}
+
+		dd {
+			display: inline-block;
+			margin: 0 20px 0 0;
+			padding: 0;
+
+			&:last-child {
+				margin-right: 0;
+			}
+		}
+	}
+
+	div#installs {
+		@include box-sizing(border-box);
+		//@include transition(width 0.1s ease-in-out);
+
+		float: right;
+		width: 75%;
+
+		@media (max-width: 1150px) {
+			width: 70%;
+		}
+		@media (max-width: 1050px) {
+			width: 65%;
+		}
+		@media (max-width: 850px) {
+			width: 55%;
+		}
+		@media (max-width: 700px) {
+			float: none;
+			width: auto;
+		}
+
+		h2 {
+			float: left;
+			margin: 0 0 10px 0;
+
+			@media (max-width: 930px) {
+				float: none;
+			}
+			@media (max-width: 700px) {
+				margin-top: 0.6em;
+			}
+		}
+
+		ul.totals {
+			float: right;
+			list-style-type: none;
+			margin-bottom: 10px;
+			margin-top: 12px;
+
+			@media (max-width: 930px) {
+				float: none;
+				margin: -10px 0 10px 0;
+			}
+
+			li {
+				display: inline-block;
+				margin-left: 0;
+				white-space: nowrap;
+			}
+
+			span.total,
+			span.platform {
+				color: $greyMedium;
+				font-size: 0.8em;
+				text-transform: uppercase;
+			}
+
+			li:first-child {
+				span.total {
+					bottom: -1px;
+					font-size: 16px;
+					font-weight: bold;
+					position: relative;
+				}
+				span.installs {
+					bottom: -1px;
+					font-size: 16px;
+					font-weight: bold;
+					position: relative;
+				}
+			}
+
+			span.installs {
+				margin-right: 15px;
+
+				span.key {
+					border: 1px solid transparent;
+					cursor: pointer;
+					display: inline-block;
+					height: 10px;
+					margin-left: 5px;
+					width: 10px;
+				}
+
+				&.windows span.key {
+					background-color: $blue;
+
+					&.disabled {
+						background-color: transparent;
+						border-color: $blue;
+					}
+				}
+				&.osx span.key {
+					background-color: $purple;
+
+					&.disabled {
+						background-color: transparent;
+						border-color: $purple;
+					}
+				}
+				&.linux span.key {
+					background-color: $pink;
+
+					&.disabled {
+						background-color: transparent;
+						border-color: $pink;
+					}
+				}
+			}
+
+			li:last-child {
+				span.installs {
+					margin-right: 0;
+				}
+			}
+		}
+
+		div#daily_installs {
+			clear: right;
+			height: 185px;
+			overflow: hidden;
+			position: relative;
+
+			div.loading {
+				position: absolute;
+				top: 20%;
+				left: 50%;
+				font-size: 2.0em;
+				color: $greyLight;
+			}
+
+			table {
+				display: none;
+			}
+
+			.layer.windows {
+				fill: $blue;
+
+				.de-emphasize {
+					fill: $blueLight;
+				}
+			}
+			.layer.osx {
+				fill: $purple;
+
+				.de-emphasize {
+					fill: $purpleLight;
+				}
+			}
+			.layer.linux {
+				fill: $pink;
+
+				.de-emphasize {
+					fill: $pinkLight;
+				}
+			}
+
+			// crispEdges is used otherwise the grid lines and edges between
+			// adjacent rectangles look really fuzzy
+			.grid {
+				.major.tick {
+					line {
+						shape-rendering: crispEdges;
+						stroke: $greyLight;
+					}
+					text {
+						fill: $grey;
+						font-size: 0.85em;
+					}
+				}
+				line.minor {
+					shape-rendering: crispEdges;
+					stroke: $greyLightest;
+				}
+				path {
+					stroke-width: 0;
+				}
+			}
+			.axis {
+				.tick {
+					line {
+						shape-rendering: crispEdges;
+						stroke: $greyMedium;
+					}
+					text {
+						fill: $grey;
+						font-size: 0.85em;
+					}
+				}
+				path {
+					fill: $greyMedium;
+					stroke-width: 0;
+				}
+			}
+
+			rect {
+				@include transition(fill 0.3s ease-in-out);
+
+				shape-rendering: crispEdges;
+			}
+		}
+	}
+
+
+	dl.readme {
+		margin-top: -15px;
+	}
+
+	div#readme {
+		// Prevents margin-collapsing
+		padding-top: 1px;
+		position: relative;
+
+		div.contents {
+			background-color: #f5f5f5;
+			padding: 25px;
+
+			h1, h2, h3, h4 {
+				font-family: "Helvetica", "Arial", sans-serif;
+			}
+
+			h1 {
+				margin-left: 0;
+			}
+
+			img {
+				max-width: 100%;
+			}
+
+			div.highlight {
+				.c { color: $grey; font-style: italic } /* Comment */
+				.err { color: $red; background-color: $pinkLight } /* Error */
+				.k { font-weight: bold } /* Keyword */
+				.o { font-weight: bold } /* Operator */
+				.cm { color: $grey; font-style: italic } /* Comment.Multiline */
+				.cp { color: $grey; font-weight: bold } /* Comment.Preproc */
+				.c1 { color: $grey; font-style: italic } /* Comment.Single */
+				.cs { color: $grey; font-weight: bold; font-style: italic } /* Comment.Special */
+				.gd { color: $black; background-color: $pinkLight } /* Generic.Deleted */
+				.gd .x { color: $black; background-color: $pinkLight } /* Generic.Deleted.Specific */
+				.ge { font-style: italic } /* Generic.Emph */
+				.gr { color: $red } /* Generic.Error */
+				.gh { color: $grey } /* Generic.Heading */
+				.gi { color: $black; background-color: $green } /* Generic.Inserted */
+				.gi .x { color: $black; background-color: $green } /* Generic.Inserted.Specific */
+				.go { color: $grey } /* Generic.Output */
+				.gp { color: $greyDark } /* Generic.Prompt */
+				.gs { font-weight: bold } /* Generic.Strong */
+				.gu { color: $greyMedium } /* Generic.Subheading */
+				.gt { color: $red } /* Generic.Traceback */
+				.kc { font-weight: bold } /* Keyword.Constant */
+				.kd { font-weight: bold } /* Keyword.Declaration */
+				.kp { font-weight: bold } /* Keyword.Pseudo */
+				.kr { font-weight: bold } /* Keyword.Reserved */
+				.kt { color: $blueLinkHover; font-weight: bold } /* Keyword.Type */
+				.m { color: $blueLink } /* Literal.Number */
+				.s { color: $greenDark } /* Literal.String */
+				.na { color: $purple } /* Name.Attribute */
+				.nb { color: $blueLink } /* Name.Builtin */
+				.nc { color: $purple; font-weight: bold } /* Name.Class */
+				.no { color: $purple } /* Name.Constant */
+				.ni { color: $greenDark } /* Name.Entity */
+				.ne { color: $greenDark; font-weight: bold } /* Name.Exception */
+				.nf { color: $greenDark; font-weight: bold } /* Name.Function */
+				.nn { color: $greyDark } /* Name.Namespace */
+				.nt { color: $blueLinkHover } /* Name.Tag */
+				.nv { color: $purple } /* Name.Variable */
+				.ow { font-weight: bold } /* Operator.Word */
+				.w { color: $greyMedium } /* Text.Whitespace */
+				.mf { color: $greenDark } /* Literal.Number.Float */
+				.mh { color: $greenDark } /* Literal.Number.Hex */
+				.mi { color: $greenDark } /* Literal.Number.Integer */
+				.mo { color: $greenDark } /* Literal.Number.Oct */
+				.sb { color: $greenDark } /* Literal.String.Backtick */
+				.sc { color: $greenDark } /* Literal.String.Char */
+				.sd { color: $greenDark } /* Literal.String.Doc */
+				.s2 { color: $greenDark } /* Literal.String.Double */
+				.se { color: $greenDark } /* Literal.String.Escape */
+				.sh { color: $greenDark } /* Literal.String.Heredoc */
+				.si { color: $greenDark } /* Literal.String.Interpol */
+				.sx { color: $greenDark } /* Literal.String.Other */
+				.sr { color: $greenDark } /* Literal.String.Regex */
+				.s1 { color: $greenDark } /* Literal.String.Single */
+				.ss { color: $orangeDark } /* Literal.String.Symbol */
+				.bp { color: $grey } /* Name.Builtin.Pseudo */
+				.vc { color: $purple } /* Name.Variable.Class */
+				.vg { color: $purple } /* Name.Variable.Global */
+				.vi { color: $purple } /* Name.Variable.Instance */
+				.il { color: $greenDark } /* Literal.Number.Integer.Long */
+			}
+
+			pre {
+				background-color: $greyLight;
+			}
+
+			code {
+				background-color: $greyLight;
+			}
+
+			div > :first-child,
+			> :first-child {
+				margin-top: 0;
+				padding-top: 0;
+			}
+
+			div > :last-child,
+			> :last-child {
+				margin-bottom: 0;
+				padding-bottom: 0;
+			}
+
+			div.highlight {
+				margin-bottom: 8px;
+
+				pre {
+					padding: 8px 10px;
+				}
+			}
+		}
+	}
+}

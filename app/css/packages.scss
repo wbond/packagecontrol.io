@@ -1,0 +1,112 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+@import "partials/fonts";
+
+
+body.new {
+	a.rss {
+		padding-left: 10px;
+		font-size: 16px;
+		font-family: $font-base;
+
+		i {
+			color: $orange;
+		}
+	}
+}
+
+div.results div.help {
+	font-size: 0.85em;
+	opacity: 0.5;
+	margin: -25px 0 25px 2px;
+}
+
+ul.packages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+
+	li {
+		border-left: 2px solid transparent;
+		border-right: 2px solid transparent;
+		border-top: 1px solid $greyLight;
+		margin: 0;
+		padding: 10px;
+		position: relative;
+
+		@include transition(border-left 0.15s ease-in-out, border-right 0.15s ease-in-out);
+
+		&:first-child {
+			border-top: none;
+			margin-top: 0;
+		}
+
+		&:hover,
+		&.hover {
+			background-color: #f7f7f7;
+		}
+
+		h3 {
+			display: inline-block;
+			font-size: 1.4em;
+			margin: 0 2px 0 0;
+		}
+
+		span.versions,
+		span.platforms {
+			margin-right: 10px;
+		}
+
+		.meta {
+			color: $greyDark;
+			font-size: 0.9em;
+			position: absolute;
+			right: 10px;
+			text-transform: uppercase;
+			top: 14px;
+
+			@media (max-width: 600px) {
+				position: static;
+				right: none;
+				top: none;
+			}
+
+			.installs {
+				@include border-radius(2px);
+
+				background-color: $greyLightest;
+				padding: 1px 4px;
+				white-space: nowrap;
+
+				em {
+					color: $greyMedium;
+					font-size: 0.85em;
+					font-style: normal;
+				}
+			}
+		}
+
+		div.description {
+			margin-top: 5px;
+		}
+	}
+}
+
+nav.pagination {
+	clear: left;
+	margin-top: 30px;
+
+	a {
+		@include border-radius(2px);
+
+		background-color: $greyLight;
+		display: inline-block;
+		margin: 0 2px 5px 0;
+		padding: 3px 7px;
+
+		&.selected {
+			color: $greyDark;
+			font-weight: bold;
+		}
+	}
+}

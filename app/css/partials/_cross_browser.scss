@@ -1,0 +1,24 @@
+@mixin border-radius($radius) {
+  -moz-border-radius:    $radius;
+  -webkit-border-radius: $radius;
+  border-radius:         $radius;
+}
+
+@mixin box-sizing($sizing) {
+  -moz-box-sizing:    $sizing;
+  -webkit-box-sizing: $sizing;
+  box-sizing:         $sizing;
+}
+
+@mixin box-shadow($values...) {
+  -moz-box-shadow:    $values;
+  -o-box-shadow:      $values;
+  -webkit-box-shadow: $values;
+  box-shadow:         $values;
+}
+
+@mixin transition($values...) {
+  -moz-transition:    $values;
+  -webkit-transition: $values;
+  transition:         $values;
+}

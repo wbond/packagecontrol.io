@@ -1,0 +1,11 @@
+body.usage {
+	a.action {
+		position: absolute;
+		right: 20px;
+		top: 20px;
+
+		@media (max-width: 600px) {
+			display: none;
+		}
+	}
+}

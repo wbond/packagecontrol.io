@@ -1,0 +1,161 @@
+@import "partials/colors";
+@import "partials/cross_browser";
+
+header section,
+div#torso,
+footer section {
+	margin: 0px auto 0px auto;
+	max-width: 1400px;
+	padding: 20px 20px 0px 20px;
+}
+
+header {
+	/* IE10 Consumer Preview */
+	background-image: -ms-linear-gradient(top, #F5F5F5 0%, $white 100%);
+	/* Mozilla Firefox */
+	background-image: -moz-linear-gradient(top, #F5F5F5 0%, $white 100%);
+	/* Opera */
+	background-image: -o-linear-gradient(top, #F5F5F5 0%, $white 100%);
+	/* Webkit (Safari/Chrome 10) */
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #F5F5F5), color-stop(1, $white));
+	/* Webkit (Chrome 11+) */
+	background-image: -webkit-linear-gradient(top, #F5F5F5 0%, $white 100%);
+	/* W3C Markup, IE10 Release Preview */
+	background-image: linear-gradient(to bottom, #F5F5F5 0%, $white 100%);
+
+	section {
+		position: relative;
+
+		> div {
+			overflow: hidden;
+		}
+	}
+
+	a#logo {
+		overflow: hidden;
+
+		img {
+			@include transition(opacity 0.15s ease-in-out);
+
+			border: none;
+			display: block;
+			float: left;
+			max-height: 51px;
+			opacity: 0.7;
+			max-width: 286px;
+		}
+	}
+
+	nav {
+		border-bottom: 1px solid $greyLight;
+		float: right;
+		padding-top: 3px;
+		position: relative;
+		margin-right: -6px;
+
+		@media (max-width: 950px) {
+			float: none;
+			overflow: hidden;
+			clear: left;
+		}
+
+		a {
+			color: $greyDark;
+			float: left;
+			line-height: 1.6;
+			padding: 5px 12px 3px 12px;
+			margin-right: 6px;
+			margin-top: 4px;
+			border-bottom: 2px solid transparent;
+
+			-moz-border-top-left-radius:     3px;
+			-webkit-border-top-left-radius:  3px;
+			border-top-left-radius:          3px;
+			-moz-border-top-right-radius:    3px;
+			-webkit-border-top-right-radius: 3px;
+			border-top-right-radius:         3px;
+
+			&:first-child {
+				margin-left: 0;
+			}
+
+			&:hover {
+				color: $black;
+			}
+
+			&.active {
+				background-color: #F5F7F8;
+				border-bottom-color: $blueLink;
+				color: $black;
+			}
+		}
+	}
+
+	.loading {
+		background-color: $blueLink;
+		bottom: 0;
+		height: 2px;
+		left: 0;
+		position: absolute;
+		width: 0;
+	}
+}
+
+div#torso {
+	overflow: hidden;
+	position: relative;
+}
+
+footer {
+	@include box-shadow(inset 0px 6px 12px -8px #333);
+	background-color: $greyBlue;
+	color: $white;
+	padding: 0;
+	width: auto;
+
+	section {
+		opacity: 0.6;
+		padding-bottom: 30px;
+	}
+
+	a#wbond {
+		img {
+			margin-left: 10px;
+			position: relative;
+			bottom: -2px;
+			height: 25px;
+			width: 80px;
+		}
+	}
+}
+
+a.action {
+	@include border-radius(2px);
+	@include transition(background-color 0.1s ease-in-out);
+
+	background-color: $green;
+	color: $white;
+	display: inline-block;
+	font-weight: bold;
+	line-height: 1.5;
+	padding: 2px 12px;
+	text-shadow: 0 1px 0 $greenDark;
+
+	&:hover {
+		background-color: $greenMedium;
+
+		i {
+			left: 2px;
+			opacity: 1.0;
+		}
+	}
+
+	i {
+		@include transition(opacity 0.1s ease-in-out, left 0.1s ease-in-out);
+
+		left: 0;
+		margin-left: 3px;
+		opacity: 0.6;
+		position: relative;
+	}
+}

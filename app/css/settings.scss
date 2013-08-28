@@ -1,0 +1,15 @@
+@import "partials/colors";
+
+body.settings {
+	div.default {
+		color: $grey;
+		margin-top: 3px;
+
+		tt {
+			color: $greyDark;
+		}
+		em {
+			font-style: normal;
+		}
+	}
+}

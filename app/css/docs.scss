@@ -1,0 +1,39 @@
+@import "partials/fonts";
+@import "partials/colors";
+@import "partials/cross_browser";
+
+
+body.docs {
+	ul {
+		list-style-type: none;
+
+		li {
+			@include box-sizing(border-box);
+
+			float: left;
+			margin: 0 0 5px 0;
+			width: 48%;
+
+			&:nth-child(odd) {
+				clear: both;
+			}
+			&:nth-child(even) {
+				float: right;
+			}
+
+			@media (max-width: 800px) {
+				float: none;
+				margin-bottom: 10px;
+				width: auto;
+
+				&:nth-child(even) {
+					float: none;
+				}
+			}
+
+			h2 {
+				margin: 0 0 8px 0;
+			}
+		}
+	}
+}
