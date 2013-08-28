@@ -2,5 +2,6 @@
 venv
 __pycache__
 sftp-config.json
-config/secrets.yml
+secrets.yml
 assets
+channel
