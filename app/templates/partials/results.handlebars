@@ -1,0 +1,39 @@
+<div class="results">
+    <div class="help">
+        Use the following to filter by version and platform: <tt>:st2</tt>
+        <tt>:st3</tt> <tt>:win</tt> <tt>:osx</tt> <tt>:linux</tt>
+    </div>
+
+    {{#if terms}}
+        {{#if packages}}
+        <ul class="packages results">
+            {{#each packages}}
+                <li class="package">
+                    <h3><a href="{{url "package" name=name}}">{{highlight highlighted_name}}</a></h3>
+
+                    <span class="author"><em>by</em> <a href="{{url "author" name=author}}">{{highlight highlighted_author}}</a></span>
+                    
+                    {{>package_compat this}}
+                    <span class="meta">
+                        {{>package_badges this}}
+                        {{>package_installs this}}
+                    </span>
+                    <div class="description">{{highlight highlighted_description}}</div>
+                </li>
+            {{/each}}
+        </ul>
+        {{/if}}
+
+        {{#unless packages}}
+        <div class="no results">
+            No packages matched your search terms
+        </div>
+        {{/unless}}
+
+        {{>pagination this}}
+    {{else}}
+        <div class="no results">
+            Enter your search terms above
+        </div>
+    {{/if}}
+</div>

@@ -1,0 +1,129 @@
+{{title "Stats"}}
+
+<h1>Stats</h1>
+
+<section class="packages">
+    <h2>Packages</h2>
+
+    <div class="total">
+        <div class="main">
+            <span class="number">{{num_format total_packages}}</span>
+            <span class="stat"><a href="{{url "browse"}}">Packages</a></span>
+        </div>
+
+        <div class="secondary">
+            <span class="version st2_st3">
+                <span class="number">{{num_format st2_st3_packages}}</span>
+                ST2/3
+            </span>
+            <span class="version st3">
+                <span class="number">{{num_format st3_packages}}</span>
+                ST3
+            </span>
+            <span class="version st2">
+                <span class="number">{{num_format st2_packages}}</span>
+                ST2
+            </span>
+        </div>
+
+        <div class="tertiary">
+            <span class="platform windows">
+                <span class="number">{{num_format windows_packages}}</span>
+                Win
+            </span>
+            <span class="platform osx">
+                <span class="number">{{num_format osx_packages}}</span>
+                OS X
+            </span>
+            <span class="platform linux">
+                <span class="number">{{num_format linux_packages}}</span>
+                Linux
+            </span>
+        </div>
+    </div>
+
+    <div class="json">
+        <div class="main">
+            <span class="number">
+                {{num_format total_labels}}
+            </span>
+            <span class="stat"><a href="{{url "labels"}}">Labels</a></span>
+        </div>
+    </div>
+</section>
+
+<section class="users">
+    <h2>Users</h2>
+    <div class="total">
+        <div class="main">
+            <span class="number" title="{{num_format total_users}}">{{num_abbr total_users}}</span>
+            <span class="stat">Users</span>
+        </div>
+
+        <div class="secondary">
+            <span class="platform windows">
+                <span class="number" title="{{num_format windows_users}}">{{num_abbr windows_users}}</span>
+                Win
+            </span>
+            <span class="platform osx">
+                <span class="number" title="{{num_format osx_users}}">{{num_abbr osx_users}}</span>
+                OS X
+            </span>
+            <span class="platform linux">
+                <span class="number" title="{{num_format linux_users}}">{{num_abbr linux_users}}</span>
+                Linux
+            </span>
+        </div>
+    </div>
+
+    <div class="json">
+        <div class="main">
+            <span class="number">
+                {{num_format total_authors}}
+            </span>
+            <span class="stat"><a href="{{url "authors"}}">Authors</a></span>
+        </div>
+    </div>
+
+</section>
+
+<section class="yesterday">
+    <h2>Activity Yesterday</h2>
+    <div class="installs">
+        <div class="main">
+            <span class="number">{{num_abbr installs}}</span>
+            <span class="stat">Package Installs</span>
+        </div>
+
+        <div class="secondary">
+            <span class="platform windows">
+                <span class="number">{{num_abbr windows_installs}}</span>
+                Win
+            </span>
+            <span class="platform osx">
+                <span class="number">{{num_abbr osx_installs}}</span>
+                OS X
+            </span>
+            <span class="platform linux">
+                <span class="number">{{num_abbr linux_installs}}</span>
+                Linux
+            </span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <div class="main">
+            <span class="number">{{num_abbr submissions}}</span>
+            <span class="stat">User Actions</span>
+        </div>
+    </div>
+
+    <div class="json">
+        <div class="main">
+            <span class="number" title="{{num_format json_bytes_served}} bytes over {{num_format json_requests_served}} requests">
+                {{filesize_abbr json_bytes_served}}
+            </span>
+            <span class="stat">JSON Served</span>
+        </div>
+    </div>
+</section>

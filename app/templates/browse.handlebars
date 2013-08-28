@@ -1,0 +1,93 @@
+{{title "Browse"}}
+
+<h1>Browse</h1>
+
+<div class="section new">
+    <h2>
+        <a class="name" href="{{url "new"}}">New <i class="icon-leaf"></i></a>
+        <a class="rss" href="/browse/new/rss" title="RSS feed of new packages"><i class="icon-rss"></i></a>
+    </h2>
+    <p>When the package was first seen</p>
+    <ul>
+        {{#each new}}
+        <li>
+            <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+            {{>minimal_platforms}}
+            {{>minimal_trending}}
+            {{>minimal_top}}
+        </li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="section trending">
+    <h2><a href="{{url "trending"}}">Trending <i class="icon-chevron-sign-up"></i></a></h2>
+    <p>Recent, relative, increase in installs</p>
+    <ul>
+        {{#each trending}}
+        <li>
+            <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+            {{>minimal_platforms}}
+            {{>minimal_new}}
+            {{>minimal_top}}
+        </li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="section updated">
+    <h2><a href="{{url "updated"}}">Updated <i class="icon-plus"></i></a></h2>
+    <p>When the package was last updated</p>
+    <ul>
+        {{#each updated}}
+        <li>
+            <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+            {{>minimal_platforms}}
+            {{>minimal_new}}
+            {{>minimal_trending}}
+            {{>minimal_top}}
+        </li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="section popular">
+    <h2><a href="{{url "popular"}}">Popular <i class="icon-certificate"></i></a></h2>
+    <p>With the most unique installs</p>
+    <ul>
+        {{#each top}}
+        <li>
+            <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+            {{>minimal_platforms}}
+            {{>minimal_new}}
+            {{>minimal_trending}}
+        </li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="section labels">
+    <h2><a href="{{url "labels"}}">Labels <i class="icon-tag"></i></a></h2>
+    <p>With the most packages</p>
+    <ul>
+        {{#each labels}}
+        <li>
+            <a href="{{url "label" name=name}}">{{word_wrap name}}</a>
+            <span class="package_count">{{packages}}</span>
+        </li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="section authors">
+    <h2><a href="{{url "authors"}}">Authors <i class="icon-user"></i></a></h2>
+    <p>With the most packages</p>
+    <ul class="authors">
+        {{#each authors}}
+        <li>
+            <a href="{{url "author" name=name}}">{{word_wrap name}}</a>
+            <span class="package_count">{{packages}}</span>
+        </li>
+        {{/each}}
+    </ul>
+</div>

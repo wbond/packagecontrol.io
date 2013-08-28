@@ -1,0 +1,126 @@
+{{title name "Packages"}}
+
+<a class="context" href="{{url "browse"}}">Browse</a>
+
+<h1>{{word_wrap name}}</h1>
+<div class="meta">
+    {{>package_author}}
+    {{>package_compat}}
+    {{#contains st_versions 2 3}}<span class="versions both" title="Works with Sublime Text 2 and 3">ST2/ST3</span>{{/contains}}
+    {{>package_badges}}
+</div>
+
+<p class="description">
+{{description}}
+</p>
+
+{{#if labels}}
+<div class="labels">
+    <span class="title">Labels</span>
+    {{#each labels}}{{#if @index}}, {{/if}}<a href="{{url "label" name=this}}">{{this}}</a>{{/each}}
+</div>
+{{/if}}
+
+<div id="details">
+    <h2>Details</h2>
+    <ul class="meta">
+        <li class="version">
+            <label>Version</label>
+            <span>{{version}}</span>
+        </li>
+        <li class="homepage">
+            <label>Homepage</label>
+            <span>{{url_abbr homepage true}}</span>
+        </li>
+        {{#if issues}}
+            <li class="issues">
+                <label>Issues</label>
+                <span>{{url_abbr issues true}}</span>
+            </li>
+        {{/if}}
+        {{#if donate}}
+            <li class="donate">
+                <label>Donate</label>
+                <span>{{url_abbr donate true}}</span>
+            </li>
+        {{/if}}
+        {{#if buy}}
+            <li class="buy">
+                <label>Buy</label>
+                <span>{{url_abbr buy true}}</span>
+            </li>
+        {{/if}}
+        <li class="modified">
+            <label>Modified</label>
+            <span title="{{date_format last_modified "ISO"}}">{{date_diff last_modified true}}</span>
+        </li>
+        <li class="last_seen">
+            <label>Last Seen</label>
+            <span title="{{date_format last_seen "ISO"}}">{{date_diff last_seen true}}</span>
+        </li>
+        <li class="first_seen">
+            <label>First Seen</label>
+            <span title="{{date_format first_seen "ISO"}}">{{date_diff first_seen true}}</span>
+        </li>
+    </ul>
+</div>
+
+<div id="installs">
+    <h2>Installs</h2>
+
+    <ul class="totals">
+        <li>
+            <span class="total">Total</span>
+            <span title="{{num_format installs.total}}" class="installs">{{num_abbr installs.total}}</span>
+        </li>
+        <li>
+            <span class="platform">Win</span>
+            <span title="{{num_format installs.windows}}" class="windows installs">{{num_abbr installs.windows}} <span class="key"></span></span>
+        </li>
+        <li>
+            <span class="platform">OS X</span>
+            <span title="{{num_format installs.osx}}" class="osx installs">{{num_abbr installs.osx}} <span class="key"></span></span>
+        </li>
+        <li>
+            <span class="platform">Linux</span>
+            <span title="{{num_format installs.linux}}" class="linux installs">{{num_abbr installs.linux}} <span class="key"></span></span>
+        </li>
+    </ul>
+
+    <div id="daily_installs">
+        <table cellspacing="0">
+            <tr class="dates">
+                <td class="none"></td>
+                {{#each installs.daily.dates}}
+                    <th scope="col">{{date_format this "%b %-d"}}</th>
+                {{/each}}
+            </tr>
+            {{#each installs.daily.data}}
+                <tr class="platform">
+                    <th scope="row">{{platform}}</th>
+                    {{#each totals}}
+                        <td>{{this}}</td>
+                    {{/each}}
+                </tr>
+            {{/each}}
+        </table>
+    </div>
+</div>
+<div style="clear: both"></div>
+
+<div id="readme">
+    <h2>Readme</h2>
+    {{#if readme_html}}
+        <dl class="readme">
+            <dt>Source</dt>
+            <dd>{{url_abbr readme true}}</dd>
+        </dl>
+    {{/if}}
+    <div class="contents">
+        {{#if readme_html}}
+            {{{readme_html}}}
+        {{else}}
+            <p><em>No readme provided</em></p>
+        {{/if}}
+    </div>
+</div>

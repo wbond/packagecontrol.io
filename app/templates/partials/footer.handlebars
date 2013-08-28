@@ -1,0 +1,31 @@
+        </div>
+        <footer>
+            <section>
+                © 2013
+                <a id="wbond" href="http://wbond.net"><img src="/img/wbond.svg" width="570" height="100"></a>
+            </section>
+        </footer>
+
+        <!--[if lte IE 8]>
+        <script>
+            // Warning IE 6-8 users that the site won't display properly.
+            // Don't use jQuery since 1.9 doesn't load in < IE9.
+            var body = document.getElementsByTagName('body')[0];
+            var div = document.createElement('div');
+            div.className = 'browser_warning';
+            div.innerHTML = 'Your browser can not display this site properly. Please upgrade to IE 9+, <a href="https://google.com/chrome">Chrome</a> or <a href="http://mozilla.org/firefox">Firefox</a>.';
+            body.insertBefore(div,body.firstChild);
+            oldIE = true;
+        </script>
+        <![endif]-->
+        <script src="/js/app.js"></script>
+        <script>
+            $(function() {
+                App.initialize({
+                    exportedRoutes: {{json exportedRoutes}},
+                    statusCode: {{__status_code__}}
+                });
+            });
+        </script>
+    </body>
+</html>

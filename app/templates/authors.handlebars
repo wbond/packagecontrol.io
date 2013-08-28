@@ -1,0 +1,17 @@
+{{title "Authors"}}
+
+<a class="context" href="{{url "browse"}}">Browse</a>
+
+<h1>Authors</h1>
+
+{{#split authors 3}}
+    <ul class="authors">
+        {{#each this}}
+            <li class="author">
+                <h3><em>{{packages}}</em> <a href="{{url "author" name=name}}">{{name}}</a></h3>
+            </li>
+        {{/each}}
+    </ul>
+{{/split}}
+
+{{>pagination}}

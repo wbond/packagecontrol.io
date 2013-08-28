@@ -1,0 +1,29 @@
+{{title "New Packages"}}
+
+<a class="context" href="{{url "browse"}}">Browse</a>
+<h1>
+    New
+    <a class="rss" href="/browse/new/rss" title="RSS feed of new packages"><i class="icon-rss"></i></a>
+</h1>
+
+
+<div class="results">
+    <ul class="packages results">
+        {{#each packages}}
+            <li class="package">
+                <h3><a href="{{url "package" name=name}}">{{name}}</a></h3>
+
+                {{>package_author}}
+                {{>package_compat}}
+                <span class="meta">
+                    {{>package_missing_deprecated}}
+                    {{>package_trending}}
+                    {{>package_top}}
+                    {{>package_installs}}
+                </span>
+                <div class="description">{{description}}</div>
+            </li>
+        {{/each}}
+    </ul>
+    {{>pagination}}
+</div>

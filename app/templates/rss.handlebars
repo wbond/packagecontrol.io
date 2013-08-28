@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Newest Sublime Text Packages</title>
+        <description>The 25 newest additions to the default Package Control channel</description>
+        <language>en-us</language>
+        <copyright>Copyright {{year}}, Will Bond</copyright>
+        <link>https://sublime.wbond.net</link>
+        {{#each packages}}
+            <item>
+                <title>{{name}}</title>
+                <author>{{author}}</author>
+                <description>{{description}}</description>
+                <pubDate>{{first_seen}}</pubDate>
+                <link>https://sublime.wbond.net{{url "package" name=name}}</link>
+                <guid>{{md5}}</guid>
+            </item> 
+        {{/each}}
+    </channel>
+</rss>

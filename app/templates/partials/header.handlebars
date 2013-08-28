@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>Package Control</title>
+        {{#eq __env__ "prod"}}
+            <script>
+            var oldIE = false;
+            var _rollbarParams = {
+              "server.environment": "{{__rollbar_env__}}",
+              checkIgnore: function(errMsg, url, lineNo) {
+                // Don't cloud the error logs with extension errors
+                var badSource = url.search(window.location.origin) == -1;
+                var adBlocker = errMsg.search("Property 'scrollTo' of object [object global] is not a function") != -1;
+                var extension = errMsg.search("Error connecting to extension") != -1;
+                if (badSource || adBlocker || extension || oldIE) {
+                    return true;
+                }
+                return false;
+              }
+            };
+            _rollbarParams["notifier.snippet_version"] = "2"; var _rollbar=["{{__rollbar_client_key__}}", _rollbarParams]; var _ratchet=_rollbar;
+            (function(w,d){w.onerror=function(e,u,l){_rollbar.push({_t:'uncaught',e:e,u:u,l:l});};var i=function(){var s=d.createElement("script");var 
+            f=d.getElementsByTagName("script")[0];s.src="//d37gvrvc0wt4s1.cloudfront.net/js/1/rollbar.min.js";s.async=!0;
+            f.parentNode.insertBefore(s,f);};if(w.addEventListener){w.addEventListener("load",i,!1);}else{w.attachEvent("onload",i);}})(window,document);
+            </script>
+        {{/eq}}
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600|Open+Sans+Condensed:300,600&amp;v2" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="/css/app.css" type="text/css" media="all" />
+        <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+        <meta name="viewport" content="width=380" id="meta-viewport" />
+        <script>
+        window.onload = function() {
+            if (screen.width < 740) { return; } // Make phones use 380
+            document.getElementById('meta-viewport').setAttribute('content','width=device-width');
+        }
+        </script>
+        <script type="text/javascript">
+          var _gaq = _gaq || [];
+          _gaq.push(['_setAccount', 'UA-688035-1']);
+          _gaq.push(['_setDomainName', 'wbond.net']);
+          _gaq.push(['_trackPageview']);
+          (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+          })();
+        </script>
+    </head>
+    <body class="{{__template__}}">
+        <header>
+            <section>
+                <div>
+                    <a id="logo" href="/"><img src="/img/logo.svg" width="572" height="102"></a>
+                    <nav>
+                        <a href="{{url "installation"}}">Installation</a>
+                        <a href="{{url "browse"}}">Browse</a>
+                        <a href="{{url "search_blank"}}">Search</a>
+                        <a href="{{url "docs"}}">Docs</a>
+                        <a href="{{url "news"}}">News</a>
+                        <a href="{{url "stats"}}">Stats</a>
+                        <a href="{{url "say_thanks"}}">Say Thanks</a>
+                        <span class="loading"></span>
+                    </nav>
+                </div>
+            </section>
+        </header>
+        <div id="torso">

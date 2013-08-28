@@ -1,0 +1,17 @@
+{{title "Labels"}}
+
+<a class="context" href="{{url "browse"}}">Browse</a>
+
+<h1>Labels</h1>
+
+{{#split labels 3}}
+    <ul class="labels">
+        {{#each this}}
+            <li class="label">
+                <h3><em>{{packages}}</em> <a href="{{url "label" name=name}}">{{name}}</a></h3>
+            </li>
+        {{/each}}
+    </ul>
+{{/split}}
+
+{{>pagination}}

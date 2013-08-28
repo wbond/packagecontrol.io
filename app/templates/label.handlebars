@@ -1,0 +1,20 @@
+{{title name "Labels"}}
+<a class="context" href="{{url "labels"}}">Labels</a>
+
+<h1>{{name}}</h1>
+
+<ul class="packages">
+    {{#each packages}}
+        <li class="package">
+            <h3><a href="{{url "package" name=name}}">{{name}}</a></h3>
+
+            {{>package_author}}
+            {{>package_compat}}
+            <span class="meta">
+                {{>package_badges}}
+                {{>package_installs}}
+            </span>
+            <div class="description">{{description}}</div>
+        </li>
+    {{/each}}
+</ul>

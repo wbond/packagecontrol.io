@@ -1,0 +1,59 @@
+<div class="highlights">
+    <div class="section trending">
+        <h2><a href="{{url "trending"}}">Trending <i class="icon-chevron-sign-up"></i></a></h2>
+        <p>A recent, relative, increase in installs</p>
+        <ul>
+            {{#each trending}}
+            <li>
+                <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+                {{>minimal_platforms}}
+                {{>minimal_new}}
+                {{>minimal_top}}
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+
+    <div class="section new">
+        <h2><a href="{{url "new"}}">New <i class="icon-leaf"></i></a></h2>
+        <p>Just added to Package Control</p>
+        <ul>
+            {{#each new}}
+            <li>
+                <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+                {{>minimal_platforms}}
+                {{>minimal_trending}}
+                {{>minimal_top}}
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+
+    <div class="section popular">
+        <h2><a href="{{url "popular"}}">Popular <i class="icon-certificate"></i></a></h2>
+        <p>Randomly selected from the top 100</p>
+        <ul>
+            {{#each top}}
+            <li>
+                <a href="{{url "package" name=name}}">{{word_wrap name}}</a>
+                {{>minimal_platforms}}
+                {{>minimal_new}}
+                {{>minimal_trending}}
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+
+    <div class="section labels">
+        <h2><a href="{{url "labels"}}">Labels <i class="icon-tag"></i></a></h2>
+        <p>Labels with the biggest selection</p>
+        <ul>
+            {{#each labels}}
+            <li>
+                <a href="{{url "label" name=name}}">{{word_wrap name}}</a>
+                <span class="package_count">{{packages}}</span>
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+</div>

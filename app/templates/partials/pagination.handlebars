@@ -1,0 +1,7 @@
+{{#if links}}
+    <nav class="pagination">
+        {{#each links}}
+            <a href="{{href}}"{{#if selected}} class="selected"{{/if}}>{{number}}</a>
+        {{/each}}
+    </nav>
+{{/if}}
