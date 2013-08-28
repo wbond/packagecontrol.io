@@ -1,0 +1,75 @@
+<title>Installation</title>
+<h1>Installation</h1>
+
+<section class="simple">
+    <h2 id="Simple">Simple</h2>
+
+    <p class="security_notice">
+        <strong>Security Notice:</strong>
+        The Python code used by this method does not use SSL because Sublime
+        Text on Linux does not have the ssl module. Additionally, for Windows
+        and OS X it is not possible for a simple snippet of code like this to
+        validate the SSL certificate for <em>sublime.wbond.net</em>. For a
+        more secure installation method,
+        follow the <a href="#Manual">manual instructions</a>.
+    </p>
+
+    <p>
+        The simplest method of installation is through the Sublime Text console. The console
+        is accessed via the <kbd>ctrl<em>+</em>`</kbd> shortcut or the <span class="menu">View <em>&gt;</em> Show Console</span> menu. Once open, paste the
+        appropriate Python code for your version of Sublime Text into the console.
+    </p>
+
+    <div class="python">
+        <a href="#" class="active tab st3">Sublime Text 3</a>
+        <p class="code st3">
+            <code>
+                import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())
+            </code>
+        </p>
+        <a href="#st2" class="tab st2">Sublime Text 2</a>
+        <p class="code st2">
+            <code>
+                import urllib2,os; pf='Package Control.sublime-package'; ipp = sublime.installed_packages_path(); os.makedirs( ipp ) if not os.path.exists(ipp) else None; urllib2.install_opener( urllib2.build_opener( urllib2.ProxyHandler( ))); open( os.path.join( ipp, pf), 'wb' ).write( urllib2.urlopen( 'http://sublime.wbond.net/' +pf.replace( ' ','%20' )).read()); print( 'Please restart Sublime Text to finish installation')
+            </code>
+        </p>
+    </div>
+
+    <p>
+        This code creates the Installed Packages folder for you (if necessary),
+        and then downloads the <tt>Package Control.sublime-package</tt> into it.
+    </p>
+</section>
+
+<section class="manual">
+    <h2 id="Manual">Manual</h2>
+
+    <p>
+        If for some reason the console installation instructions do not work
+        for you (such as having a proxy on your network), perform the following
+        steps to manually install Package Control:
+    </p>
+
+    <ol>
+        <li>
+            Click the <span class="menu">Preferences <em>&gt;</em> Browse Packages…</span>
+            menu
+        </li>
+        <li>
+            Browse up a folder and then into the <tt>Installed Packages/</tt>
+            folder
+        </li>
+        <li>
+            Download <tt><a href="/Package%20Control.sublime-package">Package Control.sublime-package</a></tt>
+            and copy it into the <tt>Installed Packages/</tt> directory
+        </li>
+        <li>
+            Restart Sublime Text
+        </li>
+    </ol>
+</section>
+
+<a class="action" href="/docs/usage">
+    Usage Instructions
+    <i class="icon-caret-right"></i>
+</a>

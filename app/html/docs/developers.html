@@ -1,0 +1,179 @@
+<title>Developers</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Developers</h1>
+
+<h2>Submitting a New Package</h2>
+
+<p>
+    One of the biggest reasons developers love Sublime Text is because of the
+    package ecosystem that has developed. Package Control not only helps to
+    make installing packages easier, but also has the goal of indexing all
+    of the available pacakges.
+</p>
+
+<p>
+    If you’ve taken the time to develop a package, please consider added it to
+    the default Package Control channel so users can easily install and keep
+    your package up-to-date.
+</p>
+
+<h3>Instructions</h3>
+<ol class="submit_package">
+	<li>
+		<p>
+			<strong>Host your plugin in its own repository on GitHub or BitBucket.</strong><br />
+			Only include a single plugin, and have the plugin files in the root of
+			the repo.
+		</p>
+	</li>
+	<li>
+		<p>
+			<strong>Do not include <tt>package-metadata.json</tt> in your
+			repository.</strong><br >
+			This file is created on each client machine to track what version of a package is installed. To customize the description of your package, do so using the description field on GitHub or
+			BitBucket. Versioning will be controlled by creating tags in Git
+			or Hg.
+		</p>
+	</li>
+	<li>
+		<strong>Fork the <a href="https://github.com/wbond/package_control_channel">Package Control Channel</a></strong>
+	</li>
+	<li>
+		<p>
+			<strong>Add your package info to the appropriate JSON file
+			in the <em>repository/</em> folder.</strong>
+		</p>
+		<p>
+			Your addition should look like the following, just with your own
+			user and repository names:
+		</p>
+		<pre>{
+	"name": "Alignment",
+	"details": "https://github.com/wbond/sublime_alignment",
+	"releases": [
+		{
+			"details": "https://github.com/wbond/sublime_alignment/tags"
+		}
+	]
+}</pre>
+		<p>
+			A new version of your package will be released whenever you create
+			a new tag in the form <tt>#.#.#</tt>, e.g. <tt>1.3.9</tt>. See
+			<a href="http://semver.org">SemVer.org</a> for full details on valid version numbers.
+		</p>
+		<p>
+			For full documentation of all available options, please see the
+			<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a> file.
+		</p>
+
+	</li>
+	<li>
+		<p id="Remove_Sublime">
+			<strong>If your package contains the word <em>Sublime</em>
+			in it, consider using the <tt>"name"</tt> field to remove <em>Sublime</em> for the sake of reducing noise.</strong><br>
+			Having a giant list of packages for Sublime Text that all use
+			<tt>Sublime</tt> in their name gets annoying.
+		</p>
+	</li>
+	<li>
+		<strong>Send a pull request</strong>
+	</li>
+</ol>
+
+
+<h2 id="Channels_and_Repositories">Channels and Repositories</h2>
+
+<p>
+	Channels are JSON files hosted on a URL that contains a list of
+	repository URLs. See <a href="https://raw.github.com/wbond/sublime_package_control/master/example-channel.json">example-channel.json</a> for the format. When a user
+	requests to install a package, their channels are queried for a list of
+	repositories.
+</p>
+<p>
+	By default, a single channel is included with
+	Package Control, <a href="https://sublime.wbond.net/channel.json">https://sublime.wbond.net/channel.json</a>.
+	The only reason to create another channel is if you want to create
+	a private distribution for a closed group of people.
+</p>
+
+<p>
+	Repositories are JSON files hosted on a URL that contain a list of packages.
+	See <a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a> for the format. The
+	JSON structure allows for
+	specifying platforms (windows, osx, linux), compatible versions of Sublime
+	Text, labels, URLs and more.
+</p>
+
+<h2 id="Editing_Packages">Editing Packages</h2>
+
+<p>
+	Please be aware that by default, Package Control will automatically
+	upgrade all packages every time the editor is started. If you are
+	editing a package that anyone other than yourself is committing to, you
+	should use Git or Hg to initially clone the repository instead of
+	using the <em>Install Package</em> command.
+</p>
+
+<p>
+	If you clone a repository, Package Control will use the VCS to
+	pull down and merge updates, insteading of overwriting your edits with
+	the latest version. The exact commands that are used to pull down
+	and merge changes can be configured via the settings.
+</p>
+
+<h3>Backups</h3>
+
+<p>
+	If you do ever find yourself in a situation where your edits to a
+	package were overwritten by Package Control, you can find a backup
+	copy in the <em>Backup</em> folder. This folder can be located by
+	selecting the <em>Preferences &gt; Browse Packages…</em> menu and
+	then browsing up a folder. Backups are stored in timestamped folders.
+</p>
+
+<h2 id="Installation_and_Upgrade_Messages">Installation and Upgrade Messages</h2>
+
+<p>
+	When creating a package, it is possible to show users a message when
+	the package is installed, and also after upgrades. To do this a
+	file named <em>messages.json</em> must be included in the root
+	directory of the package. The <em><a href="https://raw.github.com/wbond/sublime_package_control/master/example-messages.json">example-messages.json</a></em> file shows
+	the proper structure of the json. Each value will be a file path that
+	is relative to the package directory. Each key will either be the
+	string <em>install</em> or a version number.
+</p>
+
+<p>
+	When a package is installed, if the key <em>install</em> is present
+	in the <em>messages.json</em> file, the value will be used as the
+	file path to a txt file containing a message to display the users.
+</p>
+
+<p>
+	When a package is upgraded, Package Control looks through each key
+	in the <em>messages.json</em> file and shows the content of the
+	text file that is a value of any key that is higher than the previous
+	version of the package the user has installed. Thus if the user
+	had version <em>1.1.0</em> installed, the txt files for <em>1.2.0</em>
+	and <em>1.1.1</em> would be shown. If the user had version
+	<em>1.1.1</em> installed, only the messages for version <em>1.2.0</em>
+	would be shown.
+</p>
+
+<h2 id="Creating_a_Package_File">Creating a Package File</h2>
+
+<p>
+	If you are developing a package, and plan on doing custom repository
+	hosting instead of using GitHub or BitBucket, Package Control includes
+	a command to
+	create a <tt>.sublime-package</tt> file for you from one of your package
+	directories.
+</p>
+<p>
+	Run the <em>Create Package</em> command and you can select what
+	package you would like to create a package file for. The packager
+	exlcudes various VCS metadata, Sublime Text cache files and
+	<tt>.pyc</tt> files by default. The list
+	of excluded files can be tweaking through the settings.
+</p>

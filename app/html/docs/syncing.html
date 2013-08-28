@@ -1,0 +1,233 @@
+<title>Syncing</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Syncing</h1>
+
+<p>
+    To properly sync your installed packages across different machines, you
+    actually do <strong>not</strong> want to sync the whole <tt>Packages/</tt>
+    and <tt>Installed Packages/</tt> folders. The reason for this is that
+    some packages have different versions for different operating systems. By
+    syncing the actual package contents across operating systems, you will
+    possibly run into broken packages.
+</p>
+
+<p>
+    The proper solution is to sync only the <tt>Packages/User/</tt> folder.
+    This folder contains the <tt>Package Control.sublime-settings</tt> file,
+    which includes a list of all installed packages. If this file is copied to
+    another machine, the next time Sublime Text is started, Package Control
+    will install the correct version of any missing packages.
+</p>
+
+<h2 id="git">Using Git</h2>
+
+<p>
+    Many developers are familiar with Git, and it is a logical choice for
+    keeping files in sync across machines if you don't mind a little manual
+    work. THere are a few things to keep in consideration when using Git:
+</p>
+
+<ul>
+    <li>
+        If you use a service like GitHub and do not use a private repository,
+        you may accidentally share license keys for any commercial packages
+        you have purchased.
+    </li>
+    <li>
+        <p>
+            Certain files and folders in the <tt>Packages/User/</tt> folder
+            change regularly, so you may want to add them to a
+            <tt>.gitignore</tt> file. There is really no harm in syncing these,
+            however some of them change on an hourly basis, which may result
+            in having to run more Git commands.
+            Examples include:
+        </p>
+        <ul>
+            <li><tt>Package Control.last-run</tt></li>
+            <li><tt>Package Control.ca-list</tt></li>
+            <li><tt>Package Control.ca-bundle</tt></li>
+            <li><tt>Package Control.system-ca-bundle</tt></li>
+            <li><tt>Package Control.cache/</tt></li>
+            <li><tt>Package Control.ca-certs/</tt></li>
+        </ul>
+    </li>
+</ul>
+
+<h2 id="dropbox">Using Dropbox</h2>
+
+<p>
+    Dropbox is another popular choice for syncing settings. It has the benefit
+    of automatically syncing files and not having to worry about privacy. In
+    order to use this properly, symlinks must be set up via the command line.
+    The following instructions should provide some guidance.
+</p>
+
+<ul>
+    <li><a href="#dropbox-windows">Windows instructions</a></li>
+    <li><a href="#dropbox-osx">OS X instructions</a></li>
+    <li><a href="#dropbox-linux">Linux instructions</a></li>
+</ul>
+
+<h3 id="dropbox-windows">Windows</h3>
+
+<p>
+    These instructions work for Windows Vista and newer, but unfortunately do
+    not work for Windows XP. If your Dropbox folder is not in the default
+    location, you'll need to change <code>$env:userprofile\Dropbox</code> to
+    your location.
+</p>
+
+<ol>
+    <li>Close Sublime Text</li>
+    <li>Open PowerShell by right-clicking and selecting <em>Run as administrator</em></li>
+</ol>
+
+<h4>First Machine</h4>
+
+<p>
+    On your first machine, use the following instructions.
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd "$env:appdata\Sublime Text 3\Packages\"
+mkdir $env:userprofile\Dropbox\Sublime
+mv User $env:userprofile\Dropbox\Sublime\
+cmd /c mklink /D User $env:userprofile\Dropbox\Sublime\User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd "$env:appdata\Sublime Text 2\Packages\"
+mkdir $env:userprofile\Dropbox\Sublime
+mv User $env:userprofile\Dropbox\Sublime\
+cmd /c mklink /D User $env:userprofile\Dropbox\Sublime\User
+</pre>
+</div>
+
+<h4>Other Machine(s)</h4>
+
+<p>
+    On your other machine(s), use the following instructions. <strong>These
+    instructions will remove your <em>User/</em> folder and all contents!</strong>
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd "$env:appdata\Sublime Text 3\Packages\"
+rmdir -recurse User
+cmd /c mklink /D User $env:userprofile\Dropbox\Sublime\User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd "$env:appdata\Sublime Text 2\Packages\"
+rmdir -recurse User
+cmd /c mklink /D User $env:userprofile\Dropbox\Sublime\User
+</pre>
+</div>
+
+
+<h3 id="dropbox-osx">OS X</h3>
+
+<p>
+    If your Dropbox folder is not in the default location, you'll need to
+    change <code>~/Dropbox</code> to your location.
+</p>
+
+<ol>
+    <li>Close Sublime Text</li>
+    <li>Open Terminal</li>
+</ol>
+
+<h4>First Machine</h4>
+
+<p>
+    On your first machine, use the following instructions.
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd ~/Library/Application\ Support/Sublime\ Text 3/Packages/
+mkdir ~/Dropbox/Sublime
+mv User ~/Dropbox/Sublime/
+ln -s ~/Dropbox/Sublime/User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd ~/Library/Application\ Support/Sublime\ Text 2/Packages/
+mkdir ~/Dropbox/Sublime
+mv User ~/Dropbox/Sublime/
+ln -s ~/Dropbox/Sublime/User
+</pre>
+</div>
+
+<h4>Other Machine(s)</h4>
+
+<p>
+    On your other machine(s), use the following instructions. <strong>These
+    instructions will remove your <em>User/</em> folder and all contents!</strong>
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd ~/Library/Application\ Support/Sublime\ Text 3/Packages/
+rm -r User
+ln -s ~/Dropbox/Sublime/User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd ~/Library/Application\ Support/Sublime\ Text 2/Packages/
+rm -r User
+ln -s ~/Dropbox/Sublime/User
+</pre>
+</div>
+
+
+<h3 id="dropbox-linux">Linux</h3>
+
+<p>
+    If your Dropbox folder is not in the default location, you'll need to
+    change <code>~/Dropbox</code> to your location.
+</p>
+
+<ol>
+    <li>Close Sublime Text</li>
+    <li>Open Terminal</li>
+</ol>
+
+<h4>First Machine</h4>
+
+<p>
+    On your first machine, use the following instructions.
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd ~/.config/sublime-text-3/Packages/
+mkdir ~/Dropbox/Sublime
+mv User ~/Dropbox/Sublime/
+ln -s ~/Dropbox/Sublime/User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd ~/.config/sublime-text-2/Packages/
+mkdir ~/Dropbox/Sublime
+mv User ~/Dropbox/Sublime/
+ln -s ~/Dropbox/Sublime/User
+</pre>
+</div>
+
+<h4>Other Machine(s)</h4>
+
+<p>
+    On your other machine(s), use the following instructions. <strong>These
+    instructions will remove your <em>User/</em> folder and all contents!</strong>
+</p>
+
+<div class="terminal">
+    <a href="#" class="active tab st3">Sublime Text 3</a>
+    <pre class="st3">cd ~/.config/sublime-text-3/Packages/
+rm -r User
+ln -s ~/Dropbox/Sublime/User
+</pre>
+    <a href="#st2" class="tab st2">Sublime Text 2</a>
+    <pre class="st2">cd ~/.config/sublime-text-2/Packages/
+rm -r User
+ln -s ~/Dropbox/Sublime/User
+</pre>
+</div>

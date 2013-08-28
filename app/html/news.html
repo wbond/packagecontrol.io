@@ -1,0 +1,281 @@
+<title>News</title>
+<h1>News</h1>
+
+<h2 id="2013-08-23-Syncing_Documentation">Syncing Documentation</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">9:00am</span>
+    on <span class="date">Friday, August 23rd, 2013</span>
+</p>
+
+<p>
+    There are quite a number of guides online that will help you set up your
+    machines so that your Sublime Text packages and settings are copied from
+    one computer to another. Unfortunately most of these guides do not take
+    into consideration the fact that some packages have different versions for
+    different operating systems.
+</p>
+
+<p>
+    This morning I've added a new page to the <a href="/docs">Docs section</a>
+    titled <a href="/docs/syncing">Syncing</a>. It explains the potential
+    issues with syncing packages and has some guidance for using Git and
+    Dropbox. Please let me know if you have any improvements for this,
+    or any of the other documentation by filling out a
+    <a href="https://github.com/wbond/sublime_package_control/issues">GitHub issue</a>.
+</p>
+
+<h2 id="2013-08-09-Inspiring_Generosity">Inspiring Generosity, Gittip Style</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">3:00pm</span>
+    on <span class="date">Friday, August 9th, 2013</span>
+</p>
+
+<p>
+    As part of the new site launch and the expanded package detail pages, I
+    wanted to start an experiment with making supporting package developers
+    even easier. Now granted, the part I'm playing in the process is rather
+    small since I am just providing links for each author. The real work that
+    makes this possible is <a href="https://www.gittip.com">Gittip</a>, founded
+    by <a href="https://www.gittip.com/whit537/">Chad Whitacre</a>.
+</p>
+
+<p>
+    I was excited a few weeks ago to see the attention Gittip received when
+    <a href="http://ejohn.org/blog/gittip-at-khan-academy/">John Resig announced</a> the Khan Academy has started giving their developers
+    $5 a week to say thank you to the open source developers who make their
+    work possible.
+</p>
+
+<p>
+    My hope is that through exposing the work of the over 1,000 developers
+    who maintain various packages for Sublime Text, we can encourage each other
+    to say “thank you!”
+</p>
+
+<p>
+    In case you’ve never checked it out, Gittip offers weekly donation amounts
+    as small as $0.25. This may seen inconsequential, however if only 100 users
+    tip $0.25 a week, the developer can recieve $25. Considering there are
+    tens of thousands of users of some of the more popular packages, it should
+    be possible for these small donations to make a big impact and encourage
+    future open source work.
+</p>
+
+<p>
+    In closing I wanted to highlight some of the work a few contributors to
+    Package Control have been doing over the past months. These developers have
+    spent their time reviewing and giving feedback to fellow package developers
+    as they merge pull requests into the default channel:
+</p>
+
+<ul>
+    <li>
+        FichteFoll
+        <a href="https://github.com/FichteFoll">GitHub</a>,
+        <a href="https://www.gittip.com/FichteFoll/">Gittip</a>
+    </li>
+    <li>
+        joneshf
+        <a href="https://github.com/joneshf">GitHub</a>,
+        <a href="https://www.gittip.com/on/github/joneshf/">Gittip</a>
+    </li>
+    <li>
+        sentience
+        <a href="https://github.com/sentience">GitHub</a>,
+        <a href="https://www.gittip.com/on/github/sentience/">Gittip</a>
+    </li>
+</ul>
+
+
+<h2 id="2013-08-09-New_Website">New Package Control Website</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">2:32pm</span>
+    on <span class="date">Friday, August 9th, 2013</span>
+</p>
+
+<p>
+    The old Community Packages list that was hosted on my website was admittedly
+    a quick and dirty hack to make it easier for users to try and find packages.
+    I have always known there were many usability issues and tons of room for
+    improvement.
+</p>
+
+<p>
+    When the first alpha of Sublime Text 3 was announced, I knew there was
+    quite a bit of work ahead of me to adapt the architecture to support
+    multiple versions of Sublime Text. I also saw this as the opportunity to
+    converge the codebase from python (for Package Control) and PHP (for the
+    old Community Packages list) to a single re-usable library.
+</p>
+
+<p>
+    Along the way of pursuing that goal, I vastly expanded the information that
+    can be provided by the channel system. This information helps greatly
+    enhance the new Package Control site to include in-depth information about
+    every package.
+</p>
+
+<p>
+    I am sure many of you have already poked around a bit, but here are some
+    highlights of the new site:
+</p>
+
+<ul>
+    <li>
+        <p>
+            A detail page for every package, including the usual info, plus:
+        </p>
+        <ul>
+            <li>Installs graph for the past month, with toggles per platform</li>
+            <li>Links to the bug tracker and a donation page</li>
+            <li>Inline readme content to learn more about the package</li>
+        </ul>
+    </li>
+    <li>
+        HTML content on initial page load with JSON-powered pushState architecture
+        for all subsequent requests, leading to a more fluid browsing experience
+    </li>
+    <li>
+        JSON versions of all data accessible by appending <tt>.json</tt> to
+        most URLs
+    </li>
+    <li>
+        Responsive design that allows for easy browsing on
+        desktop, tablet and phone
+    </li>
+    <li>
+        Retina-friendly design with all vector graphics
+    </li>
+    <li>
+        Open source - in the coming days the full website source code will
+        be posted with a permissive license on GitHub for collaboration
+    </li>
+</ul>
+
+<h2 id="2013-08-09-Package_Control_2">Package Control 2.0</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">2:11pm</span>
+    on <span class="date">Friday, August 9th, 2013</span>
+</p>
+
+<p>
+    After many months of waiting, Package Control 2.0 is finally ready.
+    This launch is the culmination of hundreds of commits and includes many new
+    features.
+</p>
+
+<ul>
+    <li>
+        Sublime Text 3 support, including support for different versions of
+        packages for either Sublime Text 2 or Sublime Text 3.
+    </li>
+    <li>
+        The new WinINet downloader on Windows that hooks into the OS subsystem
+        for downloading files from the internet. This vastly improves proxy
+        support and eliminates the need for distributing SSL CA certificates.
+    </li>
+    <li>
+        Updated downloaders for OS X and Linux that utilize the operating
+        systems’ SSL CA cert bundles.
+    </li>
+    <li>
+        Proper package installation in ST3 via <tt>.sublime-package</tt> files.
+        This allows users to override individual files in a package with their
+        own version. <em>Packages that must be unpacked simply need to have a
+        file named <tt>.no-sublime-package</tt> in the root of the package.</em>
+    </li>
+    <li>
+        A completely revamped schema for channel and repositories making it
+        much easier to properly add packages to the channel, easily override
+        package details and provide more information.
+    </li>
+    <li>
+        Support for easy package releases using tags.
+    </li>
+    <li>
+        A labels system for categorizing packages.
+    </li>
+    <li>
+        A migration to semver.org for versioning semantics, along with an
+        option to ignore pre-release package versions.
+    </li>
+    <li>
+        Caching support for HTTP requests, allowing for more custom
+        GitHub-based repositories without hitting the hourly rate limit.
+    </li>
+    <li>
+        Keep-Alive support for the Urllib downloader, making multiple requests
+        to the same server much faster and less error prone.
+    </li>
+    <li>
+        Many, many bug fixes and small user enhancements.
+    </li>
+</ul>
+
+
+<h2 id="2013-08-05-BitBucket_Mirror_Offline">BitBucket Mirror of Channel Offline</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">1:00am</span>
+    on <span class="date">Monday, August 5th, 2013</span>
+</p>
+
+<p>
+    The time has come where I can’t in good conscience keep the BitBucket mirror
+    of the default channel open for pull requests. Due to the sheer number of
+    pull requests that come in we currently have three very regular volunteers
+    reviewing all requests on GitHub. Unfortunately the volume is so low on
+    BitBucket that it tends to be forgotten. Having a repository actively
+    maintained in two version control systems presents other problems when
+    trying to automate maintenance tasks.
+</p>
+<p>
+    While I’ve always strived to provide as much compatibility as possible for
+    my various open source projects, I think the result of shuttering the
+    BitBucket mirror will be net positive. Thanks to the website-based edit
+    functionality of GitHub and the current TravisCI testing setup, package
+    developers who aren’t familiar with git should have no trouble adding
+    entries for their packages.
+</p>
+
+
+<h2 id="2013-07-31-Resetting_Statistics">Resetting Statistics</h2>
+<p class="meta">
+    by <span class="by">wbond</span>
+    at <span class="time">9:30pm</span>
+    on <span class="date">Wednesday, July 31st, 2013</span>
+</p>
+
+<p>
+    Some users may have noticed a brief outage on the default channel server.
+    Just now I took the channel offline to corrent a long-running glitch in
+    package install statistics.
+</p>
+<p>
+    Due to a bug in the script that handled usage submissions from Package
+    Control, all operations including upgrades and removals were being counted
+    as installs. This manifested itself more severly for packages that have
+    had lots of versions. Each time a new version of the package was released
+    and users upgraded, installs and unique installs were incorrectly being
+    increased.
+</p>
+<p>
+    From early in the project I decided to maintain a full history of every
+    usage submission in case information needed to be reconstructed. The brief
+    outage that users experienced was a full wipe of all install statistics
+    and a regeneration of them from the master usage table. Over 35 million
+    submissions were processed and tallied up into new, much more accurate
+    statistics.
+</p>
+<p>
+    The unfortunately downside of this is that many package developers will see
+    a dip in their install numbers. With the upcoming release of Package
+    Control 2.0 and the new website, the source code for recording and
+    displaying all of this information will be open source. Hopefully this will
+    present the opportunity for other developers to both help improve, but also
+    review the codebase to help catch such mistakes sooner.
+</p>

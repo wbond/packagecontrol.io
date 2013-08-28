@@ -1,0 +1,124 @@
+<title>Usage</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Usage</h1>
+
+<section class="primary">
+    <h2>Basic Functionality</h2>
+
+    <p>
+        Package Control is driven by the Command Pallete. To open the pallete,
+        press <kbd>ctrl<em>+</em>shift<em>+</em>p</kbd> (Win, Linux) or
+        <kbd>cmd<em>+</em>shift<em>+</em>p</kbd>
+        (OS X). All Package Control commands begin with <tt>Package
+        Control:</tt>, so start by typing <kbd>Package</kbd>.
+    </p>
+    <p>
+        The command pallete will now show a number of commands. Most users
+        will be interested in the following:
+    </p>
+
+    <dl>
+        <dt>Install Package</dt>
+        <dd>
+            Show a list of all available packages that are available for install.
+            This will include all of the packages from the <a href="/browse">default channel</a>, plus
+            any from repositories you have added.
+        </dd>
+        <dt>Add Repository</dt>
+        <dd>
+            Add a repository that is not included in the default channel.
+            <em>This allows users to install and automatically update
+            packages from GitHub and BitBucket.</em> To add a package
+            hosted on GitHub, enter the URL in the form
+            <tt>https://github.com/username/repo</tt>. Don’t include
+            <tt>.git</tt> at the end! BitBucket repositories should use the
+            format <tt>https://bitbucket.org/username/repository</tt>.
+        </dd>
+        <dt>Remove Package</dt>
+        <dd>
+            This removes the package folder, and the package name from the
+            <tt>installed_packages</tt> list in
+            <tt>Packages/User/Package Control.sublime-settings</tt>. The
+            <tt>installed_packages</tt> list allow Package Control to automatically
+            install packages for you if you copy your <tt>Packages/User/</tt>
+            folder to another machine.
+        </dd>
+    </dl>
+    <p>
+        By default Package Control checks for new versions on startup. This
+        setting, plus the list of channels and repositories are managed through
+        the <a href="/settings">Settings</a>.
+    </p>
+</section>
+
+<section class="other">
+    <h2>
+        Other Commands
+    </h2>
+    <dl>
+        <dt>Add Channel</dt>
+        <dd>
+            Adds another channel that lists repositories. This is uncommon,
+            but allows users to create a custom channel of repositories to share.
+        </dd>
+        <dt>Create Package File</dt>
+        <dd>
+            For package developers. Takes a package folder and generates a
+            <tt>.sublime-package</tt> file that can be uploaded onto the web and
+            referenced in the <tt>packages.json</tt> file for a repository.
+        </dd>
+        <dt>Create Binary Package File</dt>
+        <dd>
+            For package developers. Creates a <tt>.sublime-package</tt> file that does not include
+            the source <tt>.py</tt> files, but instead the <tt>.pyc</tt> bytecode
+            files. This is useful to distribute commercial packages. Be sure
+            to check the resulting <tt>.sublime-package</tt> file to ensure that
+            at least one <tt>.py</tt> file is included so that Sublime Text will
+            load the package.
+        </dd>
+        <dt>Disable Package</dt>
+        <dd>
+            Disables a package, which causes any Python scripts to be unloaded,
+            and other files such as <tt>.sublime-keymap</tt> files to be
+            unloaded also.
+        </dd>
+        <dt>Discover Packages</dt>
+        <dd>
+            Opens up a web browser to <a href="/browse">Browse</a>.
+        </dd>
+        <dt>Enable Package</dt>
+        <dd>
+            Re-enables a package that has been disabled.
+        </dd>
+        <dt>Upgrade/Overwrite All Packages</dt>
+        <dd>
+            This will upgrade <strong>ALL</strong> packages, including ones
+            that were not installed via Package Control. If you are developing
+            a custom copy of a package, you may not want to use this command.
+        </dd>
+        <dt>Upgrade Package</dt>
+        <dd>
+            Show a list of packages that are available for upgrade and let the
+            user pick which they would like to update.
+        </dd>
+        <dt>Package Control Settings – Default</dt>
+        <dd>
+            Open the default settings file, which can be used as a reference
+            for changing the User settings. <em>Any changes to this file will
+            be lost whenever Package Control is automatically or manually
+            upgraded.</em>
+        </dd>
+        <dt>Package Control Settings – User</dt>
+        <dd>
+            Opens the user’s settings for Package Control. Any settings changes
+            should be saved here so they are not overwritten when a new version
+            of Package Control is released.
+        </dd>
+    </dl>
+</section>
+
+<a class="action" href="/browse">
+    Browse Packages
+    <i class="icon-caret-right"></i>
+</a>

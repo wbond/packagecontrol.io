@@ -1,0 +1,322 @@
+<title>Settings</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Settings</h1>
+
+<p>
+    The default settings can be viewed by accessing the <span class="menu">Preferences
+    <em>&gt;</em> Package Settings <em>&gt;</em> Package Control <em>&gt;</em> Settings – Default</span>
+    menu. To ensure settings are not lost when the package is upgraded,
+    make sure all edits are saved to <span class="menu">Settings – User</span>.
+</p>
+
+<section class="first">
+    <dl>
+        <dt id="setting-debug">debug</dt>
+        <dd>
+            If set to <tt>true</tt>, will print HTTP headers and other debug
+            information to the Sublime Text console.
+            <div class="default">
+                <em>Default</em> <tt>false</tt>
+            </div>
+        </dd>
+        <dt id="setting-submit_usage">submit_usage</dt>
+        <dd>
+            If installs, upgrades and removals should be logged to the reporting
+            URL. This data will be used to power the community package listing
+            and will be displayed in aggregate only. No user-identifiable
+            information is sent, just the: package name, operation, package
+            version, package control version, sublime version and sublime
+            platform.
+            <div class="default">
+                <em>Default</em> <tt>yes</tt>
+            </div>
+        </dd>
+        <dt id="setting-submit_url">submit_url</dt>
+        <dd>
+            Where the usage information should be sent to.
+            <div class="default">
+                <em>Default</em> <tt>"https://sublime.wbond.net/submit"</tt>
+            </div>
+        </dd>
+        <dt id="setting-installed_packages">installed_packages</dt>
+        <dd>
+            A list of packages that have been installed. Package Control will
+            automatically install any packages in this list that are not
+            currently installed, allowing this to be used for sharing package
+            lists with other users. This setting is only tracked in
+            Settings – User.
+            <div class="default">
+                <em>Default</em> <tt>[]</tt>
+            </div>
+        </dd>
+        <dt id="setting-channels">channels</dt>
+        <dd>
+            A list of URLs that each contain a JSON file with a list of
+            repositories. The repositories from these channels are placed in
+            order after the repositories from the <em>repositories</em> setting.
+            <div class="default">
+                <em>Default</em> <tt>["https://sublime.wbond.net/channel.json"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-repositories">repositories</dt>
+        <dd>
+            A list of URLs that contain a packages JSON file. These repositories
+            are placed in order before repositories from the
+            <em>repository_channels</em> setting.
+            <div class="default">
+                <em>Default</em> <tt>[]</tt>
+            </div>
+        </dd>
+        <dt id="setting-install_prereleases">install_prereleases</dt>
+        <dd>
+            Install pre-release versions of packages. If this is false, versions
+            under 1.0.0 will still be installed. Only packages using the SemVer
+            <tt>-prerelease</tt> suffixes will be ignored.
+            <div class="default">
+                <em>Default</em> <tt>false</tt>
+            </div>
+        </dd>
+        <dt id="setting-package_name_map">package_name_map</dt>
+        <dd>
+            This helps solve naming issues where a repository it not named the
+            same as the package should be. This is primarily only useful for
+            GitHub and BitBucket repositories. This mapping will override the
+            mapping that is retrieved from the repository channels.
+            <div class="default">
+                <em>Default</em> <tt>{}</tt>
+            </div>
+        </dd>
+        <dt id="setting-auto_upgrade">auto_upgrade</dt>
+        <dd>
+            If packages installed via Package Control should be checked for
+            updates when Sublime Text starts. Updates will be automatically
+            installed.
+            <div class="default">
+                <em>Default</em> <tt>true</tt>
+            </div>
+        </dd>
+        <dt id="setting-auto_upgrade_frequency">auto_upgrade_frequency</dt>
+        <dd>
+            The number of hours to wait before trying to auto upgrade
+            packages again.
+            <div class="default">
+                <em>Default</em> <tt>6</tt>
+            </div>
+        </dd>
+        <dt id="setting-auto_upgrade_ignore">auto_upgrade_ignore</dt>
+        <dd>
+            Packages to exclude from the auto upgrade functionality.
+            <div class="default">
+                <em>Default</em> <tt>[]</tt>
+            </div>
+        </dd>
+        <dt id="setting-install_missing">install_missing</dt>
+        <dd>
+            If set to <tt>false</tt>, will not automatically install packages
+            from the <tt>installed_packages</tt> setting that are not present
+            on the current machine. This is really only useful if you don’t
+            want Sublime Text to connect to the internet without explicitly
+            requesting it. In that case you’ll want to set <tt>auto_upgrade</tt>
+            to <tt>false</tt> also.
+            <div class="default">
+                <em>Default</em> <tt>true</tt>
+            </div>
+        </dd>
+        <dt id="setting-timeout">timeout</dt>
+        <dd>
+            The HTTP timeout (in seconds) to use when downloading channels,
+            repositories and packages.
+            <div class="default">
+                <em>Default</em> <tt>30</tt>
+            </div>
+        </dd>
+        <dt id="setting-cache_length">cache_length</dt>
+        <dd>
+            The number of seconds to cache channel and repository metadata for.
+            <div class="default">
+                <em>Default</em> <tt>300</tt>
+            </div>
+        </dd>
+        <dt id="setting-http_cache">http_cache</dt>
+        <dd>
+            If HTTP request responses should be cached.
+            <div class="default">
+                <em>Default</em> <tt>true</tt>
+            </div>
+        </dd>
+        <dt id="setting-http_cache_length">http_cache_length</dt>
+        <dd>
+            Number of seconds to cache HTTP responses for.
+            <div class="default">
+                <em>Default</em> <tt>604800</tt>
+            </div>
+        </dd>
+        <dt id="setting-http_proxy">http_proxy</dt>
+        <dd>
+            The proxy to use for HTTP requests. Should be in the form <tt>domainname:port</tt>
+            or <tt>ip:port</tt>.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-https_proxy">https_proxy</dt>
+        <dd>
+            The proxy to use for HTTPS requests. If <em>http_proxy</em> is set
+            and this settings is not, the value from <em>http_proxy</em> will
+            be used. If set to <tt>false</tt>, then <tt>http_proxy</tt> will
+            not be inherited. Should be in the form <tt>domainname:port</tt>
+            or <tt>ip:port</tt>.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-proxy_username">proxy_username</dt>
+        <dd>
+            The username to use for proxy authentication.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-proxy_password">proxy_password</dt>
+        <dd>
+            The password to use for proxy authentication.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+    </dl>
+</section>
+
+<section class="second">
+    <dl>
+        <dt id="setting-user_agent">user_agent</dt>
+        <dd>
+            The user agent used by the various downloaders.
+            <div class="default">
+                <em>Default</em> <tt>"Sublime Package Control v{version.number}"</tt>
+            </div>
+        </dd>
+        <dt id="setting-git_binary">git_binary</dt>
+        <dd>
+            The path to git, when using a git repository to track a package.
+            When an empty string, Package Control will look in default locations
+            for the current OS.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-git_update_command">git_update_command</dt>
+        <dd>
+            The parameters passed to git to update a package. The remote and
+            branch will be automatically determined.
+            <div class="default">
+                <em>Default</em> <tt>["pull", "--ff", "--commit"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-hg_binary">hg_binary</dt>
+        <dd>
+            The path to hg, when using an hg repository to track a package.
+            When an empty string, Package Control will look in default locations
+            for the current OS.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-hg_update_command">hg_update_command</dt>
+        <dd>
+            The parameters to pass to hg to update a package. Will always pull
+            from the URL named <em>default</em>.
+            <div class="default">
+                <em>Default</em> <tt>["pull", "--update"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-ignore_vcs_packages">ignore_vcs_packages</dt>
+        <dd>
+            If git and hg repositories should be ignored when trying to update
+            packages.
+            <div class="default">
+                <em>Default</em> <tt>false</tt>
+            </div>
+        </dd>
+        <dt id="setting-openssl_binary">openssl_binary</dt>
+        <dd>
+            Only necessary if <tt>openssl</tt> can not be found and the
+            <em>Grab CA Certs</em> command is run.
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-dirs_to_ignore">dirs_to_ignore</dt>
+        <dd>
+            A list of folders to ignore when creating a <tt>.sublime-package</tt>
+            file.
+            <div class="default">
+                <em>Default</em> <tt>[".hg", ".git", ".svn", "_darcs", "CVS"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-files_to_ignore">files_to_ignore</dt>
+        <dd>
+            A list of file glob patterns to ignore when creating a <tt>.sublime-package</tt>
+            file.
+            <div class="default">
+                <em>Default</em> <tt>[".hgignore", ".gitignore", ".bzrignore", "*.pyc", "*.sublime-project", "*.tmTheme.cache"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-package_destination">package_destination</dt>
+        <dd>
+            The folder to copy a newly created package to. Default to the user’s
+            Desktop if blank. Setting this destination to the <em>Installed
+            Packages</em> directory will cause your source code changes to be
+            overwritten when Sublime Text restarts!
+            <div class="default">
+                <em>Default</em> <tt>""</tt>
+            </div>
+        </dd>
+        <dt id="setting-certs">certs</dt>
+        <dd>
+            <p>
+                A list of CA cert information for the purpose of providing a secure
+                way to download packages. A default list is provided with Package
+                Control, but then the default repository channel provides updates
+                to the list. It is also possible to add your own entries for custom
+                download locations, or for supporting your local proxy server.
+            </p>
+            <p>
+                To add your own, be sure to copy the JSON object below and then add
+                your custom entries. The key in the JSON object is the domain the
+                cert applies to. The value is an array with two elements, the first
+                being an identifier for the cert, and the second being a location
+                to copy the cert from. The identifier is used to ensure that Package
+                Control has a copy of the latest version of the cert in its
+                <tt>certs/</tt> folder. The location can be either an absolute file
+                path on your local machine, or a URL to download it from.
+            </p>
+            <p>
+                To create a CA cert that is ensured to be present no matter what
+                domain is being accessed (such as for a proxy server), set the
+                domain name to <tt>*</tt>, like in the example on the next line:
+            </p>
+            <p>
+                <tt>"*": ["my_proxy_cert", "/file/path/to/proxy/ca_certs"]</tt>
+            </p>
+            <p>
+                This ca cert needs to live somewhere on your machine permanently
+                so that it can be re-added to the <tt>ca-bundle.crt</tt> file that
+                is provided with each Package Control upgrade.
+            </p>
+            <div class="default">
+                <em>Default</em>
+                <pre>{
+    "api.bitbucket.org": ["d867a7b2aecc46f9c31afc4f2f50de05", ""],
+    "api.github.com": ["1c5282418e2cb4989cd6beddcdbab0b5", ""],
+    "bitbucket.org": ["897abe0b41fd2f64e9e2e351cbc36d76", ""],
+    "nodeload.github.com": ["1c5282418e2cb4989cd6beddcdbab0b5", ""],
+    "raw.github.com": ["1c5282418e2cb4989cd6beddcdbab0b5", ""],
+    "sublime.wbond.net": ["7f4f8622b4fd001c7f648e09aae7edaa", ""]
+}
+</pre>
+            </div>
+        </dd>
+    </dl>
+</section>
