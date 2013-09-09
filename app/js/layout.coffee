@@ -133,6 +133,10 @@ class App.Layout extends Backbone.View
     document.title = title
 
   handleClick: (e) ->
+    # Allow browser default when a modified is pressed
+    if e.altKey or e.shiftKey or e.ctrlKey or e.metaKey
+      return
+
     link = $(e.target)
     if not link.is('a')
       link = link.closest('a')
