@@ -74,6 +74,8 @@ class _HighlighterRenderer(HtmlRenderer, SmartyPants):
         s = ''
         if not lang:
             lang = 'text'
+        if lang == 'shell':
+            lang = 'bash'
         try:
             lexer = get_lexer_by_name(lang, stripall=True)
         except:
