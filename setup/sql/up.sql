@@ -95,7 +95,7 @@ CREATE TABLE releases (
     version                  varchar       NOT NULL,
     url                      varchar       NOT NULL,
     date                     timestamp     NOT NULL,
-    PRIMARY KEY(package, platforms, sublime_text)
+    PRIMARY KEY(package, platforms, sublime_text, version)
 );
 
 

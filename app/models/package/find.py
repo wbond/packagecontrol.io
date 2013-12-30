@@ -79,14 +79,20 @@ def all():
                 r.sublime_text,
                 r.version,
                 r.url,
-                r.date
+                r.date,
+                CASE
+                    -- Perform the version munging that PC does
+                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
+                        THEN '0.' || version
+                    ELSE version
+                END AS normalized_version
             FROM
                 releases AS r INNER JOIN
                 packages AS p ON r.package = p.name
             ORDER BY
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
-                r.version DESC
+                normalized_version DESC
         """)
         for row in cursor.fetchall():
             output[row['package']]['releases'].append({
