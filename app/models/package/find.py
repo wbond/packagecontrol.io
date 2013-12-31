@@ -79,20 +79,27 @@ def all():
                 r.sublime_text,
                 r.version,
                 r.url,
-                r.date,
-                CASE
-                    -- Perform the version munging that PC does
-                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
-                        THEN '0.' || version
-                    ELSE version
-                END AS normalized_version
+                r.date
             FROM
                 releases AS r INNER JOIN
                 packages AS p ON r.package = p.name
             ORDER BY
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
-                normalized_version DESC
+                -- Sort first by if the version is build, bare or prerelease
+                CASE
+                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                        then -1
+                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                        then 1
+                    ELSE 0
+                END DESC,
+                -- Perform the version munging that PC does for date-based versions
+                CASE
+                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
+                        THEN '0.' || version
+                    ELSE version
+                END DESC
         """)
         for row in cursor.fetchall():
             output[row['package']]['releases'].append({
@@ -144,19 +151,26 @@ def by_name(name):
         # detail page only shows the highest version number
         cursor.execute("""
             SELECT DISTINCT
-                version,
-                CASE
-                    -- Perform the version munging that PC does
-                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
-                        THEN '0.' || version
-                    ELSE version
-                END AS normalized_version
+                version
             FROM
                 releases
             WHERE
                 package = %s
             ORDER BY
-                normalized_version DESC
+                -- Sort first by if the version is build, bare or prerelease
+                CASE
+                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                        then -1
+                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                        then 1
+                    ELSE 0
+                END DESC,
+                -- Perform the version munging that PC does for date-based versions
+                CASE
+                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
+                        THEN '0.' || version
+                    ELSE version
+                END DESC
             LIMIT 1
         """, [name])
         if cursor.rowcount:
