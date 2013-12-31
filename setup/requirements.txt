@@ -2,13 +2,13 @@ Cython==0.19.1
 Markdown==2.3.1
 PyMeta==0.5.0
 PyYAML==3.10
-Pygments=1.6
+Pygments==1.6
 bottle==0.11.6
-distribute==0.6.34
+distribute
 docutils==0.10
 extras==0.0.3
 lxml==3.2.1
-misaka=1.0.2
+misaka==1.0.2
 psycopg2==2.5
 pybars==0.0.5
 python-creole==1.0.6
@@ -18,7 +18,7 @@ redis==2.7.6
 requests==1.2.3
 rollbar==0.5.3
 six==1.3.0
-testtools==snapshot-0.9.30
+testtools
 textile==2.1.7
 pytz==2013b
 dogpile.cache==0.5.0
