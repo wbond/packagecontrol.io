@@ -61,7 +61,8 @@ class Assets(object):
         app_dir = os.path.join(project_dir, 'app')
         public_dir = os.path.join(project_dir, 'public')
 
-        self.gears = Environment(public_dir, public_assets=[self._public_assets])
+        self.gears = Environment(public_dir, public_assets=[self._public_assets],
+            fingerprinting=False, manifest_path=False)
         self.gears.finders.register(ExtFinder([app_dir], ['.coffee', '.scss', '.handlebars']))
 
         self.gears.compilers.register('.scss', SCSSCompiler.as_handler())
