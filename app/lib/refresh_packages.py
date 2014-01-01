@@ -1,5 +1,7 @@
 import re
 import os
+import sys
+import traceback
 
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .package_control.download_manager import downloader, close_all_connections
@@ -79,32 +81,39 @@ def refresh_packages(invalid_sources=None):
 
             provider = provider_cls(repository, settings)
             for name, info in provider.get_packages(invalid_sources):
-                if search and replace:
-                    mapped_sources = []
-                    for source in info['sources']:
-                        mapped_sources.append(source.replace(search, replace))
-                    info['sources'] = mapped_sources
+                try:
+                    if search and replace:
+                        mapped_sources = []
+                        for source in info['sources']:
+                            mapped_sources.append(source.replace(search, replace))
+                        info['sources'] = mapped_sources
 
-                package.modify.mark_found(name)
-                package.modify.store(info)
-                affected_packages.append(name)
+                    package.modify.mark_found(name)
+                    package.modify.store(info)
+                    affected_packages.append(name)
 
-                delete_readme = True
-                if info['readme']:
-                    readme_info = readme_client.readme_info(info['readme'])
-                    if readme_info:
-                        readme_info['url'] = info['readme']
-                        readme_info['rendered_html'] = render(readme_info)
-                        readme_info['package'] = name
-                        readme_info['source'] = readme_info['contents']
-                        del readme_info['contents']
-                        del readme_info['url']
+                    delete_readme = True
+                    if info['readme']:
+                        readme_info = readme_client.readme_info(info['readme'])
+                        if readme_info:
+                            readme_info['url'] = info['readme']
+                            readme_info['rendered_html'] = render(readme_info)
+                            readme_info['package'] = name
+                            readme_info['source'] = readme_info['contents']
+                            del readme_info['contents']
+                            del readme_info['url']
 
-                        delete_readme = False
-                        package.modify.store_readme(readme_info)
+                            delete_readme = False
+                            package.modify.store_readme(readme_info)
 
-                if delete_readme:
-                    package.modify.delete_readme(name)
+                    if delete_readme:
+                        package.modify.delete_readme(name)
+
+                except (Exception) as e:
+                    print('Exception processing package "%s":' % name, file=sys.stderr)
+                    print('-' * 60, file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
+                    print('-' * 60, file=sys.stderr)
 
             for source, exception in provider.get_failed_sources():
                 package.modify.mark_missing(source, clean_url(exception))
