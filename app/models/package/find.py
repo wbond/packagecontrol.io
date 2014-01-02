@@ -88,9 +88,9 @@ def all():
                 LOWER(p.name) ASC,
                 -- Sort first by if the version is build, bare or prerelease
                 CASE
-                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
                         then -1
-                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
                         then 1
                     ELSE 0
                 END DESC,
@@ -151,26 +151,28 @@ def by_name(name):
         # detail page only shows the highest version number
         cursor.execute("""
             SELECT DISTINCT
-                version
-            FROM
-                releases
-            WHERE
-                package = %s
-            ORDER BY
-                -- Sort first by if the version is build, bare or prerelease
-                CASE
-                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
-                        then -1
-                    WHEN name ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
-                        then 1
-                    ELSE 0
-                END DESC,
+                version,
                 -- Perform the version munging that PC does for date-based versions
                 CASE
                     WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
                         THEN '0.' || version
                     ELSE version
-                END DESC
+                END AS normalized_version,
+                -- Sort first by if the version is build, bare or prerelease
+                CASE
+                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                        then -1
+                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                        then 1
+                    ELSE 0
+                END AS semver_order
+            FROM
+                releases
+            WHERE
+                package = %s
+            ORDER BY
+                semver_order DESC,
+                normalized_version DESC
             LIMIT 1
         """, [name])
         if cursor.rowcount:
