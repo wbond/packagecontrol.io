@@ -4,16 +4,6 @@
 <section class="simple">
     <h2 id="Simple">Simple</h2>
 
-    <p class="security_notice">
-        <strong>Security Notice:</strong>
-        The Python code used by this method does not use SSL because Sublime
-        Text on Linux does not have the ssl module. Additionally, for Windows
-        and OS X it is not possible for a simple snippet of code like this to
-        validate the SSL certificate for <em>sublime.wbond.net</em>. For a
-        more secure installation method,
-        follow the <a href="#Manual">manual instructions</a>.
-    </p>
-
     <p>
         The simplest method of installation is through the Sublime Text console. The console
         is accessed via the <kbd>ctrl<em>+</em>`</kbd> shortcut or the <span class="menu">View <em>&gt;</em> Show Console</span> menu. Once open, paste the
@@ -24,13 +14,13 @@
         <a href="#" class="active tab st3">Sublime Text 3</a>
         <p class="code st3">
             <code>
-                import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())
+                import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)
             </code>
         </p>
         <a href="#st2" class="tab st2">Sublime Text 2</a>
         <p class="code st2">
             <code>
-                import urllib2,os; pf='Package Control.sublime-package'; ipp = sublime.installed_packages_path(); os.makedirs( ipp ) if not os.path.exists(ipp) else None; urllib2.install_opener( urllib2.build_opener( urllib2.ProxyHandler( ))); open( os.path.join( ipp, pf), 'wb' ).write( urllib2.urlopen( 'http://sublime.wbond.net/' +pf.replace( ' ','%20' )).read()); print( 'Please restart Sublime Text to finish installation')
+                import urllib2,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); os.makedirs( ipp ) if not os.path.exists(ipp) else None; urllib2.install_opener( urllib2.build_opener( urllib2.ProxyHandler()) ); by = urllib2.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); open( os.path.join( ipp, pf), 'wb' ).write(by) if dh == h else None; print('Error validating download (got %s instead of %s), please try manual install' % (dh, h) if dh != h else 'Please restart Sublime Text to finish installation')
             </code>
         </p>
     </div>
@@ -38,6 +28,14 @@
     <p>
         This code creates the Installed Packages folder for you (if necessary),
         and then downloads the <tt>Package Control.sublime-package</tt> into it.
+        The download will be done over HTTP instead of HTTPS due to Python standard
+        library limitations, however the file will be validated using SHA-256.
+    </p>
+
+    <p class="warning">
+        <strong>Warning:</strong>
+        Please do not redistribute the install code via another website. It will
+        change with every release. Instead, please link to this page.
     </p>
 </section>
 

@@ -3,7 +3,7 @@
 
 body.installation,
 body.syncing {
-	p.security_notice {
+	p.warning {
 		@include border-radius(2px);
 
 		background-color: $orange;
