@@ -29,21 +29,33 @@ Additionally, you are going to need nodejs installed on your machine
 since the JS on the site is written in coffeescript. Yeah, I know,
 another language dependency. It’s worth it.
 
-Set up the required packages:
+Set up the virtualenv and install the packages:
 
 ```
+# Set up the virtual env in the folder "venv/"
+virtualenv venv
+
+# Switch "python" to the version from the venv
+source venv/bin/activate
+
 # A number of packages have custom versions to run on Python 3.3
 pip install git+https://github.com/wbond/pymeta
 pip install git+https://github.com/wbond/pybars
 pip install git+https://github.com/wbond/python-textile@python3
 pip install git+https://github.com/wbond/python-creole
 
-pip install git+https://github.com/wbond/gears-coffeescript
-pip install git+https://github.com/wbond/gears-handlebars
-pip install git+https://github.com/wbond/watchdog@python3-compat
+pip install git+https://github.com/wbond/gears@disable-manifest
+pip install git+https://github.com/wbond/gears-scss
+pip install git+https://github.com/wbond/watchdog@fsevents-python3
 pip install git+https://github.com/wbond/pyrollbar@python3
 
-pip install -E venv -r setup/requirements.txt
+pip install -r setup/requirements.txt
+
+pip install sass
+pip install gears-coffeescript
+pip install gears-handlebars
+pip install gears-uglifyjs
+pip install gears-clean-css
 ```
 
 Run the server:
