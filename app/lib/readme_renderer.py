@@ -95,6 +95,11 @@ def _markdown(text):
         misaka.EXT_SUPERSCRIPT
     md = misaka.Markdown(renderer, extensions=extensions)
 
+    # Sundown seems not to properly handle multi-line HTML comments, and instead
+    # turns the closing part of the tag into &ndash;>. To work around this, we
+    # just strip HTML comments out.
+    text = re.sub('<!--.*?-->', '', text, 0, re.S)
+
     # Pre-process the markdown to get fenced code block to render like GitHub
     # Unfortunately they no longer maintain sundown or redcarpet and have not
     # open-sourced their Markdown renderer, so this is a wild-goose chase.
