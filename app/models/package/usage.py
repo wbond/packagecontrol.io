@@ -25,25 +25,24 @@ def record(details):
     with connection() as cursor:
         # Record the unique user
         cursor.execute("""
-            SELECT
+            INSERT INTO ips (
                 ip,
                 sublime_platform
-            FROM
-                ips
+            )
+            SELECT
+                %s,
+                %s
             WHERE
-                ip = %s AND
-                sublime_platform = %s
-        """, [ip, platform])
-        if not cursor.rowcount:
-            cursor.execute("""
-                INSERT INTO ips (
-                    ip,
-                    sublime_platform
-                ) VALUES (
-                    %s,
-                    %s
+                NOT EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        ips
+                    WHERE
+                        ip = %s AND
+                        sublime_platform = %s
                 )
-            """, [ip, platform])
+        """, [ip, platform, ip, platform])
 
         cursor.execute("""
             INSERT INTO usage (
@@ -86,70 +85,68 @@ def record(details):
             # Record a unique package install
             increase_unique_installs = False
             cursor.execute("""
-                SELECT
+                INSERT INTO unique_package_installs (
                     ip,
                     package,
                     sublime_platform
-                FROM
-                    unique_package_installs
+                )
+                SELECT
+                    %s,
+                    %s,
+                    %s
                 WHERE
-                    ip = %s AND
-                    package = %s AND
-                    sublime_platform = %s
-            """, [ip, package, platform])
-            if not cursor.rowcount:
-                increase_unique_installs = True
-                cursor.execute("""
-                    INSERT INTO unique_package_installs (
-                        ip,
-                        package,
-                        sublime_platform
-                    ) VALUES (
-                        %s,
-                        %s,
-                        %s
+                    NOT EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            unique_package_installs
+                        WHERE
+                            ip = %s AND
+                            package = %s AND
+                            sublime_platform = %s
                     )
-                """, [ip, package, platform])
+            """, [ip, package, platform, ip, package, platform])
+            if cursor.rowcount > 0:
+                increase_unique_installs = True
 
             # Initialize the daily package stats if necessary
             cursor.execute("""
-                SELECT
+                INSERT INTO daily_install_counts (
                     date,
                     package
-                FROM
-                    daily_install_counts
+                )
+                SELECT
+                    %s,
+                    %s
                 WHERE
-                    date = %s AND
-                    package = %s
-            """, [today, package])
-            if not cursor.rowcount:
-                cursor.execute("""
-                    INSERT INTO daily_install_counts (
-                        date,
-                        package
-                    ) VALUES (
-                        %s,
-                        %s
+                    NOT EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            daily_install_counts
+                        WHERE
+                            date = %s AND
+                            package = %s
                     )
-                """, [today, package])
+            """, [today, package, today, package])
 
             # Initialize the package stats if necessary
             cursor.execute("""
-                SELECT
+                INSERT INTO install_counts (
                     package
-                FROM
-                    install_counts
+                )
+                SELECT
+                    %s
                 WHERE
-                    package = %s
-            """, [package])
-            if not cursor.rowcount:
-                cursor.execute("""
-                    INSERT INTO install_counts (
-                        package
-                    ) VALUES (
-                        %s
+                    NOT EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            install_counts
+                        WHERE
+                            package = %s
                     )
-                """, [package])
+            """, [package, package])
 
             # Update the various install counts
             if increase_unique_installs:
