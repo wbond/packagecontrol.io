@@ -86,7 +86,9 @@ def all():
             ORDER BY
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
-                -- Sort first by if the version is build, bare or prerelease
+                -- The semver without a suffix
+                regexp_replace(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') DESC,
+                -- If the version is a build, bare or prerelease
                 CASE
                     WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
                         then -1
@@ -158,20 +160,23 @@ def by_name(name):
                         THEN '0.' || version
                     ELSE version
                 END AS normalized_version,
-                -- Sort first by if the version is build, bare or prerelease
+                -- The semver without a suffix
+                regexp_replace(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') AS semver_without_suffix,
+                -- If the version is a build, bare or prerelease
                 CASE
                     WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
                         then -1
                     WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
                         then 1
                     ELSE 0
-                END AS semver_order
+                END AS semver_suffix_type
             FROM
                 releases
             WHERE
                 package = %s
             ORDER BY
-                semver_order DESC,
+                semver_without_suffix DESC,
+                semver_suffix_type DESC,
                 normalized_version DESC
             LIMIT 1
         """, [name])
