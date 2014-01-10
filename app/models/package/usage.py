@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import psycopg2
+
 from ...lib.connection import connection
 
 
@@ -24,25 +26,28 @@ def record(details):
 
     with connection() as cursor:
         # Record the unique user
-        cursor.execute("""
-            INSERT INTO ips (
-                ip,
-                sublime_platform
-            )
-            SELECT
-                %s,
-                %s
-            WHERE
-                NOT EXISTS (
-                    SELECT
-                        1
-                    FROM
-                        ips
-                    WHERE
-                        ip = %s AND
-                        sublime_platform = %s
+        try:
+            cursor.execute("""
+                INSERT INTO ips (
+                    ip,
+                    sublime_platform
                 )
-        """, [ip, platform, ip, platform])
+                SELECT
+                    %s,
+                    %s
+                WHERE
+                    NOT EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            ips
+                        WHERE
+                            ip = %s AND
+                            sublime_platform = %s
+                    )
+            """, [ip, platform, ip, platform])
+        except (psycopg2.IntegrityError) as e:
+            pass # Another request happened between the select and insert
 
         cursor.execute("""
             INSERT INTO usage (
@@ -84,69 +89,78 @@ def record(details):
         if operation == 'install':
             # Record a unique package install
             increase_unique_installs = False
-            cursor.execute("""
-                INSERT INTO unique_package_installs (
-                    ip,
-                    package,
-                    sublime_platform
-                )
-                SELECT
-                    %s,
-                    %s,
-                    %s
-                WHERE
-                    NOT EXISTS (
-                        SELECT
-                            1
-                        FROM
-                            unique_package_installs
-                        WHERE
-                            ip = %s AND
-                            package = %s AND
-                            sublime_platform = %s
+            try:
+                cursor.execute("""
+                    INSERT INTO unique_package_installs (
+                        ip,
+                        package,
+                        sublime_platform
                     )
-            """, [ip, package, platform, ip, package, platform])
-            if cursor.rowcount > 0:
-                increase_unique_installs = True
+                    SELECT
+                        %s,
+                        %s,
+                        %s
+                    WHERE
+                        NOT EXISTS (
+                            SELECT
+                                1
+                            FROM
+                                unique_package_installs
+                            WHERE
+                                ip = %s AND
+                                package = %s AND
+                                sublime_platform = %s
+                        )
+                """, [ip, package, platform, ip, package, platform])
+                if cursor.rowcount > 0:
+                    increase_unique_installs = True
+            except (psycopg2.IntegrityError) as e:
+                pass # Another request happened between the select and insert
 
             # Initialize the daily package stats if necessary
-            cursor.execute("""
-                INSERT INTO daily_install_counts (
-                    date,
-                    package
-                )
-                SELECT
-                    %s,
-                    %s
-                WHERE
-                    NOT EXISTS (
-                        SELECT
-                            1
-                        FROM
-                            daily_install_counts
-                        WHERE
-                            date = %s AND
-                            package = %s
+            try:
+                cursor.execute("""
+                    INSERT INTO daily_install_counts (
+                        date,
+                        package
                     )
-            """, [today, package, today, package])
+                    SELECT
+                        %s,
+                        %s
+                    WHERE
+                        NOT EXISTS (
+                            SELECT
+                                1
+                            FROM
+                                daily_install_counts
+                            WHERE
+                                date = %s AND
+                                package = %s
+                        )
+                """, [today, package, today, package])
+            except (psycopg2.IntegrityError) as e:
+                pass # Another request happened between the select and insert
 
             # Initialize the package stats if necessary
-            cursor.execute("""
-                INSERT INTO install_counts (
-                    package
-                )
-                SELECT
-                    %s
-                WHERE
-                    NOT EXISTS (
-                        SELECT
-                            1
-                        FROM
-                            install_counts
-                        WHERE
-                            package = %s
+            try:
+                cursor.execute("""
+                    INSERT INTO install_counts (
+                        package
                     )
-            """, [package, package])
+                    SELECT
+                        %s
+                    WHERE
+                        NOT EXISTS (
+                            SELECT
+                                1
+                            FROM
+                                install_counts
+                            WHERE
+                                package = %s
+                        )
+                """, [package, package])
+            except (psycopg2.IntegrityError) as e:
+                pass # Another request happened between the select and insert
 
             # Update the various install counts
             if increase_unique_installs:
