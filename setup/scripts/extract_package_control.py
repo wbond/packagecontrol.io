@@ -3,7 +3,10 @@ import os
 import sys
 import shutil
 
-source = '~/.config/sublime-text-3/Packages/Package Control/package_control/'
+if sys.platform == 'darwin':
+    source = '~/Library/Application Support/Sublime Text 3/Packages/Package Control/package_control/'
+else:
+    source = '~/.config/sublime-text-3/Packages/Package Control/package_control/'
 source = os.path.expanduser(source)
 script_dir = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0]))
 dest = os.path.realpath(os.path.join(script_dir, '../../app/lib/package_control/'))
