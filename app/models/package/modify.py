@@ -457,10 +457,25 @@ def store(values):
                     %s
                 )
             """
+
+            # Do some consistency fixes for the sake of simplifying some SQL
+            # later on when selecting unique version info
+            sublime_text = release['sublime_text']
+            fixes = {
+                # Consistency
+                '>2999':  '>=3000',
+                '<=2999': '<3000',
+                # Semantic mistakes
+                '>3000':  '>=3000',
+                '<=3000': '<3000'
+            }
+            if sublime_text in fixes:
+                sublime_text = fixes[sublime_text]
+
             cursor.execute(sql, [
                 name,
                 release['platforms'],
-                release['sublime_text'],
+                sublime_text,
                 release['version'],
                 release['url'],
                 release['date']
