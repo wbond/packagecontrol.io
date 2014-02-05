@@ -11,7 +11,7 @@ The Package Control website app is structured as:
      - `router.coffee` - each route must be wired up here to load the appropriate view
    - `lib/` - various custom python code, including Package Control subset
    - `models/` - all database interaction happens through these python files
-   - `tasks/` - scripts to be invokes via the command line, normally via cron
+   - `tasks/` - scripts to be invoked via the command line, normally via cron
    - `templates/` - Handlebars/pybars templates that are used for both client and server-side templating
  - `config/` - yaml files for configuration of various components
  - `public/` - document root for web server, houses JS, CSS, robots.txt, etc
