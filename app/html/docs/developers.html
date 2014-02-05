@@ -44,6 +44,7 @@
 			<strong>Add your package info to the appropriate JSON file
 			in the <em>repository/</em> folder.</strong>
 		</p>
+		<p>Please make sure you keep the packages in alphabetical order.</p>
 		<p>
 			Your addition should look like the following, just with your own
 			user and repository names:
@@ -74,6 +75,15 @@
 			in it, consider using the <tt>"name"</tt> field to remove <em>Sublime</em> for the sake of reducing noise.</strong><br>
 			Having a giant list of packages for Sublime Text that all use
 			<tt>Sublime</tt> in their name gets annoying.
+		</p>
+	</li>
+	<li id="Run_Tests">
+		<p>
+			<strong>Run the tests.</strong><br>
+			If you have python installed you should try to run the tests to make sure your change doesn't break the build. From the root of the repository run: <tt>python -m unittest</tt>
+		</p>
+		<p>
+			<em>On a Mac:</em> make sure you are using Python 3 for this (<tt>python --version</tt>). If you have the python3 package from HomeBrew installed you should run: <tt>python3 -m unittest</tt>
 		</p>
 	</li>
 	<li>
