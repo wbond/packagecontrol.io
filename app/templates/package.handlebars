@@ -24,9 +24,29 @@
 <div id="details">
     <h2>Details</h2>
     <ul class="meta">
-        <li class="version">
-            <label>Version</label>
-            <span>{{version}}</span>
+        <li class="version{{#length versions "gt" 1}}s{{/length}}">
+            <label>Version{{#length versions "gt" 1}}s{{/length}}</label>
+            {{#length versions "gt" 1}}
+                <span>
+                    {{#each versions}}
+                        {{#if prerelease_version}}
+                            <div>
+                                {{>version_qualifiers}}
+                                <span class="versions only" title="Prerelease">PRE</span>
+                                {{prerelease_version}}
+                            </div>
+                        {{/if}}
+                        {{#if version}}
+                            <div>
+                                {{>version_qualifiers}}
+                                {{version}}
+                            </div>
+                        {{/if}}
+                    {{/each}}
+                </span>
+            {{else}}
+                <span>{{versions.[0].version}}</span>
+            {{/length}}
         </li>
         <li class="homepage">
             <label>Homepage</label>

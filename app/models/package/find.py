@@ -152,38 +152,138 @@ def by_name(name):
         # Here we just grab the highest version since right now the package
         # detail page only shows the highest version number
         cursor.execute("""
-            SELECT DISTINCT
-                version,
-                -- Perform the version munging that PC does for date-based versions
+            WITH version_info AS (
+                SELECT
+                    version,
+                    -- Normalize what ST versions each version is for
+                    CASE
+                        WHEN sublime_text @> ARRAY['<3000', '>=3000']::varchar[]
+                        THEN ARRAY[2, 3]
+                        WHEN sublime_text = ARRAY['<3000']::varchar[]
+                        THEN ARRAY[2]
+                        WHEN sublime_text = ARRAY['>=3000']::varchar[]
+                        THEN ARRAY[3]
+                        ELSE ARRAY[2, 3]
+                    END AS st_versions,
+                    platforms,
+                    ROW_NUMBER() OVER (
+                        ORDER BY
+                            semver_without_suffix DESC,
+                            semver_suffix_type DESC,
+                            normalized_version DESC
+                    ) AS num,
+                    -- Rank each version based on semantic version
+                    ROW_NUMBER() OVER (
+                        PARTITION BY
+                            sublime_text,
+                            platforms
+                        ORDER BY
+                            semver_without_suffix DESC,
+                            semver_suffix_type DESC,
+                            normalized_version DESC
+                    ) AS qual_num,
+                    -- Rank each version based on semantic version grouped by prerelease/stable
+                    ROW_NUMBER() OVER (
+                        PARTITION BY
+                            sublime_text,
+                            platforms,
+                            prerelease
+                        ORDER BY
+                            semver_without_suffix DESC,
+                            semver_suffix_type DESC,
+                            normalized_version DESC
+                    ) AS type_num,
+                    prerelease
+                FROM
+                    (
+                        SELECT
+                            version,
+                            -- Perform the version munging that PC does for date-based versions
+                            CASE
+                                WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
+                                    THEN '0.' || version
+                                ELSE version
+                            END AS normalized_version,
+                            -- The semver without a suffix
+                            REGEXP_REPLACE(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') AS semver_without_suffix,
+                            -- If the version is a build, bare or prerelease
+                            CASE
+                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                                    THEN -1
+                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                                    THEN 1
+                                ELSE 0
+                            END AS semver_suffix_type,
+                            -- If the release is a pre-release
+                            CASE
+                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                                    THEN 1
+                                ELSE 0
+                            END AS prerelease,
+                            -- Since you can't just join two arrays via aggregate function,
+                            -- we use this construct to accomplish that
+                            STRING_TO_ARRAY(STRING_AGG(DISTINCT ARRAY_TO_STRING(platforms, ','), ','), ',') platforms,
+                            ARRAY_AGG(DISTINCT sublime_text) sublime_text
+                        FROM
+                            releases
+                        WHERE
+                            package = %s
+                        GROUP BY
+                            version
+                        ORDER BY
+                            semver_without_suffix DESC,
+                            semver_suffix_type DESC,
+                            normalized_version DESC
+                    ) sq
+                ORDER BY
+                    num ASC
+            )
+
+            SELECT
                 CASE
-                    WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
-                        THEN '0.' || version
-                    ELSE version
-                END AS normalized_version,
-                -- The semver without a suffix
-                regexp_replace(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') AS semver_without_suffix,
-                -- If the version is a build, bare or prerelease
+                    WHEN vi1.prerelease = 0
+                    THEN vi1.version
+                    ELSE null
+                END AS version,
                 CASE
-                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
-                        then -1
-                    WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
-                        then 1
-                    ELSE 0
-                END AS semver_suffix_type
+                    WHEN vi1.prerelease = 1
+                    THEN vi1.version
+                    ELSE vi2.version
+                END AS prerelease_version,
+                vi1.platforms,
+                vi1.st_versions
             FROM
-                releases
+                version_info AS vi1
+                -- Join from the stable version to a prerelease version only if the
+                -- prerelease version is higher than the stable version
+                LEFT JOIN version_info AS vi2
+                    ON (
+                        vi1.prerelease = 0
+                        AND vi2.prerelease = 1
+                        AND vi2.num = 1
+                        AND vi1.platforms = vi2.platforms
+                        AND vi1.st_versions = vi2.st_versions
+                    ) OR (
+                        vi1.prerelease = 1
+                        AND vi2.prerelease = 0
+                        AND vi1.platforms = vi2.platforms
+                        AND vi1.st_versions = vi2.st_versions
+                    )
             WHERE
-                package = %s
+                -- Grab the first stable/prerelease release
+                vi1.type_num = 1
+                AND (
+                    vi2.prerelease IS NULL
+                    OR (
+                        vi1.prerelease = 0
+                        AND vi2.prerelease = 1
+                    )
+                )
             ORDER BY
-                semver_without_suffix DESC,
-                semver_suffix_type DESC,
-                normalized_version DESC
-            LIMIT 1
+                vi1.num ASC
         """, [name])
-        if cursor.rowcount:
-            result['version'] = cursor.fetchone()['version']
-        else:
-            result['version'] = 'None'
+
+        result['versions'] = cursor.fetchall()
 
         result['platforms_display'] = []
         if 'windows' in result['platforms']:
