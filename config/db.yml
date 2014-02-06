@@ -1,7 +1,7 @@
 dev:
   database: package_control
-  user: sublime
-  password: s9esWe9a4ubrAs8a
+  user: postgres
+  password: 
   host: 127.0.0.1
 
 prod:

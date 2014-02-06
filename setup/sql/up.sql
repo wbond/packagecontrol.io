@@ -1,6 +1,3 @@
--- The default development environment user
-CREATE USER sublime WITH CREATEDB LOGIN PASSWORD 's9esWe9a4ubrAs8a';
-
 -- When a package was first installed, used for displaying packages in release date order
 CREATE TABLE first_installs (
     package                  varchar(200) NOT NULL PRIMARY KEY,
