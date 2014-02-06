@@ -57,6 +57,10 @@ class window.Snakeskin.Helpers
         # We copy the value to prevent modifying the original
         val1 = _.clone(val1).sort()
 
+    # Allow comparing an array with a scalar value if the array has a single value
+    if _.isArray(val1) and val1.length == 1 and not _.isArray(val2) and val1[0] == val2
+      val2 = [val2]
+
     isNone = Snakeskin.Util.none(val1) or Snakeskin.Util.none(val2)
     Handlebars.helpers['if'].call(this, not isNone and _.isEqual(val1, val2), options)
 

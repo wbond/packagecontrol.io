@@ -11,6 +11,9 @@ def eq(this, options, val1, val2, *values):
         if val1:
             val1 = sorted(val1)
 
+    if isinstance(val1, list) and len(val1) == 1 and not isinstance(val2, list) and val1[0] == val2:
+        val2 = [val2]
+
     is_none = val1 is None or val2 is None
     if not is_none and val1 == val2:
         return options['fn'](this)
