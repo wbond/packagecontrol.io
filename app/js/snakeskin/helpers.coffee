@@ -153,7 +153,7 @@ class window.Snakeskin.Helpers
     Snakeskin.Dates.format(value, format, true)
 
   @split: (values, groups, options) ->
-    groups = parseInt(groups)
+    groups = parseInt(groups, 10)
     perGroup = Math.ceil(values.length / groups)
 
     output = ''
