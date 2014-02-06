@@ -24,13 +24,18 @@
 <div id="details">
     <h2>Details</h2>
     <ul class="meta">
-        <li class="version{{#length versions "gt" 1}}s{{/length}}">
-            <label>Version{{#length versions "gt" 1}}s{{/length}}</label>
-            {{#length versions "gt" 1}}
+        <li class="version{{#length versions "ne" 1}}s{{/length}}">
+            <label>Version{{#length versions "ne" 1}}s{{/length}}</label>
+            {{#length versions "ne" 1}}
                 <span>
                     {{#each versions}}
                         {{#if prerelease_version}}
                             <div>
+                                {{!-- Handlebars.js doesn't allow parent scope access in partials, so we have to keep this here --}}
+                                {{#eq ../../st_versions 2 3}}
+                                    {{#omits st_versions 2}}<span class="versions only" title="Sublime Text 3">3</span>{{/omits}}
+                                    {{#omits st_versions 3}}<span class="versions only" title="Sublime Text 2">2</span>{{/omits}}
+                                {{/eq}}
                                 {{>version_qualifiers}}
                                 <span class="versions only" title="Prerelease">PRE</span>
                                 {{prerelease_version}}
@@ -38,6 +43,11 @@
                         {{/if}}
                         {{#if version}}
                             <div>
+                                {{!-- Handlebars.js doesn't allow parent scope access in partials, so we have to keep this here --}}
+                                {{#eq ../../st_versions 2 3}}
+                                    {{#omits st_versions 2}}<span class="versions only" title="Sublime Text 3">3</span>{{/omits}}
+                                    {{#omits st_versions 3}}<span class="versions only" title="Sublime Text 2">2</span>{{/omits}}
+                                {{/eq}}
                                 {{>version_qualifiers}}
                                 {{version}}
                             </div>
