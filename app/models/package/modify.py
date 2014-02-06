@@ -1,3 +1,5 @@
+import re
+
 from ...lib.connection import connection
 
 
@@ -407,6 +409,7 @@ def store(values):
                 platforms = ['windows', 'osx', 'linux']
             else:
                 for platform in release['platforms']:
+                    platform = re.sub('-x(32|64)$', '', platform)
                     if platform not in platforms:
                         platforms.append(platform)
 
