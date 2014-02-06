@@ -10,7 +10,7 @@ class window.Snakeskin.Helpers
     Handlebars.registerHelper('contains', @contains)
     Handlebars.registerHelper('omits', @omits)
     Handlebars.registerHelper('between', @between)
-    Handlebars.registerHelper('length', @length)
+    Handlebars.registerHelper('length', @len)
 
     Handlebars.registerHelper('date_diff', @dateDiff)
     Handlebars.registerHelper('date_format', @dateFormat)
@@ -92,7 +92,7 @@ class window.Snakeskin.Helpers
 
     Handlebars.helpers['if'].call(this, not isNone and contains, options)
 
-  @length: (array, comparator, value, options) ->
+  @len: (array, comparator, value, options) ->
     if options == undefined and comparator == undefined
       options = comparator
       comparator = undefined
