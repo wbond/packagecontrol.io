@@ -10,6 +10,7 @@ class window.Snakeskin.Helpers
     Handlebars.registerHelper('contains', @contains)
     Handlebars.registerHelper('omits', @omits)
     Handlebars.registerHelper('between', @between)
+    Handlebars.registerHelper('length', @length)
 
     Handlebars.registerHelper('date_diff', @dateDiff)
     Handlebars.registerHelper('date_format', @dateFormat)
@@ -86,6 +87,37 @@ class window.Snakeskin.Helpers
         contains &&= value in array
 
     Handlebars.helpers['if'].call(this, not isNone and contains, options)
+
+  @length: (array, comparator, value, options) ->
+    if options == undefined and comparator == undefined
+      options = comparator
+      comparator = undefined
+
+    if comparator == undefined
+      comparator = 'gt'
+
+    if value == undefined
+      value = 0
+
+    if not _.isNumber(value)
+      value = parseInt(value, 10)
+
+    match = false
+
+    if comparator == 'gt'
+      match = array.length > value
+    else if comparator == 'gte'
+      match = array.length >= value
+    else if comparator == 'lt'
+      match = array.length < value
+    else if comparator == 'lte'
+      match = array.length <= value
+    else if comparator == 'eq'
+      match = array.length == value
+    else if comparator == 'ne'
+      match = array.length != value
+
+    Handlebars.helpers['if'].call(this, match, options)
 
   @omits: (array, values...) ->
     options = values.pop()
