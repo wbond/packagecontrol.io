@@ -7,6 +7,7 @@ app.env.name = 'dev'
 
 import app.controllers
 from app.lib.json_api_middleware import JsonApiMiddleware
+from app.lib.trailing_slash_filter import remove_trailing_slash
 
 
 # For development, serve static files also
