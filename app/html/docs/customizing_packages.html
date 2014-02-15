@@ -1,0 +1,126 @@
+<title>Customizing Packages</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Customizing Packages</h1>
+
+<p>
+	There will frequently be situations where a package works <em>almost</em>
+	exactly how you want it to, however, a few small tweaks would make it
+	perfect. Depending on what version of Sublime Text you are using and
+	how the package is installed, you have a few different options for
+	customizing a package.
+</p>
+
+<h2>Packed vs. Unpacked</h2>
+
+<p>
+	Sublime Text 3 offers the most options for overriding a package. By default,
+	packages will be installed by placing a <tt>.sublime-package</tt> file
+	in the <tt>Install Packages/</tt> folder. Then users may override individual
+	files in the package by creating a folder <tt>Packages/{Package Name}/</tt>
+	and placing edited files in there.
+</p>
+<p>
+	Unfortunately not all packages work when stored inside of a 
+	<tt>.sublime-package</tt> file. This is usually because the package includes
+	files such a shared libraries or executables. If a developer places a file
+	named <tt>.no-sublime-package</tt> in the root of their package, Package
+	Control will extract the package into <tt>Packages/{Package Name}/</tt>.
+</p>
+<p>
+	Packages stored in <tt>.sublime-package</tt> files are referred to as
+	<em>packed</em>, whereas packages extracted into a folder in
+	<tt>Packages/</tt> are referred to as <em>unpacked</em>. Sublime Text 2
+	only supports unpacked packages.
+</p>
+<p>
+	Unpacked packages can be customized via
+	<a href="#User_Package">User Package</a> or
+	<a href="#Git-Hg_Clone">Git/Hg Clone</a>. Packged packages may use
+	<a href="#Overrides">Overrides</a>, <a href="#User_Package">User Package</a>
+	or <a href="#Git-Hg_Clone">Git/Hg Clone</a>.
+</p>
+
+<h2 id="Editing_Unpacked_Files">Editing Unpacked Files</h2>
+
+<p>
+	Editing an unpacked package‘s files is not a good idea unless you‘ve cloned
+	the package via Git/Hg. This is because, by default, Package Control will
+	automatically upgrade packages to the newest version. This will cause any
+	edits to files to be overwritten. If you experience this, you may
+	wish to check out the <a href="#Backups">Backups</a> section to learn how
+	to recover your customized version of a file.
+</p>
+
+<h2 id="User_Package">User Package</h2>
+
+<p>
+	The <tt>Packages/User/</tt> folder is the <tt>User</tt> package. It is
+	unique in that it is loaded <em>last</em> by Sublime Text. This allows
+	users to place changes to <tt>.sublime-settings</tt> and
+	<tt>.sublime-keymap</tt> files in this folder.
+</p>
+<p>
+	Sublime Text loads these files by name. Thus if a package has a file named
+	<tt>Package Control.sublime-settings</tt> in the package, a file with the
+	same name in the <tt>User</tt> package will override any of the settings
+	in the original file. The same is true for key bindings.
+</p>
+
+<h2 id="Overrides">Overrides</h2>
+
+<p>
+	If a package for Sublime Text 3 is installed as a packed package, it should
+	be possible to directly override individual non-python files. To do this,
+	create a <tt>Packages/{Package Name}/</tt> folder and save customized
+	versions of the files with the same name they are in the
+	<tt>.sublime-package</tt> file.
+</p>
+<p>
+	To view the original files, you can view the repository online for
+	packages from GitHub or BitBucket, or use a zip program to unpack the
+	<tt>.sublime-package</tt> file.
+</p>
+
+<h2 id="Git-Hg_Clone">Git/Hg Clone</h2>
+
+<p>
+	For complete customization of a package, it will likely be necessary to
+	using a version control program, such as Git or Hg to clone a copy of
+	the original package repository into the <tt>Packages/</tt> folder.
+</p>
+
+<p>
+	The best way to make customizations would be to fork the original repository
+	and clone your fork of it. If you think your customizations could be useful
+	to others, consider sending a pull request to have your changes merged into
+	the original version.
+</p>
+
+<p>
+	If you‘ve cloned it from your own fork of the
+	repository, no settings need to be changed. If you clone it from the
+	original repository, you will likely want to set the
+	<a href="/docs/settings#setting-ignore_vcs_packages">ignore_vcs_packages</a>
+	setting.
+</p>
+
+<p>
+	There are a number of settings that control how packages are upgraded if
+	you have cloned a repository and not set <tt>ignore_vcs_packages</tt> to
+	<tt>false</tt>. These include:
+	<a href="/docs/settings#setting-git_binary">git_binary</a>,
+	<a href="/docs/settings#setting-git_update_command">git_update_command</a>,
+	<a href="/docs/settings#setting-hg_binary">hg_binary</a>,
+	<a href="/docs/settings#setting-hg_update_command">hg_update_command</a>.
+</p>
+
+<h2 id="Backups">Backups</h2>
+
+<p>
+	If you do ever find yourself in a situation where your edits to a
+	package were overwritten by Package Control, you can find a backup
+	copy in the <em>Backup/</em> folder. This folder can be located by
+	selecting the <em>Preferences &gt; Browse Packages…</em> menu and
+	then browsing up a folder. Backups are stored in timestamped folders.
+</p>

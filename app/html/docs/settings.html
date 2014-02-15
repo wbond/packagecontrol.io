@@ -258,9 +258,33 @@
         <dt id="setting-files_to_ignore">files_to_ignore</dt>
         <dd>
             A list of file glob patterns to ignore when creating a <tt>.sublime-package</tt>
-            file.
+            file by the <em>Create Package</em> command.
             <div class="default">
-                <em>Default</em> <tt>[".hgignore", ".gitignore", ".bzrignore", "*.pyc", "*.sublime-project", "*.tmTheme.cache"]</tt>
+                <em>Default</em> <tt>[".hgignore", ".gitignore", ".bzrignore", "*.pyc", "*.sublime-project", "*.sublime-workspace", "*.tmTheme.cache"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-files_to_include">files_to_include</dt>
+        <dd>
+            A list of file glob patterns to include when creating a <tt>.sublime-package</tt>
+            file by the <em>Create Package</em> command. This overrides <tt>files_to_ignore</tt>.
+            <div class="default">
+                <em>Default</em> <tt>[]</tt>
+            </div>
+        </dd>
+        <dt id="setting-files_to_ignore_binary">files_to_ignore_binary</dt>
+        <dd>
+            A list of file glob patterns to ignore when creating a <tt>.sublime-package</tt>
+            file by the <em>Create Binary Package</em> command.
+            <div class="default">
+                <em>Default</em> <tt>[".hgignore", ".gitignore", ".bzrignore", "*.py", "*.sublime-project", "*.sublime-workspace", "*.tmTheme.cache"]</tt>
+            </div>
+        </dd>
+        <dt id="setting-files_to_include_binary">files_to_include_binary</dt>
+        <dd>
+            A list of file glob patterns to include when creating a <tt>.sublime-package</tt>
+            file by the <em>Create Binary Package</em> command. This overrides <tt>files_to_ignore_binary</tt>.
+            <div class="default">
+                <em>Default</em> <tt>["__init__.py"]</tt>
             </div>
         </dd>
         <dt id="setting-package_destination">package_destination</dt>

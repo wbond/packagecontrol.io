@@ -83,24 +83,29 @@ class App.Router extends Snakeskin.Router
       App.layout.render('stats', data)
     )
 
+  channelsAndRepositories: =>
+    @ensureData('html', (data) =>
+      App.layout.render('channels_and_repositories', data)
+    )
+
   code: =>
     @ensureData('html', (data) =>
       App.layout.render('code', data)
     )
 
+  creatingPackageFiles: =>
+    @ensureData('html', (data) =>
+      App.layout.render('creating_package_files', data)
+    )
+
+  customizingPackages: =>
+    @ensureData('html', (data) =>
+      App.layout.render('customizing_packages', data)
+    )
+
   docs: =>
     @ensureData('html', (data) =>
       App.layout.render('docs', data)
-    )
-
-  developers: =>
-    @ensureData('html', (data) =>
-      App.layout.render('developers', data)
-    )
-
-  news: =>
-    @ensureData('html', (data) =>
-      App.layout.render('news', data)
     )
 
   installation: =>
@@ -111,6 +116,16 @@ class App.Router extends Snakeskin.Router
   issues: =>
     @ensureData('html', (data) =>
       App.layout.render('issues', data)
+    )
+
+  messaging: =>
+    @ensureData('html', (data) =>
+      App.layout.render('messaging', data)
+    )
+
+  news: =>
+    @ensureData('html', (data) =>
+      App.layout.render('news', data)
     )
 
   sayThanks: =>
@@ -126,6 +141,11 @@ class App.Router extends Snakeskin.Router
   styles: =>
     @ensureData('html', (data) =>
       App.layout.render('styles', data)
+    )
+
+  submittingAPackage: =>
+    @ensureData('html', (data) =>
+      App.layout.render('submitting_a_package', data)
     )
 
   syncing: =>

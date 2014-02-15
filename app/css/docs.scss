@@ -6,6 +6,7 @@
 body.docs {
 	ul {
 		list-style-type: none;
+		overflow: hidden;
 
 		li {
 			@include box-sizing(border-box);
@@ -31,7 +32,7 @@ body.docs {
 				}
 			}
 
-			h2 {
+			h3 {
 				margin: 0 0 8px 0;
 			}
 		}

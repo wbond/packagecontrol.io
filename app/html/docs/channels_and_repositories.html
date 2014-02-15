@@ -1,0 +1,30 @@
+<title>Channels and Repositories</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Channels and Repositories</h1>
+
+<p>
+	Channels are JSON files hosted on a URL that contains a list of repository
+	URLs. See
+	<a href="https://raw.github.com/wbond/sublime_package_control/master/example-channel.json">example-channel.json</a>
+	for the format. When a user requests to install a package, their channels
+	are queried for a list of repositories. By default, a single channel is
+	included with Package Control,
+	<a href="https://sublime.wbond.net/channel.json">https://sublime.wbond.net/channel.json</a>.
+	The only reason to create another channel is if you want to create a private
+	distribution for a closed group of people.
+</p>
+
+<p>
+	Repositories are JSON files hosted on a URL that contain a list of one or
+	more packages. See
+	<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
+	for the format. The JSON structure allows for specifying platforms (windows,
+	osx, linux), compatible versions of Sublime Text, labels, URLs and more. The
+	default channel includes a number of third-party repositories, but also a
+	<a href="https://github.com/wbond/package_control_channel/tree/master/repository">single, centralized repository</a>
+	for developers who are using GitHub or BitBucket tag-based releases. This
+	way a package only ever needs to be added to the repository once and almost
+	all futher updates to the package can be performed via the GitHub or
+	BitBucket user interfaces.
+</p>

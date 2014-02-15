@@ -1,8 +1,6 @@
-from bottle import route
-
-from ..render import render_static
+from bottle import route, redirect
 
 
 @route('/docs/developers', name='developers')
 def developers_controller():
-    return render_static('docs/developers')
+    redirect('/docs#Package_Developers', 301)

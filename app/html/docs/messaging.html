@@ -1,0 +1,36 @@
+<title>Messaging</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Messaging</h1>
+
+<p>
+	If you‘ve used many package with Sublime Text and Package Control, you may
+	have noticed situations where Package Control shows messages. Currently it
+	is possible to show users a message when the package is installed, or after
+	upgrades.
+</p>
+<p>
+	Messaging is controlled by a file named <tt>messages.json</tt> in the root
+	of the package. The
+	<em><a href="https://raw.github.com/wbond/sublime_package_control/master/example-messages.json">example-messages.json</a></em>
+	file shows the proper structure of the json. Each value will be a file path
+	that is relative to the package root. Each key will either be the
+	string <tt>install</tt> or a version number.
+</p>
+
+<p>
+	When a package is installed, if the key <tt>install</tt> is present
+	in the <tt>messages.json</tt> file, the value will be used as the
+	file path to a txt file containing a message to display the user.
+</p>
+
+<p>
+	When a package is upgraded, Package Control looks through each key
+	in the <tt>messages.json</tt> file and shows the content of the
+	text file that is a value of any key that is higher than the previous
+	version of the package the user has installed. Thus if the user
+	had version <tt>1.1.0</tt> installed, the txt files for <tt>1.2.0</tt>
+	and <tt>1.1.1</tt> would be shown. If the user had version
+	<tt>1.1.1</tt> installed, only the messages for version <tt>1.2.0</tt>
+	would be shown.
+</p>

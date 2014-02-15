@@ -1,0 +1,35 @@
+<title>Creating Package Files</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Creating Package Files</h1>
+
+<p>
+	If you are developing a package, and plan on doing custom repository
+	hosting instead of using GitHub or BitBucket, Package Control includes
+	two commands to assist in creating <tt>.sublime-package</tt> files from your
+	package directories. These are <em>Create Package</em> and
+	<em>Create Binary Package</em>, both of which can be run via the command
+	palette.
+</p>
+<p>
+	Running the <em>Create Package</em> command will prompt you to select a
+	pakage to create the package file for. The packager
+	exlcudes various VCS metadata, Sublime Text cache files and
+	<tt>.pyc</tt> files by default. The list
+	of excluded files can be tweaking through the
+	<a href="/docs/settings#setting-dirs_to_ignore">dirs_to_ignore</a>,
+	<a href="/docs/settings#setting-files_to_ignore">files_to_ignore</a>
+	and <a href="/docs/settings#setting-files_to_include">files_to_include</a>
+	settings.
+</p>
+<p>
+	The command <em>Create Binary Package</em> works the same way as <em>Create
+	Package</em>, however it uses different settings to control what is included
+	and excluded. The default different is that with a binary package, all
+	<tt>.py</tt> files except for <tt>__init__.py</tt> are excluded and all
+	<tt>.pyc</tt> files are included. The list of excluded files can be tweaked
+	through the <a href="/docs/settings#setting-dirs_to_ignore">dirs_to_ignore</a>,
+	<a href="/docs/settings#setting-files_to_ignore_binary">files_to_ignore_binary</a>
+	and <a href="/docs/settings#setting-files_to_include_binary">files_to_include_binary</a>
+	settings.
+</p>
