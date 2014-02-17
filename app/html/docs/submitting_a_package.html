@@ -86,7 +86,9 @@
 		<b>Host <tt>.sublime-package</tt> files and a <tt>packages.json</tt> on
 		a web server.</b> For each release you‘ll need to create and upload
 		a new package file and update the <tt>packages.json</tt> information.
-		<em>This is rarely used.</em>
+		<em>This is rarely used – see
+		<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
+		for documentation.</em>
 	</li>
 </ul>
 
@@ -157,13 +159,19 @@
 	</li>
 	<li>
 		<p>
-			<b>Add your package info to the appropriate JSON file
-			in the <tt>repository/</tt> folder.</b>
+			<b>Add package info based on the type of hosting:</b>
 		</p>
-		<p>
-			Example of GitHub hosting using semantic versioning via tags:
-		</p>
-		<pre>{
+		<ul>
+			<li>
+				<p>
+					<b>GITHUB/BITBUCKET HOSTING:</b> Add your package info to
+					the proper JSON file in <tt>repository/</tt> folder.
+				</p>
+				<p>
+					<em>Example of GitHub hosting using semantic versioning via
+					tags:</em>
+				</p>
+				<pre>{
 	"name": "Alignment",
 	"details": "https://github.com/wbond/sublime_alignment",
 	"releases": [
@@ -173,10 +181,11 @@
 		}
 	]
 }</pre>
-		<p>
-			Example of BitBucket hosting using semantic versioning via tags:
-		</p>
-		<pre>{
+				<p>
+					<em>Example of BitBucket hosting using semantic versioning
+					via tags:</em>
+				</p>
+				<pre>{
 	"name": "Alignment",
 	"details": "https://bitbucket.org/wbond/sublime_alignment",
 	"releases": [
@@ -186,15 +195,28 @@
 		}
 	]
 }</pre>
-		<p>
-			For all other options, please read the documentation in the
-			<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
-			file.
-		</p>
-
+				<p>
+					For other options, please read the documentation in the
+					<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
+					file. <em>Please note that the <tt>version</tt>,
+					<tt>url</tt> and <tt>date</tt> sub-fields are not allowed
+					in the centralized channel. If you wish to use these, you
+					must host your own <tt>packages.json</tt>.</em>
+				</p>
+			</li>
+			<li>
+				<p>
+					<b>MANUAL HOSTING:</b> Add the URL for your
+					<tt>packages.json</tt> file to <tt>channel.json</tt>. See
+					<a href="https://raw.github.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
+					for documentation about the structure of the
+					<tt>packages.json</tt> file.
+				</p>
+			</li>
+		</ul>
 	</li>
 	<li>
-		<b>Make sure your package is in alphabetical order.</b>
+		<b>Make sure your entry is in alphabetical order.</b>
 	</li>
 	<li>
 		<b>Send a pull request.</b>
