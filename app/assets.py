@@ -48,6 +48,9 @@ class CustomHandlebarsCompiler(HandlebarsCompiler):
 
     def __call__(self, asset):
         asset.attributes.path_without_suffix = asset.attributes.path_without_suffix.replace('templates/', '')
+        # Compress whitespace if possible
+        if re.search('<pre', asset.processed_source, re.I) is None:
+            asset.processed_source = re.sub('[ \t\n]+', ' ', asset.processed_source)
         super(CustomHandlebarsCompiler, self).__call__(asset)
 
 

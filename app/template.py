@@ -76,7 +76,11 @@ def _load_partial(path):
 
     name = os.path.basename(path).replace('.handlebars', '')
     with open(path, 'r', encoding='utf-8') as f:
-        _partials[name] = _compiler.compile(f.read())
+        handlebars = f.read()
+        # Compress whitespace if possible
+        if re.search('<pre', handlebars, re.I) is None:
+            handlebars = re.sub('[ \t\n]+', ' ', handlebars)
+        _partials[name] = _compiler.compile(handlebars)
         _reload_tracker[path] = {
             'mtime': os.stat(path).st_mtime,
             'reloader': _load_partial
@@ -137,11 +141,14 @@ def _load_template(path):
 
     name, ext = os.path.splitext(os.path.basename(path))
     with open(path, 'r', encoding='utf-8') as f:
+        handlebars = f.read()
+        # Compress whitespace if possible
+        if re.search('<pre', handlebars, re.I) is None:
+            handlebars = re.sub('[ \t\n]+', ' ', handlebars)
         if name == 'rss':
-            handlebars = f.read()
             _templates[name] = _compiler.compile(handlebars)
         else:
-            handlebars = app_handlebars.replace('{{outlet}}', f.read())
+            handlebars = app_handlebars.replace('{{outlet}}', handlebars)
             _templates[name] = _add_title_processor(_compiler.compile(handlebars))
         _reload_tracker[path] = {
             'mtime': os.stat(path).st_mtime,
