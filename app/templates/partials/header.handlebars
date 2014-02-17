@@ -9,7 +9,7 @@
             var _rollbarParams = {
               "server.environment": "{{__rollbar_env__}}",
               checkIgnore: function(errMsg, url, lineNo) {
-                // Don't cloud the error logs with extension errors
+                /* Don't cloud the error logs with extension errors */
                 var badSource = url.search(window.location.origin) == -1;
                 var adBlocker = errMsg.search("Property 'scrollTo' of object [object global] is not a function") != -1;
                 var extension = errMsg.search("Error connecting to extension") != -1;
@@ -31,7 +31,7 @@
         <meta name="viewport" content="width=380" id="meta-viewport" />
         <script>
         window.onload = function() {
-            if (screen.width < 740) { return; } // Make phones use 380
+            if (screen.width < 740) { return; } /* Make phones use 380 */
             document.getElementById('meta-viewport').setAttribute('content','width=device-width');
         }
         </script>
