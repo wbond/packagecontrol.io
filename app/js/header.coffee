@@ -63,7 +63,7 @@ class App.Header extends Backbone.View
     if terms == '' and App.router.path().indexOf('/search') == -1
       return
 
-    route = 'search_blank'
+    route = 'index'
     if terms
       route = 'search'
 
@@ -78,7 +78,8 @@ class App.Header extends Backbone.View
       @moveCursor(@$search[0])
     else
       terms = ''
-      @$search.blur()
+      if App.router.path() != '/'
+        @$search.blur()
     @$search.val(terms)
 
   # Focus an input and move the cursor to the last char

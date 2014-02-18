@@ -23,6 +23,14 @@ div.results div.help {
 	margin: -20px 0 20px 0;
 }
 
+div.no.results {
+	font-size: 1.3em;
+	color: $grey;
+	font-style: italic;
+	padding-top: 20px;
+	font-family: $font-headline;
+}
+
 ul.packages {
 	list-style-type: none;
 	margin: 0;
