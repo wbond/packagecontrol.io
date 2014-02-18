@@ -18,7 +18,9 @@ body.new {
 div.results div.help {
 	font-size: 0.85em;
 	opacity: 0.5;
-	margin: -25px 0 25px 2px;
+	width: 50%;
+	float: right;
+	margin: -20px 0 20px 0;
 }
 
 ul.packages {

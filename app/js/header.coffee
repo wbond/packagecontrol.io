@@ -1,6 +1,14 @@
 class App.Header extends Backbone.View
   el: 'header'
 
+  events: {
+    'keyup #search': 'search'
+    'focus #search': 'enableShortcuts'
+    'blur #search': 'disableShortcuts'
+  }
+
+  prevTerms: ''
+
   initialize: (options) ->
     @layout = options.layout
     @layout.on('change', @highlightNav)
@@ -8,6 +16,140 @@ class App.Header extends Backbone.View
     @links = ($(a) for a in @$links)
     @$loading = @$('.loading')
     @listenTo(App.router, 'percentage', @animateLoadingBar)
+
+    @$search = @$('#search')
+    if @$el
+      @prevTerms = @$search.val()
+    @search = _.debounce(@_search, 350)
+    @listenTo(@, 'placed', =>
+      search = @$('input#search').attr('autocomplete', 'off')
+    )
+    @setupShortcuts()
+    # When JS is available, prevent default form action
+    key('enter', (e) ->
+      e.preventDefault()
+    )
+
+    $(window).on('popstate', @resetSearch)
+    $(window).on('pushstate', @resetSearch)
+
+  cleanup: =>
+    @disableShortcuts()
+    key.unbind('enter', 'search')
+    key.unbind('up', 'search')
+    key.unbind('down', 'search')
+    key.unbind('enter')
+
+  isElementInViewport: (el) ->
+    rect = el.getBoundingClientRect()
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    )
+
+  _search: (e) =>
+    input = $(e.target)
+    terms = input.val()
+
+    if @prevTerms == terms
+      return
+
+    @prevTerms = terms
+
+    # If the terms are removed when not on the search page, do nothing
+    if terms == '' and App.router.path().indexOf('/search') == -1
+      return
+
+    route = 'search_blank'
+    if terms
+      route = 'search'
+
+    url = App.router.url(route, {terms: terms})
+    App.router.changeUrl(url)
+
+  resetSearch: =>
+    if App.router.path().indexOf('/search') != -1
+      terms = App.router.path().replace(/^\/search\/?([^\/]+)?$/, '$1')
+      terms = decodeURIComponent(terms)
+      @$search.focus()
+      @moveCursor(@$search[0])
+    else
+      terms = ''
+      @$search.blur()
+    @$search.val(terms)
+
+  # Focus an input and move the cursor to the last char
+  moveCursor: (elem) ->
+    elemLen = elem.value.length
+    if document.selection
+      elem.focus()
+      oSel = document.selection.createRange()
+      oSel.moveStart('character', -elemLen)
+      oSel.moveStart('character', elemLen)
+      oSel.moveEnd('character', 0)
+      oSel.select()
+    else if elem.selectionStart or elem.selectionStart == 0
+      elem.selectionStart = elemLen
+      elem.selectionEnd = elemLen
+
+  enableShortcuts: =>
+    key.setScope('search')
+
+  disableShortcuts: =>
+    key.setScope('all')
+
+  setupShortcuts: =>
+    # When JS is available, prevent default form action
+    key('enter', (e) ->
+      e.preventDefault()
+    )
+
+    key('enter', 'search', (e) =>
+      e.preventDefault()
+      if @layout.view.name != 'Search'
+        return
+      href = @layout.view.$results.find('li.hover a').attr('href')
+      App.router.changeUrl(href)
+    )
+
+    key('up', 'search', (e) =>
+      e.preventDefault()
+      if @layout.view.name != 'Search'
+        return
+      hovered = @layout.view.$results.find('li.hover')
+      if hovered.length == 0 or hovered.is(':first-child')
+        selected = @layout.view.$results.find('li:last-child')
+      else
+        selected = hovered.prev()
+      hovered.removeClass('hover')
+      selected.addClass('hover')
+      if not @isElementInViewport(selected[0])
+        offset = selected.offset()
+        $('html, body').animate({
+            scrollTop: offset.top - 20
+        }, 150)
+    )
+
+    key('down', 'search', (e) =>
+      e.preventDefault()
+      if @layout.view.name != 'Search'
+        return
+      hovered = @layout.view.$results.find('li.hover')
+      if hovered.length == 0 or hovered.is(':last-child')
+        selected = @layout.view.$results.find('li:first-child')
+      else
+        selected = hovered.next()
+      hovered.removeClass('hover')
+      selected.addClass('hover')
+      if not @isElementInViewport(selected[0])
+        offset = selected.offset()
+        $('html, body').animate({
+            scrollTop: offset.top - 20
+        }, 150)
+    )
 
   highlightNav: =>
     @$links.removeClass('active')
@@ -31,19 +173,19 @@ class App.Header extends Backbone.View
           '-webkit-transition': 'none',
         })
         @$loading.removeData('css-transition')
-        @$loading.css({'width': '0'})
+        @$loading.css({'height': '0'})
       setTimeout(complete, 150)
 
-    # When loading starts, enable the width transition
+    # When loading starts, enable the height transition
     # for a nice silky smooth loading bar
     if not @$loading.data('css-transition')
       @$loading.css({
-        'transition': 'width .15s ease-in-out',
-        '-moz-transition': 'width .15s ease-in-out',
-        '-webkit-transition': 'width .15s ease-in-out'
+        'transition': 'height .15s ease-in-out',
+        '-moz-transition': 'height .15s ease-in-out',
+        '-webkit-transition': 'height .15s ease-in-out'
       })
       @$loading.data('css-transition', true)
 
     @$loading.css({
-      'width': percentage + '%'
+      'height': percentage + '%'
     })

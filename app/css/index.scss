@@ -137,33 +137,6 @@ body.search {
 			}
 		}
 	}
-
-	input#search {
-		@include box-sizing(border-box);
-		@include border-radius(4px);
-
-		background-color: #f9f9f9;
-		border: 1px solid $greyLight;
-		color: $greyDark;
-		font-family: $font-headline;
-		font-size: 2.5em;
-		font-style: normal;
-		font-weight: 300;
-		margin-bottom: 30px;
-		outline: none;
-		padding: 5px;
-		width: 100%;
-
-		// We don't use the transition mixin here because the properties are not consistent
-		transition:         box-shadow 0.25s ease-in-out,         border-color 0.25s ease-in-out;
-		-webkit-transition: -webkit-box-shadow 0.25s ease-in-out, border-color 0.25s ease-in-out;
-		-moz-transition:    -moz-box-shadow 0.25s ease-in-out,    border-color 0.25s ease-in-out;
-
-		&:focus {
-			@include box-shadow(0 0 5px 0 $green);
-			border-color: $green;
-		}
-	}
 }
 
 body.search {
