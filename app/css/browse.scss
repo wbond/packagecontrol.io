@@ -19,7 +19,7 @@ body.browse {
 			clear: left;
 		}
 
-		@media (max-width: 950px) {
+		@media (max-width: 1050px) {
 			width: 50%;
 
 			&.top {
@@ -32,7 +32,7 @@ body.browse {
 			}
 		}
 
-		@media (max-width: 600px) {
+		@media (max-width: 750px) {
 			float: none;
 			width: 100%;
 		}

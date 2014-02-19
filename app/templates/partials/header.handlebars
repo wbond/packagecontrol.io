@@ -52,21 +52,22 @@
             <section>
                 <div>
                     <a id="logo" href="/"><img src="/img/logo.svg" width="572" height="102"></a>
+
+                    <nav>
+                        <a href="{{url "installation"}}">Installation</a>
+                        <a href="{{url "browse"}}">Browse</a>
+                        <a href="{{url "search_blank"}}">Search</a>
+                        <a href="{{url "docs"}}">Docs</a>
+                        <a href="{{url "news"}}">News</a>
+                        <a href="{{url "stats"}}">Stats</a>
+                        <a href="{{url "say_thanks"}}">Say Thanks</a>
+                        <span class="loading"></span>
+                    </nav>
+
                     <form action="/search" method="get">
                         <input id="search" type="text" placeholder="Search" name="terms" value="{{terms}}">
                     </form>
                 </div>
-
-                <nav>
-                    <a href="{{url "installation"}}">Installation</a>
-                    <a href="{{url "browse"}}">Browse</a>
-                    <a href="{{url "search_blank"}}">Search</a>
-                    <a href="{{url "docs"}}">Docs</a>
-                    <a href="{{url "news"}}">News</a>
-                    <a href="{{url "stats"}}">Stats</a>
-                    <a href="{{url "say_thanks"}}">Say Thanks</a>
-                    <span class="loading"></span>
-                </nav>
             </section>
         </header>
         <div id="torso">

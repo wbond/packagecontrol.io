@@ -27,7 +27,7 @@ body.search {
 			font-size: 0.75em;
 			margin: 0 0 20px 20px;
 
-			@media (max-width: 600px) {
+			@media (max-width: 750px) {
 				display: none;
 			}
 		}
@@ -40,7 +40,7 @@ body.search {
 		margin-left: 3%;
 		width: 22.75%;
 
-		@media (max-width: 950px) {
+		@media (max-width: 1050px) {
 			width: 48.5%;
 
 			&.popular {
@@ -48,7 +48,7 @@ body.search {
 			}
 		}
 
-		@media (max-width: 600px) {
+		@media (max-width: 750px) {
 			float: none;
 			margin-left: 0;
 			width: auto;

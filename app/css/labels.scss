@@ -10,11 +10,11 @@ body.authors {
 		float: left;
 		list-style-type: none;
 
-		@media (max-width: 950px) {
+		@media (max-width: 1050px) {
 			width: 50%;
 		}
 
-		@media (max-width: 600px) {
+		@media (max-width: 750px) {
 			width: auto;
 			float: none;
 		}

@@ -7,7 +7,11 @@ div#torso,
 footer section {
 	margin: 0px auto 0px auto;
 	max-width: 1180px;
-	padding: 20px 220px 0px 20px;
+	padding: 20px 220px 0 20px;
+
+	@media (max-width: 600px) {
+		padding: 20px 20px 0 20px;
+	}
 }
 
 header {
@@ -44,31 +48,42 @@ header {
 		}
 	}
 
-	input#search {
-		@include box-sizing(border-box);
-		@include border-radius(4px);
+	form {
+		input#search {
+			@include box-sizing(border-box);
+			@include border-radius(4px);
 
-		background-color: #f9f9f9;
-		border: 1px solid $greyMedium;
-		color: $greyDark;
-		font-family: $font-headline;
-		font-size: 1.9em;
-		font-style: normal;
-		font-weight: 300;
-		outline: none;
-		padding: 2px 8px;
-		margin: 0;
-		width: 50%;
-		float: right;
+			background-color: #f9f9f9;
+			border: 1px solid $greyMedium;
+			color: $greyDark;
+			font-family: $font-headline;
+			font-size: 1.9em;
+			font-style: normal;
+			font-weight: 300;
+			outline: none;
+			padding: 2px 8px;
+			margin: 0;
+			width: 48%;
+			float: right;
 
-		// We don't use the transition mixin here because the properties are not consistent
-		transition:         box-shadow 0.25s ease-in-out,         border-color 0.25s ease-in-out;
-		-webkit-transition: -webkit-box-shadow 0.25s ease-in-out, border-color 0.25s ease-in-out;
-		-moz-transition:    -moz-box-shadow 0.25s ease-in-out,    border-color 0.25s ease-in-out;
+			// We don't use the transition mixin here because the properties are not consistent
+			transition:         box-shadow 0.25s ease-in-out,         border-color 0.25s ease-in-out;
+			-webkit-transition: -webkit-box-shadow 0.25s ease-in-out, border-color 0.25s ease-in-out;
+			-moz-transition:    -moz-box-shadow 0.25s ease-in-out,    border-color 0.25s ease-in-out;
 
-		&:focus {
-			@include box-shadow(0 0 5px 0 $green);
-			border-color: $green;
+			&:focus {
+				@include box-shadow(0 0 5px 0 $green);
+				border-color: $green;
+			}
+
+			@media (max-width: 1050px) {
+				margin-top: 15px;
+				width: 100%;
+			}
+		}
+
+		@media (max-width: 600px) {
+			width: 100%;
 		}
 	}
 
@@ -81,12 +96,6 @@ header {
 		z-index: +10;
 		width: 180px;
 
-		@media (max-width: 950px) {
-			float: none;
-			overflow: hidden;
-			clear: left;
-		}
-
 		a {
 			color: $greyDark;
 			display: block;
@@ -98,9 +107,9 @@ header {
 			-moz-border-bottom-right-radius:     3px;
 			-webkit-border-bottom-right-radius:  3px;
 			border-bottom-right-radius:          3px;
-			-moz-border-top-right-radius:    3px;
-			-webkit-border-top-right-radius: 3px;
-			border-top-right-radius:         3px;
+			-moz-border-top-right-radius:        3px;
+			-webkit-border-top-right-radius:     3px;
+			border-top-right-radius:             3px;
 
 			&:first-child {
 				margin-left: 0;
@@ -116,6 +125,40 @@ header {
 				color: $black;
 			}
 		}
+
+		@media (max-width: 600px) {
+			width: 100%;
+			position: relative;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			float: none;
+			overflow: hidden;
+			clear: left;
+			border-left: none;
+			padding-top: 10px;
+			padding-bottom: 5px;
+
+			a {
+				display: inline-block;
+				padding: 3px 7px;
+				border: 1px solid transparent;
+
+				-moz-border-bottom-left-radius:     3px;
+				-webkit-border-bottom-left-radius:  3px;
+				border-bottom-left-radius:          3px;
+				-moz-border-top-left-radius:        3px;
+				-webkit-border-top-left-radius:     3px;
+				border-top-left-radius:             3px;
+
+				&.active {
+					border: 1px solid $blueLink;
+					background-color: $blueLink;
+					color: $white;
+				}
+			}
+		}
 	}
 
 	.loading {
@@ -125,6 +168,13 @@ header {
 		left: 0;
 		position: absolute;
 		width: 2px;
+
+		@media (max-width: 600px) {
+			height: 2px;
+			width: auto;
+			bottom: 0;
+			top: auto;
+		}
 	}
 }
 

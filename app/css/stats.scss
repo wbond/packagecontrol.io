@@ -9,7 +9,7 @@ body.stats {
 
 		float: left;
 
-		@media (max-width: 750px) {
+		@media (max-width: 950px) {
 			float: none;
 			width: auto;
 		}
@@ -22,7 +22,7 @@ body.stats {
 	section.packages {
 		width: 39.5%;
 
-		@media (max-width: 1000px) {
+		@media (max-width: 1200px) {
 			width: 57%;
 		}
 
@@ -33,10 +33,10 @@ body.stats {
 	section.users {
 		width: 32.5%;
 
-		@media (max-width: 1000px) {
+		@media (max-width: 1200px) {
 			width: 43%;
 		}
-		@media (max-width: 750px) {
+		@media (max-width: 950px) {
 			padding-top: 30px;
 		}
 
@@ -47,7 +47,7 @@ body.stats {
 	section.yesterday {
 		width: 28%;
 
-		@media (max-width: 1000px) {
+		@media (max-width: 1200px) {
 			width: auto;
 			clear: left;
 			padding-top: 30px;

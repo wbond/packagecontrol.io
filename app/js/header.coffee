@@ -162,6 +162,10 @@ class App.Header extends Backbone.View
 
   animateLoadingBar: (percentage) =>
 
+    dimension = 'height'
+    if parseInt(window.innerWidth, 10) <= 600
+      dimension = 'width'
+
     complete = null
     if percentage >= 100
       percentage = 100
@@ -174,19 +178,17 @@ class App.Header extends Backbone.View
           '-webkit-transition': 'none',
         })
         @$loading.removeData('css-transition')
-        @$loading.css({'height': '0'})
+        @$loading.css(dimension, '0')
       setTimeout(complete, 150)
 
-    # When loading starts, enable the height transition
+    # When loading starts, enable the dimension transition
     # for a nice silky smooth loading bar
     if not @$loading.data('css-transition')
       @$loading.css({
-        'transition': 'height .15s ease-in-out',
-        '-moz-transition': 'height .15s ease-in-out',
-        '-webkit-transition': 'height .15s ease-in-out'
+        'transition': dimension + ' .15s ease-in-out',
+        '-moz-transition': dimension + ' .15s ease-in-out',
+        '-webkit-transition': dimension + ' .15s ease-in-out'
       })
       @$loading.data('css-transition', true)
 
-    @$loading.css({
-      'height': percentage + '%'
-    })
+    @$loading.css(dimension, percentage + '%')

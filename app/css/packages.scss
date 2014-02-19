@@ -18,16 +18,22 @@ body.new {
 div.results div.help {
 	font-size: 0.85em;
 	opacity: 0.5;
-	width: 50%;
+	width: 48%;
 	float: right;
-	margin: -20px 0 20px 0;
+	margin: -20px 0 20px 2px;
+
+	@media (max-width: 1050px) {
+		float: none;
+		width: 100%;
+		margin-top: -10px;
+	}
 }
 
 div.no.results {
 	font-size: 1.3em;
 	color: $grey;
 	font-style: italic;
-	padding-top: 20px;
+	padding-top: 10px;
 	font-family: $font-headline;
 }
 
@@ -75,7 +81,7 @@ ul.packages {
 			text-transform: uppercase;
 			top: 14px;
 
-			@media (max-width: 600px) {
+			@media (max-width: 1050px) {
 				position: static;
 				right: none;
 				top: none;
