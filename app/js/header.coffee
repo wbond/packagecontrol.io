@@ -206,21 +206,17 @@ class App.Header extends Backbone.View
 
   refreshAd: ->
     # Remove and recreate the ad placeholder
+    was_ad_pack = $('#ad_pack').length
     $('#bsap_1291379, #ad_pack').remove()
     div = $('<div id="bsap_1291379" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
     link = $('<a href="http://adpacks.com" id="ad_pack">via Ad Packs</a>')
-    $('#nav_ad').append(div)
+    $('#nav_container').append(div)
 
     # If the script tag already exists, manually trigger it, otherwise load it
-    if window._bsap
+    if was_ad_pack
       window._bsap.exec()
       div.append(link)
     else
-      bsaScript = document.createElement('script')
-      bsaScript.type = 'text/javascript'
-      bsaScript.async = true
-      bsaScript.src = '//s3.buysellads.com/ac/bsa.js'
-      document.body.appendChild(bsaScript)
       interval = setInterval(
         (->
           if div.children().length > 0
