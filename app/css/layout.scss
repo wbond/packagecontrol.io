@@ -3,7 +3,7 @@
 @import "partials/cross_browser";
 
 body.installation,
-body.say_thanks,
+body.about,
 body.browse,
 body.news,
 body.docs,
@@ -40,7 +40,7 @@ a.context {
 body.installation section.simple,
 body.usage section.primary,
 body.settings section.first,
-body.say_thanks section.first {
+body.about section.first {
 	@include box-sizing(border-box);
 
 	float: left;
@@ -54,7 +54,7 @@ body.say_thanks section.first {
 body.installation section.manual,
 body.usage section.other,
 body.settings section.second,
-body.say_thanks section.second {
+body.about section.second {
 	@include box-sizing(border-box);
 
 	float: right;
@@ -69,7 +69,7 @@ body.say_thanks section.second {
 	body.installation section.simple,
 	body.usage section.primary,
 	body.settings section.first,
-	body.say_thanks section.first {
+	body.about section.first {
 		float: none;
 		width: auto;
 	}
@@ -77,7 +77,7 @@ body.say_thanks section.second {
 	body.installation section.manual,
 	body.usage section.other,
 	body.settings section.second,
-	body.say_thanks section.second {
+	body.about section.second {
 		float: none;
 		width: auto;
 	}

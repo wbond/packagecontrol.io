@@ -1,5 +1,6 @@
 from bottle import app
 
+from .about import about_controller
 from .author import author_controller
 from .authors import authors_controller
 from .browse import browse_controller

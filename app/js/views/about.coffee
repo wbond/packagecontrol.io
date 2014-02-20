@@ -1,5 +1,5 @@
-class App.Views.SayThanks extends Snakeskin.StaticView
-  name: 'SayThanks'
+class App.Views.About extends Snakeskin.StaticView
+  name: 'About'
 
   events:
     'click #buy_beer': 'handlePayPal'

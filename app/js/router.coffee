@@ -83,6 +83,11 @@ class App.Router extends Snakeskin.Router
       App.layout.render('stats', data)
     )
 
+  about: =>
+    @ensureData('html', (data) =>
+      App.layout.render('about', data)
+    )
+
   channelsAndRepositories: =>
     @ensureData('html', (data) =>
       App.layout.render('channels_and_repositories', data)
@@ -126,11 +131,6 @@ class App.Router extends Snakeskin.Router
   news: =>
     @ensureData('html', (data) =>
       App.layout.render('news', data)
-    )
-
-  sayThanks: =>
-    @ensureData('html', (data) =>
-      App.layout.render('say_thanks', data)
     )
 
   settings: =>
