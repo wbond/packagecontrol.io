@@ -1,6 +1,4 @@
-from bottle import route
-
-from ..render import render_static
+from bottle import route, redirect
 
 
 @route('/say_thanks', name='say_thanks')
