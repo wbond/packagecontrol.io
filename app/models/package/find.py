@@ -464,6 +464,8 @@ def search(terms, page=1, limit=50):
     # Clean up the search terms
     terms = re.sub('\s{2,}', ' ', terms).strip()
 
+    lower_terms = terms.lower()
+
     with connection() as cursor:
         cursor.execute("""
             SELECT plainto_tsquery('english', split_package_name(%s)) AS query
@@ -532,15 +534,23 @@ def search(terms, page=1, limit=50):
                     ps.trending_rank,
                     ps.installs_rank,
                     coalesce(ic.unique_installs, 0) unique_installs,
-                    (ts_rank(
-                        ARRAY[0.0, 0.0, 0.0, 1.0],
-                        search_vector,
-                        query
-                    ) * (20.0 / length(p.name))) + ts_rank(
+                    (
+                        ts_rank(
+                            ARRAY[0.0, 0.0, 0.0, 1.0],
+                            search_vector,
+                            query
+                        )
+                        * (20.0 / length(p.name))
+                    )
+                    + ts_rank(
                         ARRAY[0.05, 0.1, 0.01, 0.0],
                         search_vector,
                         query
-                    ) AS rank
+                    )
+                    + CASE
+                        WHEN lower(p.name) = %s THEN 10.0
+                        ELSE 0.0
+                    END AS rank
                 FROM
                     packages AS p LEFT JOIN
                     package_stats AS ps ON p.name = ps.package LEFT JOIN
@@ -548,13 +558,16 @@ def search(terms, page=1, limit=50):
                     package_search_entries AS pse ON pse.package = p.name,
                     to_tsquery(%s) AS query
                 WHERE
-                    query @@ search_vector
+                    (
+                        query @@ search_vector
+                        or lower(p.name) = %s
+                    )
                     """ + where_frag + """
                 ORDER BY
                     rank DESC
                 LIMIT %s
                 OFFSET %s
-            """, [prefix_query, limit, offset])
+            """, [lower_terms, prefix_query, lower_terms, limit, offset])
             output['packages'] = [row for row in cursor.fetchall()]
 
             cursor.execute("""
@@ -596,23 +609,33 @@ def search(terms, page=1, limit=50):
                     ps.trending_rank,
                     ps.installs_rank,
                     coalesce(ic.unique_installs, 0) unique_installs,
-                    CASE
-                        WHEN pse.name ~* %s THEN 5.0
-                        ELSE 1.0
-                    END * (20.0 / length(p.name)::float) AS rank
+                    (
+                        CASE
+                            WHEN pse.name ~* %s THEN 5.0
+                            ELSE 1.0
+                        END
+                        * (20.0 / length(p.name)::float)
+                    )
+                    + CASE
+                        WHEN lower(p.name) = %s THEN 10.0
+                        ELSE 0.0
+                    END AS rank
                 FROM
                     packages AS p LEFT JOIN
                     package_stats AS ps ON p.name = ps.package LEFT JOIN
                     install_counts AS ic ON p.name = ic.package INNER JOIN
                     package_search_entries AS pse ON pse.package = p.name
                 WHERE
-                    regexp_replace(pse.name, ' (and|an|as) ', ' ') ~* %s
+                    (
+                        regexp_replace(pse.name, ' (and|an|as) ', ' ') ~* %s
+                        or lower(p.name) = %s
+                    )
                     """ + where_frag + """
                 ORDER BY
                     rank DESC
                 LIMIT %s
                 OFFSET %s
-            """, [match_regex, regex, regex, limit, offset])
+            """, [match_regex, regex, lower_terms, regex, lower_terms, limit, offset])
             output['packages'] = [row for row in cursor.fetchall()]
 
             cursor.execute("""
