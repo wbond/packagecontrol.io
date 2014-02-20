@@ -162,10 +162,14 @@ class App.Header extends Backbone.View
   highlightNav: =>
     @$links.removeClass('active')
     url = App.router.path()
+    found = false
     for link in @links
       if url.indexOf(link.attr('href')) == 0
         link.addClass('active')
+        found = true
         break
+    if not found and url.indexOf('/packages/') == 0
+      @$('a[href^="/browse"]').addClass('active')
 
   animateLoadingBar: (percentage) =>
 
