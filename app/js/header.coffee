@@ -25,10 +25,6 @@ class App.Header extends Backbone.View
       search = @$('input#search').attr('autocomplete', 'off')
     )
     @setupShortcuts()
-    # When JS is available, prevent default form action
-    key('enter', (e) ->
-      e.preventDefault()
-    )
 
     $(window).on('popstate', @resetSearch)
     $(window).on('pushstate', @resetSearch)
