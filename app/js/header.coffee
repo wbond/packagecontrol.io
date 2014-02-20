@@ -33,6 +33,8 @@ class App.Header extends Backbone.View
       keys = @$('span.keys')
       keys.text(keys.text().replace('ctrl', 'cmd'))
 
+    @refreshAd()
+
   cleanup: =>
     @disableShortcuts()
     key.unbind('enter', 'search')
@@ -197,3 +199,29 @@ class App.Header extends Backbone.View
       @$loading.data('css-transition', true)
 
     @$loading.css(dimension, percentage + '%')
+
+  refreshAd: ->
+    # Remove and recreate the ad placeholder
+    $('#bsap_1291379, #ad_pack').remove()
+    div = $('<div id="bsap_1291379" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
+    link = $('<a href="http://adpacks.com" id="ad_pack">via Ad Packs</a>')
+    $('#nav_ad').append(div)
+
+    # If the script tag already exists, manually trigger it, otherwise load it
+    if window._bsap
+      window._bsap.exec()
+      div.append(link)
+    else
+      bsaScript = document.createElement('script')
+      bsaScript.type = 'text/javascript'
+      bsaScript.async = true
+      bsaScript.src = '//s3.buysellads.com/ac/bsa.js'
+      document.body.appendChild(bsaScript)
+      interval = setInterval(
+        (->
+          if div.children().length > 0
+            div.append(link)
+            clearTimeout(interval)
+        ),
+        50
+      )

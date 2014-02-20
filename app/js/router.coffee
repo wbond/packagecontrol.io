@@ -165,6 +165,8 @@ class App.Router extends Snakeskin.Router
     App.layout.render('five_hundred', data)
 
   cleanupNavigation: =>
+    App.layout.header.refreshAd()
+
     window._gaq.push(['_trackPageview'])
 
 
