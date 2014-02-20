@@ -15,17 +15,13 @@ body.new {
 	}
 }
 
-div.results div.help {
-	font-size: 0.85em;
-	opacity: 0.5;
-	width: 48%;
-	float: right;
-	margin: -20px 0 20px 2px;
+body.search {
+	header form span.help {
+		visibility: visible;
 
-	@media (max-width: 1050px) {
-		float: none;
-		width: 100%;
-		margin-top: -10px;
+		span.terms {
+			visibility: visible;
+		}
 	}
 }
 

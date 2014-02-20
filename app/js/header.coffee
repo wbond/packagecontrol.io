@@ -29,6 +29,10 @@ class App.Header extends Backbone.View
     $(window).on('popstate', @resetSearch)
     $(window).on('pushstate', @resetSearch)
 
+    if window.navigator.platform.indexOf('Mac') != -1
+      keys = @$('span.keys')
+      keys.text(keys.text().replace('ctrl', 'cmd'))
+
   cleanup: =>
     @disableShortcuts()
     key.unbind('enter', 'search')
@@ -102,6 +106,11 @@ class App.Header extends Backbone.View
     # When JS is available, prevent default form action
     key('enter', (e) ->
       e.preventDefault()
+    )
+
+    # Allow users to use ctrl+shift+p or cmd+shift+p to focus search
+    key('command+shift+p, ctrl+shift+p', (e) =>
+      @$search.focus()
     )
 
     key('enter', 'search', (e) =>

@@ -45,10 +45,19 @@ header {
 			opacity: 0.7;
 			max-width: 286px;
 			margin-right: 30px;
+
+			@media (max-width: 1050px) {
+				margin-bottom: 15px;
+			}
 		}
 	}
 
 	form {
+		@media (max-width: 1050px) {
+			clear: left;
+			width: 100%;
+		}
+
 		input#search {
 			@include box-sizing(border-box);
 			@include border-radius(4px);
@@ -56,6 +65,7 @@ header {
 			background-color: #f9f9f9;
 			border: 1px solid $greyMedium;
 			color: $greyDark;
+			display: block;
 			font-family: $font-headline;
 			font-size: 1.9em;
 			font-style: normal;
@@ -77,13 +87,35 @@ header {
 			}
 
 			@media (max-width: 1050px) {
-				margin-top: 15px;
 				width: 100%;
+				float: none;
 			}
 		}
 
-		@media (max-width: 600px) {
-			width: 100%;
+		span.help {
+			visibility: hidden;
+
+			font-size: 0.85em;
+			opacity: 0.5;
+			width: 48%;
+			float: right;
+			margin: 0 0 -10px 5px;
+			display: block;
+
+			@media (max-width: 1050px) {
+				float: none;
+				width: 100%;
+			}
+
+			span.terms {
+				padding-left: 30px;
+				visibility: hidden;
+			}
+		}
+
+		input#search:hover + span.help,
+		input#search:focus + span.help {
+			visibility: visible;
 		}
 	}
 
