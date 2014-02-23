@@ -33,11 +33,11 @@ header {
 	}
 
 	a#logo {
+		@include transition(opacity 0.15s ease-in-out);
+
 		overflow: hidden;
 
 		img {
-			@include transition(opacity 0.15s ease-in-out);
-
 			border: none;
 			display: block;
 			float: left;
