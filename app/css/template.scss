@@ -141,62 +141,83 @@ header {
 			padding-bottom: 5px;
 		}
 
-		div.bsap {
-			@include box-sizing(border-box);
-
+		div#carbonads-container {
 			margin-top: 20px;
-			border: 1px solid $greyLight;
-			padding: 22px 18px 10px 18px;
-			font-size: 0.85em;
-			width: 168px;
-			position: relative;
-
-			img {
-				display: block;
-				margin-bottom: 8px;
-			}
-
-			span.bsa_it_t {
-				display: block;
-				color: $greyDark;
-				padding-bottom: 5px;
-			}
-
-			span.bsa_it_d {
-				line-height: 1.15;
-			}
-
-			span.bsa_it_p {
-				display: none;
-			}
-			a#ad_pack {
-				font-size: 0.9em;
-				padding-top: 8px;
-				display: block;
-				text-align: right;
-			}
-
-			a {
-				color: $grey;
-			}
+			padding-right: 18px;
 
 			@media (max-width: 600px) {
-				width: 100%;
-				height: 130px;
-				padding: 15px;
+				padding-right: 0;
 				margin-bottom: 25px;
+			}
+		}
 
-				img {
-					float: left;
-					margin-bottom: 0;
-					margin-right: 15px;
+		div.carbonad {
+			width: auto;
+			height: 233px;
+			position: relative;
+			border: 1px solid $greyLight;
+			background-color: transparent;
+			margin: 0 auto;
+
+			@media (max-width: 600px) {
+				width: 300px;
+				height: 130px;
+			}
+
+			> div {
+				@include transition(opacity 0.15s ease-in-out);
+
+				background-color: #fff;
+				position: absolute;
+				top: 0;
+				left: 0;
+				opacity: 0.0;
+				z-index: +3;
+				right: 0;
+				bottom: 0;
+
+				&#azcarbon {
+					z-index: +2;
 				}
 
-				a#ad_pack {
-					position: absolute;
-					bottom: 6px;
-					right: 10px;
-					padding-top: 0;
+				&.loaded {
+					opacity: 1.0;
+					overflow: hidden;
+				}
+			}
+
+			.carbonad-image {
+				float: left;
+
+				img {
+					margin: 17px 15px 15px;
+
+					@media (max-width: 600px) {
+						margin-top: 15px;
+					}
+				}
+			}
+
+			.carbonad-tag {
+				position: absolute;
+				left: 15px;
+				bottom: 10px;
+				margin-left: 0;
+
+				@media (max-width: 600px) {
+					left: 162px;
+					bottom: 15px;
+				}
+			}
+
+			.carbonad-text {
+				height: auto;
+				margin-top: 0;
+
+				@media (max-width: 600px) {
+					margin-top: 17px;
+					margin-left: 2px;
+					width: 120px;
 				}
 			}
 		}
@@ -273,6 +294,8 @@ header {
 			width: auto;
 			bottom: 0;
 			top: auto;
+			margin-top: 5px;
+			margin-bottom: -5px;
 		}
 	}
 }
