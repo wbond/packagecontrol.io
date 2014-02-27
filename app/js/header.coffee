@@ -204,49 +204,24 @@ class App.Header extends Backbone.View
 
     @$loading.css(dimension, percentage + '%')
 
-  refreshAd: =>
-    container = $('#carbonads-container')
-    ad_present = container.length > 0
+  refreshAd: ->
+    # Remove and recreate the ad placeholder
+    was_ad_pack = $('#ad_pack').length
+    $('#bsap_1291379, #ad_pack').remove()
+    div = $('<div id="bsap_1291379" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
+    link = $('<a href="http://adpacks.com" id="ad_pack">via Ad Packs</a>')
+    $('#nav_container').append(div)
 
-    # Unfortunately the carbonads images seem not to cache and load pretty
-    # slow, so to prevent the user from seeing a jarring refresh every time
-    # they navigate around the site, the first time we load the ad normally.
-    # For every transition after that, we remove the id that adzerk uses to
-    # construct the ad content and CSS causes the z-index to increase 1, then
-    # we create a new inner div with the id and load the adzerk JS so that
-    # it constructs the ad. After one second we remove a CSS class from the old
-    # ad to cause it to transition to transparent, showing the new ad behind
-    # it. Then finally we remove the old ad, just leaving the new one.
-    #
-    # I tried a number of different approaches and this was the only one I
-    # could find that didn't result in a crappy, jarring page transition for
-    # users.
-    if ad_present
-      oldDiv = container.find('#azcarbon')
-      oldDiv.removeAttr('id')
-      adDiv = $('<div id="azcarbon"></div>')
-      container.find('.carbonad').append(adDiv)
+    # If the script tag already exists, manually trigger it, otherwise load it
+    if was_ad_pack
+      window._bsap.exec()
+      div.append(link)
     else
-      newContainer = $('<div id="carbonads-container">
-        <div class="carbonad"><div id="azcarbon"></div></div>
-      </div>')
-      $('#nav_container').append(newContainer)
-      adDiv = newContainer.find('#azcarbon')
-
-    # There doesn't seem to be a good way to refresh the ad through code
-    # since adzerk uses random numbers in the function names. Instead we just
-    # remove the old JS and add it again.
-    $('script[src^="https://engine.carbonads.com"]').remove()
-    script = document.createElement("script")
-    script.type = "text/javascript"
-    script.async = true
-    script.src = "https://engine.carbonads.com/z/58026/azcarbon_2_1_0_VERT"
-    $('head')[0].appendChild(script)
-
-    adDiv.addClass('loaded')
-    if ad_present
-      setTimeout((-> oldDiv.removeClass('loaded')), 1000)
-      setTimeout((-> oldDiv.remove()), 1200)
-
-
-
+      interval = setInterval(
+        (->
+          if div.children().length > 0
+            div.append(link)
+            clearTimeout(interval)
+        ),
+        50
+      )

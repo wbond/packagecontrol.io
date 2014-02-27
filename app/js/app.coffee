@@ -4,6 +4,7 @@
 #= require lib/backbone.js
 #= require lib/backbone-beforepopstate.js
 #= require lib/keymaster.js
+#= require bsa.js
 
 #= require snakeskin/init
 #
