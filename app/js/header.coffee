@@ -240,11 +240,7 @@ class App.Header extends Backbone.View
     script = document.createElement("script")
     script.type = "text/javascript"
     script.async = true
-    # We add the number of milliseconds since the epoch to the URL since IE
-    # will not re-run a JS file with the same URL as one that has already
-    # been loaded on the page previously.
-    script.src = "https://engine.carbonads.com/z/58026/azcarbon_2_1_0_VERT?t=" \
-      + String(new Date().getTime())
+    script.src = "https://engine.carbonads.com/z/58026/azcarbon_2_1_0_VERT"
     $('head')[0].appendChild(script)
 
     adDiv.addClass('loaded')
