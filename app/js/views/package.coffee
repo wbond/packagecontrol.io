@@ -21,7 +21,7 @@ class App.Views.Package extends Snakeskin.View
     $(window).on('resize', @_redrawChart)
 
   loadScript: ->
-    src = '/js/package.js'
+    src = '/js/d3.js'
     packageJs = $('script[src="' + src + '""]')
     if packageJs.length == 0
       el = document.createElement('script')
