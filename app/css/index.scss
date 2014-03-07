@@ -139,6 +139,139 @@ body.search {
 	}
 }
 
+body.index {
+	div.highlights {
+		overflow: hidden;
+	}
+
+	#torso {
+		padding-bottom: 130px;
+		position: relative;
+		min-height: 380px;
+
+		@media (max-width: 750px) {
+			padding-bottom: 150px;
+		}
+	}
+
+	#realtime {
+		height: 130px;
+		width: auto;
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding-left: 20px;
+
+		@media (max-width: 750px) {
+			height: 150px;
+		}
+
+		div.meta {
+			span.title {
+				font-family: $font-headline;
+				font-size: 1.3em;
+				padding-right: 10px;
+			}
+
+			span.key {
+				color: $greyMedium;
+				font-size: 0.8em;
+
+				@media (max-width: 750px) {
+					display: block;
+				}
+			}
+
+			span.channel,
+			span.web,
+			span.usage {
+				display: inline-block;
+				width: 10px;
+				height: 10px;
+				position: relative;
+				top: 1px;
+				margin-left: 10px;
+			}
+
+			span.channel {
+				background-color: #677280;
+
+				@media (max-width: 750px) {
+					margin-left: 0;
+				}
+			}
+			span.web {
+				background-color: #768494;
+			}
+			span.usage {
+				background-color: #8D9EB3;
+			}
+		}
+
+		svg {
+			position: absolute;
+			left: 20px;
+			bottom: 0;
+		}
+
+		// crispEdges is used otherwise the grid lines and edges between
+		// adjacent rectangles look really fuzzy
+		.grid {
+			.major.tick {
+				line {
+					shape-rendering: crispEdges;
+					stroke: $greyLight;
+				}
+				text {
+					fill: $greyMedium;
+					font-size: 0.85em;
+					text-align: right;
+				}
+			}
+			line.minor {
+				shape-rendering: crispEdges;
+				stroke: $greyLight;
+			}
+			path {
+				stroke-width: 0;
+			}
+		}
+
+		rect {
+			shape-rendering: crispEdges;
+		}
+
+		.layer.channel {
+			fill: #677280;
+		}
+		.layer.web {
+			fill: #768494;
+		}
+		.layer.usage {
+			fill: #8D9EB3;
+		}
+
+		.no_data,
+		.paused {
+			height: 100px;
+			position: absolute;
+			top: 0;
+			left: 20px;
+			display: none;
+			background-color: rgba(255, 255, 255, 0.7);
+			font-size: 1.5em;
+			text-align: center;
+			padding-top: 50px;
+			z-index: +2;
+		}
+	}
+
+	footer {
+		margin-top: 0;
+	}
+}
+
 body.search {
 	p.intro {
 		height: 0;

@@ -22,8 +22,8 @@ class App.Views.Package extends Snakeskin.View
 
   loadScript: ->
     src = '/js/d3.js'
-    packageJs = $('script[src="' + src + '""]')
-    if packageJs.length == 0
+    d3Js = $('script[src="' + src + '"]')
+    if d3Js.length == 0
       el = document.createElement('script')
       el.type = 'text/javascript'
       el.src = src

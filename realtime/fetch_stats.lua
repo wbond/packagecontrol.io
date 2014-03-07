@@ -10,11 +10,12 @@ local fetch_stats = function(only_since)
     end
 
     local step = 2
+    local incremental_size = 3
     local time = os.time()
     local bucket = time - (time % step) - (2 * step)
     local json
 
-    if only_since and only_since >= bucket - (8 * step) then
+    if only_since and only_since >= bucket - (incremental_size * step) then
         json, err = red:get('incremental_json:' .. bucket)
         return json
     end

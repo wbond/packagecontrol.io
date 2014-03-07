@@ -28,8 +28,8 @@ local update_stats = function()
     end
 
     local step = 2
-    local incremental_size = 8
-    local full_size = 108
+    local incremental_size = 3
+    local full_size = 63
 
     local time = os.time()
     local goal = time - (time % step) - step
