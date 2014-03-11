@@ -5,8 +5,8 @@ class App.Header extends Backbone.View
     'keyup #search': 'search'
     'focus #search': 'enableShortcuts'
     'blur #search': 'disableShortcuts'
-    'click #hide_sup': 'hideSupport'
-    'click #show_sup': 'showSupport'
+    'click #hide': 'hideSupport'
+    'click #show': 'showSupport'
   }
 
   prevTerms: ''
@@ -208,15 +208,15 @@ class App.Header extends Backbone.View
 
   showSupport: =>
     $.removeCookie('hide_sup')
-    $('#show_sup').remove()
+    $('#show').remove()
     @refreshAd(true)
 
   hideSupport: =>
-    $('#hide_sup').remove()
-    showLink = $('<a href="#" id="show_sup">Show Ad</a>')
-    $('#nav_container').append(showLink)
+    $('#hide').remove()
+    if $('#show').length == 0
+      $('#nav_container').append('<a href="#" id="show">Show Ad</a>')
     $.cookie('hide_sup', '1')
-    $('.bsap').remove()
+    $('.pcpro').remove()
     return false
 
   refreshAd: (showing) =>
@@ -228,7 +228,7 @@ class App.Header extends Backbone.View
     was_ad_pack = $('#ad_pack').length
 
     if not was_ad_pack
-      hideLink = $('<a href="#" id="hide_sup">Hide Ad</a>')
+      hideLink = $('<a href="#" id="hide">Hide</a>')
       $('#nav_container').append(hideLink)
 
     $('#bsap_1291379, #ad_pack').remove()

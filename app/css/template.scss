@@ -141,8 +141,8 @@ header {
 			padding-bottom: 5px;
 		}
 
-		#hide_sup,
-		#show_sup {
+		#hide,
+		#show {
 			display: block;
 			margin-top: 15px;
 			font-size: 0.8em;
@@ -152,7 +152,7 @@ header {
 			padding-right: 12px;
 		}
 
-		div.bsap {
+		div.pcpro {
 			@include box-sizing(border-box);
 
 			margin-top: 20px;

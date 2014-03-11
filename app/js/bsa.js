@@ -7,7 +7,7 @@ var _bsap = {
     drop: function (a, b) {
         this.dii[b] = this.dii[b] || 0;
         var l = 'bsap_' + b + (++this.dii[b] === 1 ? '' : '_' + this.dii[b]);
-        document.write('<div id="' + l + '" class="bsap_' + b + ' bsap"><\/div>');
+        document.write('<div id="' + l + '" class="bsap_' + b + ' pcpro"><\/div>');
         this.idrop(l, a, b)
     },
     idrop: function (i, a, b) {
@@ -32,7 +32,7 @@ var _bsap = {
             for (var n = !! document.getElementsByClassName, ret = [], els = n ? document.getElementsByClassName(cl) : document.getElementsByTagName('*'), p = n ? false : new RegExp('(^|\\s)' + cl + '(\\s|$)'), i = 0; i < els.length; i++)
                 if (!p || p.test(els[i].className)) ret.push(els[i]);
             return ret
-        }, bs = cl('bsarocks'), id, pk, p = /bsap_([a-f0-9]+)/i, i = 0; i < bs.length && (id = bs[i].getAttribute('id')) && (rid = id.split('_')[1]) && (pk = bs[i].getAttribute('rel') || ((pk = p.exec(bs[i].className)) ? pk[1] : '')) && (bs[i].className = 'bsap_' + rid + ' bsap'); i++) this.idrop(id, pk, rid)
+        }, bs = cl('bsarocks'), id, pk, p = /bsap_([a-f0-9]+)/i, i = 0; i < bs.length && (id = bs[i].getAttribute('id')) && (rid = id.split('_')[1]) && (pk = bs[i].getAttribute('rel') || ((pk = p.exec(bs[i].className)) ? pk[1] : '')) && (bs[i].className = 'bsap_' + rid + ' pcpro'); i++) this.idrop(id, pk, rid)
     },
     deploy: function () {
         for (var zi = 0, wi, z, a, b, db; zi < this.jz.length && (z = this.jz[zi]) && (wi = 1); zi++)
@@ -207,7 +207,7 @@ var _bsap = {
                 this.bsaonecss || z.nostyle == 1 || css('.one{position:relative}.one .pcsup{display:block;padding:15px;border:1px solid #e1e1e1;background:#f9f9f9;font-family:helvetica,arial,sans-serif;line-height:100%;position:relative}.one .pcsup a{text-decoration:none}.one .pcsup a:hover{text-decoration:none}.one .pcsup .bsa_it_t{display:block;font-size:12px;font-weight:bold;color:#212121;line-height:125%;padding:0 0 5px 0}.one .pcsup .bsa_it_d{display:block;font-size:11px;color:#434343;font-size:12px;line-height:135%}.one .pcsup .bsa_it_i{float:left;margin:0 15px 10px 0}.one .bsa_it_p{display:block;text-align:right;position:absolute;bottom:10px;right:15px}.one .bsa_it_p a{font-size:10px;color:#666;text-decoration:none}.one .pcsup .bsa_it_p a:hover{font-style:italic}');
                 this.bsaonecss = 1;
                 o += '<div class="bsa_it one">';
-                for (i = 0, a; i < c.length && (a = bsa.getads(c[i], 1)[0]); i++, (j++, o += '<div class="pcsup ad' + i + ' ' + (i % 2 === 0 ? 'even' : 'odd') + '" id="bsa_' + a.id + '"><a ' + bsa.link(a.id, z.id, a.link.replace('[timestamp]', ts)) + ' target="_blank"><span class="bsa_it_i"><img src="' + a.img.replace('http://s3.buysellads.com', 'https://sublime.wbond.net').replace('[timestamp]', ts) + '" width="' + z.width + '" height="' + z.height + '" alt="' + a.alt + '" \/><\/span><\/a><a ' + bsa.link(a.id, z.id, a.link) + ' target="_blank"><span class="bsa_it_t">' + a.alt + '<\/span><span class="bsa_it_d">' + a.text + '<\/span><\/a><div style="clear:both"><\/div><\/div>', t += a.id + ';')) {}
+                for (i = 0, a; i < c.length && (a = bsa.getads(c[i], 1)[0]); i++, (j++, o += '<div class="pcsup ad' + i + ' ' + (i % 2 === 0 ? 'even' : 'odd') + '" id="bsa_' + a.id + '"><a ' + bsa.link(a.id, z.id, a.link.replace('[timestamp]', ts)) + ' target="_blank"><span class="bsa_it_i"><img src="' + a.img.replace('http://s3.buysellads.com', 'https://sublime.wbond.net').replace('http://srv.buysellads.com', 'https://sublime.wbond.net').replace('[timestamp]', ts) + '" width="' + z.width + '" height="' + z.height + '" alt="' + a.alt + '" \/><\/span><\/a><a ' + bsa.link(a.id, z.id, a.link) + ' target="_blank"><span class="bsa_it_t">' + a.alt + '<\/span><span class="bsa_it_d">' + a.text + '<\/span><\/a><div style="clear:both"><\/div><\/div>', t += a.id + ';')) {}
                 if (z.cpmbackfill && j == 0) {
                     for (var r = Math.random(), bn = 0; bn < z.cpmbackfill.length && z.cpmbackfill[bn] && z.cpmbackfill[bn][0] < r; r -= z.cpmbackfill[bn++][0]) {}
                     if (z.cpmbackfill[bn] && z.cpmbackfill[bn][0] && z.cpmbackfill[bn][1].length > 0) {
