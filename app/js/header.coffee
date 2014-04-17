@@ -5,8 +5,6 @@ class App.Header extends Backbone.View
     'keyup #search': 'search'
     'focus #search': 'enableShortcuts'
     'blur #search': 'disableShortcuts'
-    'click #hide': 'hideSupport'
-    'click #show': 'showSupport'
   }
 
   prevTerms: ''
@@ -206,48 +204,11 @@ class App.Header extends Backbone.View
 
     @$loading.css(dimension, percentage + '%')
 
-  showSupport: =>
-    $.removeCookie('hide_sup')
-    $('#show').remove()
-    @refreshAd(true)
-
-  hideSupport: =>
-    $('#hide').remove()
-    if $('#show').length == 0
-      $('#nav_container').append('<a href="#" id="show">Show Ad</a>')
-    $.cookie('hide_sup', '1')
-    $('.pcpro').remove()
-    return false
-
   refreshAd: (showing) =>
-    if $.cookie('hide_sup')
-      @hideSupport()
-      return
-
     # Remove and recreate the ad placeholder
-    was_ad_pack = $('#ad_pack').length
-
-    if not was_ad_pack
-      hideLink = $('<a href="#" id="hide">Hide</a>')
-      $('#nav_container').append(hideLink)
-
-    $('#bsap_1291379, #ad_pack').remove()
-    div = $('<div id="bsap_1291379" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
-    link = $('<a href="http://adpacks.com" id="ad_pack">via Ad Packs</a>')
+    was_bsap = $('#bsap_1295353').length
+    $('#bsap_1295353').remove()
+    div = $('<div id="bsap_1295353" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
     $('#nav_container').append(div)
 
-    # If the script tag already exists, manually trigger it, otherwise load it
-    if was_ad_pack
-      window._bsap.exec()
-      div.append(link)
-    else
-      if showing
-        window._bsap.exec()
-      interval = setInterval(
-        (->
-          if div.children().length > 0
-            div.append(link)
-            clearTimeout(interval)
-        ),
-        50
-      )
+    window._bsap.exec()
