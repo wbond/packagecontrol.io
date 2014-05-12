@@ -167,7 +167,7 @@ class App.Router extends Snakeskin.Router
   cleanupNavigation: =>
     App.layout.header.refreshAd()
 
-    window._gaq.push(['_trackPageview'])
+    window.ga('send', 'pageview')
 
 
   _parseDates: (obj, keys) ->
