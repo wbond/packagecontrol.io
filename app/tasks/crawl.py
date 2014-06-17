@@ -24,8 +24,8 @@ output, _ = proc.communicate()
 print(output.decode(encoding='utf-8'))
 
 
-# Limit each run to 200 packages
-valid_sources = package.sources.outdated_sources(60, 200)
+# Limit each run to 400 packages
+valid_sources = package.sources.outdated_sources(60, 400)
 invalid_sources = package.sources.invalid_sources(valid_sources)
 affected_packages = refresh_packages(invalid_sources)
 

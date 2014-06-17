@@ -51,6 +51,8 @@ def outdated_sources(minutes, limit):
                         packages
                     WHERE
                         last_seen <= %s
+                    ORDER BY
+                        last_seen ASC
                     LIMIT
                         %s
                 ) AS packages
