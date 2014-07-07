@@ -115,6 +115,10 @@ class App.Views.Index extends Snakeskin.View
         clearTimeout(_socketConfig.timeoutTimeout)
         _socketConfig.timeoutTimeout = null
 
+      if _socketConfig.sendTimeout
+        clearTimeout(_socketConfig.sendTimeout)
+        _socketConfig.sendTimeout = null
+
       # If a bunch of errors happen, reduce the frequency at
       # which we try to reconenct to the websockets server
       if _socketConfig.generation > 4
