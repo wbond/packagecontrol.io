@@ -17762,12 +17762,14 @@ window.onload = function () {
         url: url,
         xhr: this._makeXhr,
         success: function(data, status, xhr) {
+          var func;
           _this.checkReloadApp(xhr);
           _this.finishNavigation();
-          return setTimeout((function() {
+          func = function() {
             success(data);
             return _this.cleanupNavigation();
-          }), 1);
+          };
+          return setTimeout(func, 1);
         },
         error: function(xhr, status, error) {
           var data, route;
@@ -18318,7 +18320,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.0';
+  window.App.version = '1.0.1';
 
 }).call(this);
 
@@ -19509,8 +19511,17 @@ window.onload = function () {
       _chart = this.chart;
       startWebsocket = this.startWebsocket;
       advanceChart = this.advanceChart;
+      _socketConfig.send = function(message) {
+        if (!_socketConfig.socket) {
+          return;
+        }
+        if (_socketConfig.socket.readyState !== 1) {
+          return;
+        }
+        return _socketConfig.socket.send(message);
+      };
       _socketConfig.onopen = function() {
-        return _socketConfig.socket.send("full");
+        return _socketConfig.send("full");
       };
       _socketConfig.onclose = function() {};
       _socketConfig.onerror = function(e) {
@@ -19575,7 +19586,7 @@ window.onload = function () {
         }
         return _socketConfig.sendTimeout = setTimeout((function() {
           var socket;
-          _socketConfig.socket.send("since:" + String(_socketConfig.lastStep));
+          _socketConfig.send("since:" + String(_socketConfig.lastStep));
           socket = _socketConfig.socket;
           return _socketConfig.timeoutTimeout = setTimeout((function() {
             socket.onerror();

@@ -103,9 +103,16 @@ class App.Views.Index extends Snakeskin.View
     startWebsocket = @startWebsocket
     advanceChart = @advanceChart
 
+    _socketConfig.send = (message) ->
+      if not _socketConfig.socket
+        return
+      if _socketConfig.socket.readyState != 1
+        return
+      _socketConfig.socket.send(message)
+
     # Set up event handlers for the various websocket events
     _socketConfig.onopen = ->
-      _socketConfig.socket.send("full")
+      _socketConfig.send("full")
 
     _socketConfig.onclose = ->
       # We don't currently do anything on close
@@ -189,7 +196,7 @@ class App.Views.Index extends Snakeskin.View
       # Queue the request for the next chunk of data
       _socketConfig.sendTimeout = setTimeout(
         (->
-          _socketConfig.socket.send("since:" + String(_socketConfig.lastStep))
+          _socketConfig.send("since:" + String(_socketConfig.lastStep))
 
           # If the websocket does not receive a response, we abandon the socket,
           # which is a homegrown approach to a socket timeout since websockets
