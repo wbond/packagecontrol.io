@@ -94,7 +94,7 @@ class Assets(object):
             If the path should be copied to the public folder
         """
 
-        if path in ['js/app.js', 'js/d3.js', 'css/app.css']:
+        if path in ['js/app.js', 'css/app.css']:
             return True
         return not any(path.endswith(ext) for ext in ('.css', '.js'))
 
