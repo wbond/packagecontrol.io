@@ -42,8 +42,13 @@ def compile_assets():
         print(out)
     return end
 
+def update_version():
+    with open('./app/js/version.coffee', 'w') as f:
+        app.env.reload() # Make sure was have the up-to-date version
+        f.write("window.App.version = '%s'" % app.env.version)
 
 print('Initial compilation of assets ... ', end='')
+update_version()
 compile_assets()
 if app.env.name == 'prod':
     sys.exit(0)
@@ -59,11 +64,19 @@ class PathChangeHandler(PatternMatchingEventHandler):
         print(u'Compiling assets ... ', end='')
         self.last_run = compile_assets()
 
-handler = PathChangeHandler(patterns=['*.coffee', '*.scss', '*.handlebars', '*.js'])
+
+class VersionChangeHandler(PatternMatchingEventHandler):
+    def on_any_event(self, event):
+        update_version()
+
+
+asset_handler = PathChangeHandler(patterns=['*.coffee', '*.scss', '*.handlebars', '*.js'])
+version_handler = VersionChangeHandler(patterns=['*/version.yml'])
 
 observer = Observer()
 observer.start()
-observer.schedule(handler, path='./app/', recursive=True)
+observer.schedule(asset_handler, path='./app/', recursive=True)
+observer.schedule(version_handler, path='./', recursive=False)
 
 try:
     while True:

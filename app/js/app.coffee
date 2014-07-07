@@ -10,6 +10,7 @@
 #= require snakeskin/init
 #
 #= require init
+#= require version
 #= require router
 #= require header
 #= require layout

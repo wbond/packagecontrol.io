@@ -8,6 +8,7 @@ app.env.name = 'dev'
 import app.controllers
 from app.lib.json_api_middleware import JsonApiMiddleware
 from app.lib.trailing_slash_filter import remove_trailing_slash
+from app.lib.version_header import add_version
 
 
 # For development, serve static files also
@@ -22,7 +23,10 @@ def server_static(folder, filename):
 
 @bottle.route('/<filename:re:.*\.html$>')
 def server_html(filename):
-    return bottle.static_file(filename, root="%s/html" % app_root)
+    response = bottle.static_file(filename, root="%s/html" % app_root)
+    # By default the static_file handler creates a new response, so we can't
+    # just use the default hook, since it grabs bottle.response
+    return add_version(response)
 
 
 @bottle.route('/favicon.ico')

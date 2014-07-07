@@ -33,6 +33,7 @@ def render(name, data=None, **kwargs):
     data['exportedRoutes'] = export_routes()
     data['__template__'] = name
     data['__env__'] = env.name
+    data['__version__'] = env.version
     if env.name == 'prod':
         data['__rollbar_client_key__'] = config.read_secret('rollbar_client_key')
     if '__status_code__' not in data:
@@ -81,7 +82,8 @@ def render_static(name):
         'exportedRoutes': export_routes(),
         '__template__': name,
         '__status_code__': 200,
-        '__env__': env.name
+        '__env__': env.name,
+        '__version__': env.version
     }
     if env.name == 'prod':
         data['__rollbar_client_key__'] = config.read_secret('rollbar_client_key')

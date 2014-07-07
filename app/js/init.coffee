@@ -1,6 +1,10 @@
 window.App = {
   Views: {}
 
+  # Used to force-reload the app if a user is running
+  # an old version of the client-side code.
+  version: null
+
   initialize: (options) ->
     # Allow keyboard shortcuts in inputs
     key.filter = ->
