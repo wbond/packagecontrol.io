@@ -73,7 +73,6 @@ class Assets(object):
         self.gears.compilers.register('.handlebars', CustomHandlebarsCompiler.as_handler())
 
         if env.is_prod():
-            self.gears.compressors.register('application/javascript', UglifyJSCompressor.as_handler())
             self.gears.compressors.register('text/css', CleanCSSCompressor.as_handler())
 
         self.gears.register_defaults()
