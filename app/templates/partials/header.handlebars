@@ -13,7 +13,9 @@
                 var badSource = url.search(window.location.origin) == -1;
                 var adBlocker = errMsg.search("Property 'scrollTo' of object [object global] is not a function") != -1;
                 var extension = errMsg.search("Error connecting to extension") != -1;
-                if (badSource || adBlocker || extension || oldIE) {
+                var npObject = errMsg.search("Error calling method on NPObject") != -1;
+                var margins = errMsg.search("Cannot read property 'margins' of undefined") != -1;
+                if (badSource || adBlocker || extension || oldIE || npObject || margins) {
                     return true;
                 }
                 return false;
