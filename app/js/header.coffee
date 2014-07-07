@@ -20,7 +20,7 @@ class App.Header extends Backbone.View
     @$search = @$('#search')
     if @$el
       @prevTerms = @$search.val()
-    @search = _.debounce(@_search, 350)
+    @executeSearch = _.debounce(@_executeSearch, 350)
     @listenTo(@, 'placed', =>
       search = @$('input#search').attr('autocomplete', 'off')
     )
@@ -52,7 +52,7 @@ class App.Header extends Backbone.View
         rect.right <= (window.innerWidth || document.documentElement.clientWidth)
     )
 
-  _search: (e) =>
+  search: (e) =>
     input = $(e.target)
     terms = input.val()
 
@@ -65,6 +65,11 @@ class App.Header extends Backbone.View
     if terms == '' and App.router.path().indexOf('/search') == -1
       return
 
+    # If the user changes the search terms, cancel any in-progress navigation
+    App.router.cancelNavigation()
+    @executeSearch(terms)
+
+  _executeSearch: (terms) =>
     route = 'index'
     if terms
       route = 'search'
