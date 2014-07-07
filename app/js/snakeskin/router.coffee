@@ -17,6 +17,9 @@ class window.Snakeskin.Router extends Backbone.Router
   # is used to update the URL in the browser.
   tempFragment: null
 
+  # The current AJAX request happening, for the purpose of cancelling it
+  currentXHR: null
+
   # The constructor requires an option named exportedRoutes that is an object
   # of named route information from bottle.py
   constructor: (options) ->
@@ -110,7 +113,7 @@ class window.Snakeskin.Router extends Backbone.Router
     if parts[1]
       url += '?' + parts[1]
 
-    $.ajax({
+    @currentXHR = $.ajax({
       dataType: type,
       url: url,
       xhr: @_makeXhr,
@@ -120,7 +123,12 @@ class window.Snakeskin.Router extends Backbone.Router
           success(data)
           _this.cleanupNavigation()
         setTimeout(func, 1)
+
       error: (xhr, status, error) ->
+        # If we aborted on purpose, don't run an error handler
+        if status == "abort"
+          return
+
         _this.finishNavigation()
         route = String(xhr.status)
         if xhr.responseText and type == 'json'
@@ -133,6 +141,12 @@ class window.Snakeskin.Router extends Backbone.Router
 
     })
 
+  # Cancels any in-progress AJAX requests
+  cancelNavigation: =>
+    if @currentXHR
+      @currentXHR.abort()
+      @currentXHR = null
+
   # When navigation was performed with @changeUrl(), this method "finishes"
   # the navigation by actually chaning the URL in the browser address bar.
   # The success param is for a consistent interface with @ensureData()
@@ -143,6 +157,7 @@ class window.Snakeskin.Router extends Backbone.Router
         Backbone.history.fragment = null
       @navigate(@tempFragment)
       @tempFragment = null
+    @currentXHR = null
     if success
       success()
 
@@ -172,6 +187,9 @@ class window.Snakeskin.Router extends Backbone.Router
       (handler) ->
         if handler.route.test(fragment)
           _this.tempFragment = fragment
+          # If there is any current data request in process, cancel it
+          # since we are now executing a different URL handler
+          _this.cancelNavigation()
           handler.callback(fragment)
           return true
     )
