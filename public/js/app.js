@@ -8754,7 +8754,9 @@ if ( typeof window === "object" && typeof window.document === "object" ) {
 
 })( window );
 
-/*
+/*!
+
+ handlebars v1.3.0
 
 Copyright (C) 2011 by Yehuda Katz
 
@@ -8776,346 +8778,512 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
+@license
 */
-
-// lib/handlebars/browser-prefix.js
-var Handlebars = {};
-
-(function(Handlebars, undefined) {
-;
-// lib/handlebars/base.js
-
-Handlebars.VERSION = "1.0.0";
-Handlebars.COMPILER_REVISION = 4;
-
-Handlebars.REVISION_CHANGES = {
-  1: '<= 1.0.rc.2', // 1.0.rc.2 is actually rev2 but doesn't report it
-  2: '== 1.0.0-rc.3',
-  3: '== 1.0.0-rc.4',
-  4: '>= 1.0.0'
-};
-
-Handlebars.helpers  = {};
-Handlebars.partials = {};
-
-var toString = Object.prototype.toString,
-    functionType = '[object Function]',
-    objectType = '[object Object]';
-
-Handlebars.registerHelper = function(name, fn, inverse) {
-  if (toString.call(name) === objectType) {
-    if (inverse || fn) { throw new Handlebars.Exception('Arg not supported with multiple helpers'); }
-    Handlebars.Utils.extend(this.helpers, name);
-  } else {
-    if (inverse) { fn.not = inverse; }
-    this.helpers[name] = fn;
-  }
-};
-
-Handlebars.registerPartial = function(name, str) {
-  if (toString.call(name) === objectType) {
-    Handlebars.Utils.extend(this.partials,  name);
-  } else {
-    this.partials[name] = str;
-  }
-};
-
-Handlebars.registerHelper('helperMissing', function(arg) {
-  if(arguments.length === 2) {
-    return undefined;
-  } else {
-    throw new Error("Missing helper: '" + arg + "'");
-  }
-});
-
-Handlebars.registerHelper('blockHelperMissing', function(context, options) {
-  var inverse = options.inverse || function() {}, fn = options.fn;
-
-  var type = toString.call(context);
-
-  if(type === functionType) { context = context.call(this); }
-
-  if(context === true) {
-    return fn(this);
-  } else if(context === false || context == null) {
-    return inverse(this);
-  } else if(type === "[object Array]") {
-    if(context.length > 0) {
-      return Handlebars.helpers.each(context, options);
-    } else {
-      return inverse(this);
-    }
-  } else {
-    return fn(context);
-  }
-});
-
-Handlebars.K = function() {};
-
-Handlebars.createFrame = Object.create || function(object) {
-  Handlebars.K.prototype = object;
-  var obj = new Handlebars.K();
-  Handlebars.K.prototype = null;
-  return obj;
-};
-
-Handlebars.logger = {
-  DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, level: 3,
-
-  methodMap: {0: 'debug', 1: 'info', 2: 'warn', 3: 'error'},
-
-  // can be overridden in the host environment
-  log: function(level, obj) {
-    if (Handlebars.logger.level <= level) {
-      var method = Handlebars.logger.methodMap[level];
-      if (typeof console !== 'undefined' && console[method]) {
-        console[method].call(console, obj);
-      }
-    }
-  }
-};
-
-Handlebars.log = function(level, obj) { Handlebars.logger.log(level, obj); };
-
-Handlebars.registerHelper('each', function(context, options) {
-  var fn = options.fn, inverse = options.inverse;
-  var i = 0, ret = "", data;
-
-  var type = toString.call(context);
-  if(type === functionType) { context = context.call(this); }
-
-  if (options.data) {
-    data = Handlebars.createFrame(options.data);
+/* exported Handlebars */
+var Handlebars = (function() {
+// handlebars/safe-string.js
+var __module3__ = (function() {
+  "use strict";
+  var __exports__;
+  // Build out our basic SafeString type
+  function SafeString(string) {
+    this.string = string;
   }
 
-  if(context && typeof context === 'object') {
-    if(context instanceof Array){
-      for(var j = context.length; i<j; i++) {
-        if (data) { data.index = i; }
-        ret = ret + fn(context[i], { data: data });
-      }
-    } else {
-      for(var key in context) {
-        if(context.hasOwnProperty(key)) {
-          if(data) { data.key = key; }
-          ret = ret + fn(context[key], {data: data});
-          i++;
-        }
-      }
-    }
+  SafeString.prototype.toString = function() {
+    return "" + this.string;
+  };
+
+  __exports__ = SafeString;
+  return __exports__;
+})();
+
+// handlebars/utils.js
+var __module2__ = (function(__dependency1__) {
+  "use strict";
+  var __exports__ = {};
+  /*jshint -W004 */
+  var SafeString = __dependency1__;
+
+  var escape = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "`": "&#x60;"
+  };
+
+  var badChars = /[&<>"'`]/g;
+  var possible = /[&<>"'`]/;
+
+  function escapeChar(chr) {
+    return escape[chr] || "&amp;";
   }
 
-  if(i === 0){
-    ret = inverse(this);
-  }
-
-  return ret;
-});
-
-Handlebars.registerHelper('if', function(conditional, options) {
-  var type = toString.call(conditional);
-  if(type === functionType) { conditional = conditional.call(this); }
-
-  if(!conditional || Handlebars.Utils.isEmpty(conditional)) {
-    return options.inverse(this);
-  } else {
-    return options.fn(this);
-  }
-});
-
-Handlebars.registerHelper('unless', function(conditional, options) {
-  return Handlebars.helpers['if'].call(this, conditional, {fn: options.inverse, inverse: options.fn});
-});
-
-Handlebars.registerHelper('with', function(context, options) {
-  var type = toString.call(context);
-  if(type === functionType) { context = context.call(this); }
-
-  if (!Handlebars.Utils.isEmpty(context)) return options.fn(context);
-});
-
-Handlebars.registerHelper('log', function(context, options) {
-  var level = options.data && options.data.level != null ? parseInt(options.data.level, 10) : 1;
-  Handlebars.log(level, context);
-});
-;
-// lib/handlebars/utils.js
-
-var errorProps = ['description', 'fileName', 'lineNumber', 'message', 'name', 'number', 'stack'];
-
-Handlebars.Exception = function(message) {
-  var tmp = Error.prototype.constructor.apply(this, arguments);
-
-  // Unfortunately errors are not enumerable in Chrome (at least), so `for prop in tmp` doesn't work.
-  for (var idx = 0; idx < errorProps.length; idx++) {
-    this[errorProps[idx]] = tmp[errorProps[idx]];
-  }
-};
-Handlebars.Exception.prototype = new Error();
-
-// Build out our basic SafeString type
-Handlebars.SafeString = function(string) {
-  this.string = string;
-};
-Handlebars.SafeString.prototype.toString = function() {
-  return this.string.toString();
-};
-
-var escape = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#x27;",
-  "`": "&#x60;"
-};
-
-var badChars = /[&<>"'`]/g;
-var possible = /[&<>"'`]/;
-
-var escapeChar = function(chr) {
-  return escape[chr] || "&amp;";
-};
-
-Handlebars.Utils = {
-  extend: function(obj, value) {
+  function extend(obj, value) {
     for(var key in value) {
-      if(value.hasOwnProperty(key)) {
+      if(Object.prototype.hasOwnProperty.call(value, key)) {
         obj[key] = value[key];
       }
     }
-  },
+  }
 
-  escapeExpression: function(string) {
+  __exports__.extend = extend;var toString = Object.prototype.toString;
+  __exports__.toString = toString;
+  // Sourced from lodash
+  // https://github.com/bestiejs/lodash/blob/master/LICENSE.txt
+  var isFunction = function(value) {
+    return typeof value === 'function';
+  };
+  // fallback for older versions of Chrome and Safari
+  if (isFunction(/x/)) {
+    isFunction = function(value) {
+      return typeof value === 'function' && toString.call(value) === '[object Function]';
+    };
+  }
+  var isFunction;
+  __exports__.isFunction = isFunction;
+  var isArray = Array.isArray || function(value) {
+    return (value && typeof value === 'object') ? toString.call(value) === '[object Array]' : false;
+  };
+  __exports__.isArray = isArray;
+
+  function escapeExpression(string) {
     // don't escape SafeStrings, since they're already safe
-    if (string instanceof Handlebars.SafeString) {
+    if (string instanceof SafeString) {
       return string.toString();
-    } else if (string == null || string === false) {
+    } else if (!string && string !== 0) {
       return "";
     }
 
     // Force a string conversion as this will be done by the append regardless and
     // the regex test will do this transparently behind the scenes, causing issues if
     // an object's to string has escaped characters in it.
-    string = string.toString();
+    string = "" + string;
 
     if(!possible.test(string)) { return string; }
     return string.replace(badChars, escapeChar);
-  },
+  }
 
-  isEmpty: function(value) {
+  __exports__.escapeExpression = escapeExpression;function isEmpty(value) {
     if (!value && value !== 0) {
       return true;
-    } else if(toString.call(value) === "[object Array]" && value.length === 0) {
+    } else if (isArray(value) && value.length === 0) {
       return true;
     } else {
       return false;
     }
   }
-};
-;
-// lib/handlebars/runtime.js
 
-Handlebars.VM = {
-  template: function(templateSpec) {
+  __exports__.isEmpty = isEmpty;
+  return __exports__;
+})(__module3__);
+
+// handlebars/exception.js
+var __module4__ = (function() {
+  "use strict";
+  var __exports__;
+
+  var errorProps = ['description', 'fileName', 'lineNumber', 'message', 'name', 'number', 'stack'];
+
+  function Exception(message, node) {
+    var line;
+    if (node && node.firstLine) {
+      line = node.firstLine;
+
+      message += ' - ' + line + ':' + node.firstColumn;
+    }
+
+    var tmp = Error.prototype.constructor.call(this, message);
+
+    // Unfortunately errors are not enumerable in Chrome (at least), so `for prop in tmp` doesn't work.
+    for (var idx = 0; idx < errorProps.length; idx++) {
+      this[errorProps[idx]] = tmp[errorProps[idx]];
+    }
+
+    if (line) {
+      this.lineNumber = line;
+      this.column = node.firstColumn;
+    }
+  }
+
+  Exception.prototype = new Error();
+
+  __exports__ = Exception;
+  return __exports__;
+})();
+
+// handlebars/base.js
+var __module1__ = (function(__dependency1__, __dependency2__) {
+  "use strict";
+  var __exports__ = {};
+  var Utils = __dependency1__;
+  var Exception = __dependency2__;
+
+  var VERSION = "1.3.0";
+  __exports__.VERSION = VERSION;var COMPILER_REVISION = 4;
+  __exports__.COMPILER_REVISION = COMPILER_REVISION;
+  var REVISION_CHANGES = {
+    1: '<= 1.0.rc.2', // 1.0.rc.2 is actually rev2 but doesn't report it
+    2: '== 1.0.0-rc.3',
+    3: '== 1.0.0-rc.4',
+    4: '>= 1.0.0'
+  };
+  __exports__.REVISION_CHANGES = REVISION_CHANGES;
+  var isArray = Utils.isArray,
+      isFunction = Utils.isFunction,
+      toString = Utils.toString,
+      objectType = '[object Object]';
+
+  function HandlebarsEnvironment(helpers, partials) {
+    this.helpers = helpers || {};
+    this.partials = partials || {};
+
+    registerDefaultHelpers(this);
+  }
+
+  __exports__.HandlebarsEnvironment = HandlebarsEnvironment;HandlebarsEnvironment.prototype = {
+    constructor: HandlebarsEnvironment,
+
+    logger: logger,
+    log: log,
+
+    registerHelper: function(name, fn, inverse) {
+      if (toString.call(name) === objectType) {
+        if (inverse || fn) { throw new Exception('Arg not supported with multiple helpers'); }
+        Utils.extend(this.helpers, name);
+      } else {
+        if (inverse) { fn.not = inverse; }
+        this.helpers[name] = fn;
+      }
+    },
+
+    registerPartial: function(name, str) {
+      if (toString.call(name) === objectType) {
+        Utils.extend(this.partials,  name);
+      } else {
+        this.partials[name] = str;
+      }
+    }
+  };
+
+  function registerDefaultHelpers(instance) {
+    instance.registerHelper('helperMissing', function(arg) {
+      if(arguments.length === 2) {
+        return undefined;
+      } else {
+        throw new Exception("Missing helper: '" + arg + "'");
+      }
+    });
+
+    instance.registerHelper('blockHelperMissing', function(context, options) {
+      var inverse = options.inverse || function() {}, fn = options.fn;
+
+      if (isFunction(context)) { context = context.call(this); }
+
+      if(context === true) {
+        return fn(this);
+      } else if(context === false || context == null) {
+        return inverse(this);
+      } else if (isArray(context)) {
+        if(context.length > 0) {
+          return instance.helpers.each(context, options);
+        } else {
+          return inverse(this);
+        }
+      } else {
+        return fn(context);
+      }
+    });
+
+    instance.registerHelper('each', function(context, options) {
+      var fn = options.fn, inverse = options.inverse;
+      var i = 0, ret = "", data;
+
+      if (isFunction(context)) { context = context.call(this); }
+
+      if (options.data) {
+        data = createFrame(options.data);
+      }
+
+      if(context && typeof context === 'object') {
+        if (isArray(context)) {
+          for(var j = context.length; i<j; i++) {
+            if (data) {
+              data.index = i;
+              data.first = (i === 0);
+              data.last  = (i === (context.length-1));
+            }
+            ret = ret + fn(context[i], { data: data });
+          }
+        } else {
+          for(var key in context) {
+            if(context.hasOwnProperty(key)) {
+              if(data) { 
+                data.key = key; 
+                data.index = i;
+                data.first = (i === 0);
+              }
+              ret = ret + fn(context[key], {data: data});
+              i++;
+            }
+          }
+        }
+      }
+
+      if(i === 0){
+        ret = inverse(this);
+      }
+
+      return ret;
+    });
+
+    instance.registerHelper('if', function(conditional, options) {
+      if (isFunction(conditional)) { conditional = conditional.call(this); }
+
+      // Default behavior is to render the positive path if the value is truthy and not empty.
+      // The `includeZero` option may be set to treat the condtional as purely not empty based on the
+      // behavior of isEmpty. Effectively this determines if 0 is handled by the positive path or negative.
+      if ((!options.hash.includeZero && !conditional) || Utils.isEmpty(conditional)) {
+        return options.inverse(this);
+      } else {
+        return options.fn(this);
+      }
+    });
+
+    instance.registerHelper('unless', function(conditional, options) {
+      return instance.helpers['if'].call(this, conditional, {fn: options.inverse, inverse: options.fn, hash: options.hash});
+    });
+
+    instance.registerHelper('with', function(context, options) {
+      if (isFunction(context)) { context = context.call(this); }
+
+      if (!Utils.isEmpty(context)) return options.fn(context);
+    });
+
+    instance.registerHelper('log', function(context, options) {
+      var level = options.data && options.data.level != null ? parseInt(options.data.level, 10) : 1;
+      instance.log(level, context);
+    });
+  }
+
+  var logger = {
+    methodMap: { 0: 'debug', 1: 'info', 2: 'warn', 3: 'error' },
+
+    // State enum
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    level: 3,
+
+    // can be overridden in the host environment
+    log: function(level, obj) {
+      if (logger.level <= level) {
+        var method = logger.methodMap[level];
+        if (typeof console !== 'undefined' && console[method]) {
+          console[method].call(console, obj);
+        }
+      }
+    }
+  };
+  __exports__.logger = logger;
+  function log(level, obj) { logger.log(level, obj); }
+
+  __exports__.log = log;var createFrame = function(object) {
+    var obj = {};
+    Utils.extend(obj, object);
+    return obj;
+  };
+  __exports__.createFrame = createFrame;
+  return __exports__;
+})(__module2__, __module4__);
+
+// handlebars/runtime.js
+var __module5__ = (function(__dependency1__, __dependency2__, __dependency3__) {
+  "use strict";
+  var __exports__ = {};
+  var Utils = __dependency1__;
+  var Exception = __dependency2__;
+  var COMPILER_REVISION = __dependency3__.COMPILER_REVISION;
+  var REVISION_CHANGES = __dependency3__.REVISION_CHANGES;
+
+  function checkRevision(compilerInfo) {
+    var compilerRevision = compilerInfo && compilerInfo[0] || 1,
+        currentRevision = COMPILER_REVISION;
+
+    if (compilerRevision !== currentRevision) {
+      if (compilerRevision < currentRevision) {
+        var runtimeVersions = REVISION_CHANGES[currentRevision],
+            compilerVersions = REVISION_CHANGES[compilerRevision];
+        throw new Exception("Template was precompiled with an older version of Handlebars than the current runtime. "+
+              "Please update your precompiler to a newer version ("+runtimeVersions+") or downgrade your runtime to an older version ("+compilerVersions+").");
+      } else {
+        // Use the embedded version info since the runtime doesn't know about this revision yet
+        throw new Exception("Template was precompiled with a newer version of Handlebars than the current runtime. "+
+              "Please update your runtime to a newer version ("+compilerInfo[1]+").");
+      }
+    }
+  }
+
+  __exports__.checkRevision = checkRevision;// TODO: Remove this line and break up compilePartial
+
+  function template(templateSpec, env) {
+    if (!env) {
+      throw new Exception("No environment passed to template");
+    }
+
+    // Note: Using env.VM references rather than local var references throughout this section to allow
+    // for external users to override these as psuedo-supported APIs.
+    var invokePartialWrapper = function(partial, name, context, helpers, partials, data) {
+      var result = env.VM.invokePartial.apply(this, arguments);
+      if (result != null) { return result; }
+
+      if (env.compile) {
+        var options = { helpers: helpers, partials: partials, data: data };
+        partials[name] = env.compile(partial, { data: data !== undefined }, env);
+        return partials[name](context, options);
+      } else {
+        throw new Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
+      }
+    };
+
     // Just add water
     var container = {
-      escapeExpression: Handlebars.Utils.escapeExpression,
-      invokePartial: Handlebars.VM.invokePartial,
+      escapeExpression: Utils.escapeExpression,
+      invokePartial: invokePartialWrapper,
       programs: [],
       program: function(i, fn, data) {
         var programWrapper = this.programs[i];
         if(data) {
-          programWrapper = Handlebars.VM.program(i, fn, data);
+          programWrapper = program(i, fn, data);
         } else if (!programWrapper) {
-          programWrapper = this.programs[i] = Handlebars.VM.program(i, fn);
+          programWrapper = this.programs[i] = program(i, fn);
         }
         return programWrapper;
       },
       merge: function(param, common) {
         var ret = param || common;
 
-        if (param && common) {
+        if (param && common && (param !== common)) {
           ret = {};
-          Handlebars.Utils.extend(ret, common);
-          Handlebars.Utils.extend(ret, param);
+          Utils.extend(ret, common);
+          Utils.extend(ret, param);
         }
         return ret;
       },
-      programWithDepth: Handlebars.VM.programWithDepth,
-      noop: Handlebars.VM.noop,
+      programWithDepth: env.VM.programWithDepth,
+      noop: env.VM.noop,
       compilerInfo: null
     };
 
     return function(context, options) {
       options = options || {};
-      var result = templateSpec.call(container, Handlebars, context, options.helpers, options.partials, options.data);
+      var namespace = options.partial ? options : env,
+          helpers,
+          partials;
 
-      var compilerInfo = container.compilerInfo || [],
-          compilerRevision = compilerInfo[0] || 1,
-          currentRevision = Handlebars.COMPILER_REVISION;
+      if (!options.partial) {
+        helpers = options.helpers;
+        partials = options.partials;
+      }
+      var result = templateSpec.call(
+            container,
+            namespace, context,
+            helpers,
+            partials,
+            options.data);
 
-      if (compilerRevision !== currentRevision) {
-        if (compilerRevision < currentRevision) {
-          var runtimeVersions = Handlebars.REVISION_CHANGES[currentRevision],
-              compilerVersions = Handlebars.REVISION_CHANGES[compilerRevision];
-          throw "Template was precompiled with an older version of Handlebars than the current runtime. "+
-                "Please update your precompiler to a newer version ("+runtimeVersions+") or downgrade your runtime to an older version ("+compilerVersions+").";
-        } else {
-          // Use the embedded version info since the runtime doesn't know about this revision yet
-          throw "Template was precompiled with a newer version of Handlebars than the current runtime. "+
-                "Please update your runtime to a newer version ("+compilerInfo[1]+").";
-        }
+      if (!options.partial) {
+        env.VM.checkRevision(container.compilerInfo);
       }
 
       return result;
     };
-  },
+  }
 
-  programWithDepth: function(i, fn, data /*, $depth */) {
+  __exports__.template = template;function programWithDepth(i, fn, data /*, $depth */) {
     var args = Array.prototype.slice.call(arguments, 3);
 
-    var program = function(context, options) {
+    var prog = function(context, options) {
       options = options || {};
 
       return fn.apply(this, [context, options.data || data].concat(args));
     };
-    program.program = i;
-    program.depth = args.length;
-    return program;
-  },
-  program: function(i, fn, data) {
-    var program = function(context, options) {
+    prog.program = i;
+    prog.depth = args.length;
+    return prog;
+  }
+
+  __exports__.programWithDepth = programWithDepth;function program(i, fn, data) {
+    var prog = function(context, options) {
       options = options || {};
 
       return fn(context, options.data || data);
     };
-    program.program = i;
-    program.depth = 0;
-    return program;
-  },
-  noop: function() { return ""; },
-  invokePartial: function(partial, name, context, helpers, partials, data) {
-    var options = { helpers: helpers, partials: partials, data: data };
+    prog.program = i;
+    prog.depth = 0;
+    return prog;
+  }
+
+  __exports__.program = program;function invokePartial(partial, name, context, helpers, partials, data) {
+    var options = { partial: true, helpers: helpers, partials: partials, data: data };
 
     if(partial === undefined) {
-      throw new Handlebars.Exception("The partial " + name + " could not be found");
+      throw new Exception("The partial " + name + " could not be found");
     } else if(partial instanceof Function) {
       return partial(context, options);
-    } else if (!Handlebars.compile) {
-      throw new Handlebars.Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
-    } else {
-      partials[name] = Handlebars.compile(partial, {data: data !== undefined});
-      return partials[name](context, options);
     }
   }
-};
 
-Handlebars.template = Handlebars.VM.template;
-;
-// lib/handlebars/browser-suffix.js
-})(Handlebars);
-;
+  __exports__.invokePartial = invokePartial;function noop() { return ""; }
+
+  __exports__.noop = noop;
+  return __exports__;
+})(__module2__, __module4__, __module1__);
+
+// handlebars.runtime.js
+var __module0__ = (function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__) {
+  "use strict";
+  var __exports__;
+  /*globals Handlebars: true */
+  var base = __dependency1__;
+
+  // Each of these augment the Handlebars object. No need to setup here.
+  // (This is done to easily share code between commonjs and browse envs)
+  var SafeString = __dependency2__;
+  var Exception = __dependency3__;
+  var Utils = __dependency4__;
+  var runtime = __dependency5__;
+
+  // For compatibility and usage outside of module systems, make the Handlebars object a namespace
+  var create = function() {
+    var hb = new base.HandlebarsEnvironment();
+
+    Utils.extend(hb, base);
+    hb.SafeString = SafeString;
+    hb.Exception = Exception;
+    hb.Utils = Utils;
+
+    hb.VM = runtime;
+    hb.template = function(spec) {
+      return runtime.template(spec, hb);
+    };
+
+    return hb;
+  };
+
+  var Handlebars = create();
+  Handlebars.create = create;
+
+  __exports__ = Handlebars;
+  return __exports__;
+})(__module1__, __module3__, __module4__, __module2__, __module5__);
+
+  return __module0__;
+})();
 
 /**
  * @license
@@ -18320,7 +18488,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.2';
+  window.App.version = '1.0.3';
 
 }).call(this);
 
@@ -20625,14 +20793,14 @@ window.onload = function () {
   templates['app'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, self=this, functionType="function", escapeExpression=this.escapeExpression;
+  var buffer = "", stack1, helper, self=this, functionType="function", escapeExpression=this.escapeExpression;
 
 
   stack1 = self.invokePartial(partials.header, 'header', depth0, helpers, partials, data);
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <div id=\"content\"> ";
-  if (stack1 = helpers.outlet) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.outlet); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.outlet) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.outlet); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + " </div> ";
   stack1 = self.invokePartial(partials.footer, 'footer', depth0, helpers, partials, data);
@@ -20647,49 +20815,46 @@ helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partial
   templates['author'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), "Authors", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Authors", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Authors", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Authors", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
     + "\">Authors</a> <h1>";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</h1> <ul class=\"packages\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
   return buffer;
   });
@@ -20700,7 +20865,7 @@ function program1(depth0,data) {
   templates['authors'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
 
 function program1(depth0,data) {
   
@@ -20713,36 +20878,32 @@ function program1(depth0,data) {
   }
 function program2(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " <li class=\"author\"> <h3><em>";
-  if (stack1 = helpers.packages) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.packages); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</em> <a href=\"";
-  options = {hash:{
+    + "</em> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Authors", options) : helperMissing.call(depth0, "title", "Authors", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Authors", options) : helperMissing.call(depth0, "title", "Authors", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1>Authors</h1> ";
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.split || (depth0 && depth0.split)),stack1 ? stack1.call(depth0, (depth0 && depth0.authors), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.authors), 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.split || (depth0 && depth0.split),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.authors), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.authors), 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -20753,183 +20914,164 @@ function program2(depth0,data) {
   templates['browse'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program5(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program7(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program9(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> <span class=\"package_count\">";
-  if (stack2 = helpers.packages) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.packages); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</span> </li> ";
   return buffer;
   }
 
 function program11(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> <span class=\"package_count\">";
-  if (stack2 = helpers.packages) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.packages); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</span> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Browse", options) : helperMissing.call(depth0, "title", "Browse", options)))
-    + " <h1>Browse</h1> <div class=\"section new\"> <h2> <a class=\"name\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Browse", options) : helperMissing.call(depth0, "title", "Browse", options)))
+    + " <h1>Browse</h1> <div class=\"section new\"> <h2> <a class=\"name\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
     + "\">New <i class=\"icon-leaf\"></i></a> <a class=\"rss\" href=\"/browse/new/rss\" title=\"RSS feed of new packages\"><i class=\"icon-rss\"></i></a> </h2> <p>When the package was first seen</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section trending\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section trending\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
     + "\">Trending <i class=\"icon-chevron-sign-up\"></i></a></h2> <p>Recent, relative, increase in installs</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section updated\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "updated", options) : helperMissing.call(depth0, "url", "updated", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section updated\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "updated", options) : helperMissing.call(depth0, "url", "updated", options)))
     + "\">Updated <i class=\"icon-plus\"></i></a></h2> <p>When the package was last updated</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.updated), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.updated), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
     + "\">Popular <i class=\"icon-certificate\"></i></a></h2> <p>With the most unique installs</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
     + "\">Labels <i class=\"icon-tag\"></i></a></h2> <p>With the most packages</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section authors\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section authors\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
     + "\">Authors <i class=\"icon-user\"></i></a></h2> <p>With the most packages</p> <ul class=\"authors\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.authors), {hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.authors), {hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> </div> ";
   return buffer;
   });
@@ -20940,11 +21082,10 @@ function program11(depth0,data) {
   templates['five_hundred'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
 
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Server Error", options) : helperMissing.call(depth0, "title", "Server Error", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Server Error", options) : helperMissing.call(depth0, "title", "Server Error", options)))
     + " <h1>Server Error</h1> <p> Sorry, apparently we ran into an error we were not expecting! </p> ";
   return buffer;
   });
@@ -20955,11 +21096,10 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   templates['four_oh_four'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
 
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Not Found", options) : helperMissing.call(depth0, "title", "Not Found", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Not Found", options) : helperMissing.call(depth0, "title", "Not Found", options)))
     + " <h1>Not Found</h1> <p> Unfortunately the page you requested could not be found. </p> ";
   return buffer;
   });
@@ -20970,17 +21110,15 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   templates['index'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Package Control - the Sublime Text package manager", options) : helperMissing.call(depth0, "title", "Package Control - the Sublime Text package manager", options)))
-    + " <p class=\"intro\"> <a class=\"action\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Package Control - the Sublime Text package manager", options) : helperMissing.call(depth0, "title", "Package Control - the Sublime Text package manager", options)))
+    + " <p class=\"intro\"> <a class=\"action\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
     + "\">Install Now <i class=\"icon-caret-right\"></i></a> The <a href=\"http://sublimetext.com\" class=\"sublime_text\">Sublime Text</a> package manager that makes it exceedingly simple to find, install and keep packages up-to-date. </p> ";
-  stack2 = self.invokePartial(partials.highlights, 'highlights', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.highlights, 'highlights', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -20991,52 +21129,49 @@ helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partial
   templates['label'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), "Labels", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Labels", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Labels", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Labels", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
     + "\">Labels</a> <h1>";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</h1> <ul class=\"packages\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
   return buffer;
   });
@@ -21047,7 +21182,7 @@ function program1(depth0,data) {
   templates['labels'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
 
 function program1(depth0,data) {
   
@@ -21060,36 +21195,32 @@ function program1(depth0,data) {
   }
 function program2(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " <li class=\"label\"> <h3><em>";
-  if (stack1 = helpers.packages) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.packages); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</em> <a href=\"";
-  options = {hash:{
+    + "</em> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Labels", options) : helperMissing.call(depth0, "title", "Labels", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Labels", options) : helperMissing.call(depth0, "title", "Labels", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1>Labels</h1> ";
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.split || (depth0 && depth0.split)),stack1 ? stack1.call(depth0, (depth0 && depth0.labels), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.labels), 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.split || (depth0 && depth0.split),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.labels), 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -21100,57 +21231,54 @@ function program2(depth0,data) {
   templates['new'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "New Packages", options) : helperMissing.call(depth0, "title", "New Packages", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "New Packages", options) : helperMissing.call(depth0, "title", "New Packages", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1> New <a class=\"rss\" href=\"/browse/new/rss\" title=\"RSS feed of new packages\"><i class=\"icon-rss\"></i></a> </h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> ";
   return buffer;
   });
@@ -21161,7 +21289,7 @@ function program1(depth0,data) {
   templates['package'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
 
 function program1(depth0,data) {
   
@@ -21180,14 +21308,13 @@ function program3(depth0,data) {
   }
 function program4(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  stack2 = helpers['if'].call(depth0, ((stack1 = data),stack1 == null || stack1 === false ? stack1 : stack1.index), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += "<a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  stack1 = helpers['if'].call(depth0, (data == null || data === false ? data : data.index), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "<a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': (depth0)
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
     + "\">"
     + escapeExpression((typeof depth0 === functionType ? depth0.apply(depth0) : depth0))
     + "</a>";
@@ -21228,32 +21355,29 @@ function program10(depth0,data,depth1) {
   }
 function program11(depth0,data,depth2) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " <div>  ";
-  options = {hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth2 && depth2.eq)),stack1 ? stack1.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth2 && depth2.eq),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"versions only\" title=\"Prerelease\">PRE</span> ";
-  if (stack2 = helpers.prerelease_version) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.prerelease_version); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.prerelease_version) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.prerelease_version); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + " </div> ";
   return buffer;
   }
 function program12(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   }
@@ -21271,18 +21395,17 @@ function program15(depth0,data) {
 
 function program17(depth0,data,depth2) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " <div>  ";
-  options = {hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth2 && depth2.eq)),stack1 ? stack1.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth2 && depth2.eq),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  if (stack2 = helpers.version) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.version); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.version) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.version); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + " </div> ";
   return buffer;
   }
@@ -21298,50 +21421,46 @@ function program19(depth0,data) {
 
 function program21(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <li class=\"issues\"> <label>Issues</label> <span>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url_abbr || (depth0 && depth0.url_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.issues), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.issues), true, options)))
+  var buffer = "", helper, options;
+  buffer += " <li class=\"issues\"> <label>Issues</label> <span>"
+    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.issues), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.issues), true, options)))
     + "</span> </li> ";
   return buffer;
   }
 
 function program23(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <li class=\"donate\"> <label>Donate</label> <span>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url_abbr || (depth0 && depth0.url_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.donate), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.donate), true, options)))
+  var buffer = "", helper, options;
+  buffer += " <li class=\"donate\"> <label>Donate</label> <span>"
+    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.donate), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.donate), true, options)))
     + "</span> </li> ";
   return buffer;
   }
 
 function program25(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <li class=\"buy\"> <label>Buy</label> <span>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url_abbr || (depth0 && depth0.url_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.buy), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.buy), true, options)))
+  var buffer = "", helper, options;
+  buffer += " <li class=\"buy\"> <label>Buy</label> <span>"
+    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.buy), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.buy), true, options)))
     + "</span> </li> ";
   return buffer;
   }
 
 function program27(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <th scope=\"col\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_format || (depth0 && depth0.date_format)),stack1 ? stack1.call(depth0, depth0, "%b %-d", options) : helperMissing.call(depth0, "date_format", depth0, "%b %-d", options)))
+  var buffer = "", helper, options;
+  buffer += " <th scope=\"col\">"
+    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, depth0, "%b %-d", options) : helperMissing.call(depth0, "date_format", depth0, "%b %-d", options)))
     + "</th> ";
   return buffer;
   }
 
 function program29(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <tr class=\"platform\"> <th scope=\"row\">";
-  if (stack1 = helpers.platform) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.platform); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.platform) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.platform); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "</th> ";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.totals), {hash:{},inverse:self.noop,fn:self.program(30, program30, data),data:data});
@@ -21360,20 +21479,19 @@ function program30(depth0,data) {
 
 function program32(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <dl class=\"readme\"> <dt>Source</dt> <dd>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url_abbr || (depth0 && depth0.url_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.readme), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.readme), true, options)))
+  var buffer = "", helper, options;
+  buffer += " <dl class=\"readme\"> <dt>Source</dt> <dd>"
+    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.readme), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.readme), true, options)))
     + "</dd> </dl> ";
   return buffer;
   }
 
 function program34(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " ";
-  if (stack1 = helpers.readme_html) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.readme_html); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.readme_html) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.readme_html); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
@@ -21385,112 +21503,90 @@ function program36(depth0,data) {
   return " <p><em>No readme provided</em></p> ";
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), "Packages", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Packages", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
-    + "\">Browse</a> <h1>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Packages", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Packages", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + "\">Browse</a> <h1>"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</h1> <div class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.contains || (depth0 && depth0.contains)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 2, 3, options) : helperMissing.call(depth0, "contains", (depth0 && depth0.st_versions), 2, 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, 3, options) : helperMissing.call(depth0, "contains", (depth0 && depth0.st_versions), 2, 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> <p class=\"description\"> ";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + " </p> ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <div id=\"details\"> <h2>Details</h2> <ul class=\"meta\"> <li class=\"version";
-  options = {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data};
-  stack2 = ((stack1 = helpers.length || (depth0 && depth0.length)),stack1 ? stack1.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "\"> <label>Version";
-  options = {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data};
-  stack2 = ((stack1 = helpers.length || (depth0 && depth0.length)),stack1 ? stack1.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "</label> ";
-  options = {hash:{},inverse:self.program(19, program19, data),fn:self.program(9, program9, data),data:data};
-  stack2 = ((stack1 = helpers.length || (depth0 && depth0.length)),stack1 ? stack1.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </li> <li class=\"homepage\"> <label>Homepage</label> <span>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url_abbr || (depth0 && depth0.url_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.homepage), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.homepage), true, options)))
+  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.program(19, program19, data),fn:self.program(9, program9, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </li> <li class=\"homepage\"> <label>Homepage</label> <span>"
+    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.homepage), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.homepage), true, options)))
     + "</span> </li> ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.issues), {hash:{},inverse:self.noop,fn:self.program(21, program21, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.issues), {hash:{},inverse:self.noop,fn:self.program(21, program21, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.donate), {hash:{},inverse:self.noop,fn:self.program(23, program23, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.donate), {hash:{},inverse:self.noop,fn:self.program(23, program23, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.buy), {hash:{},inverse:self.noop,fn:self.program(25, program25, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " <li class=\"modified\"> <label>Modified</label> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_format || (depth0 && depth0.date_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.last_modified), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_modified), "ISO", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_diff || (depth0 && depth0.date_diff)),stack1 ? stack1.call(depth0, (depth0 && depth0.last_modified), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_modified), true, options)))
-    + "</span> </li> <li class=\"last_seen\"> <label>Last Seen</label> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_format || (depth0 && depth0.date_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.last_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_seen), "ISO", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_diff || (depth0 && depth0.date_diff)),stack1 ? stack1.call(depth0, (depth0 && depth0.last_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_seen), true, options)))
-    + "</span> </li> <li class=\"first_seen\"> <label>First Seen</label> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_format || (depth0 && depth0.date_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.first_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "ISO", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_diff || (depth0 && depth0.date_diff)),stack1 ? stack1.call(depth0, (depth0 && depth0.first_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.first_seen), true, options)))
-    + "</span> </li> </ul> </div> <div id=\"installs\"> <h2>Installs</h2> <ul class=\"totals\"> <li> <span class=\"total\">Total</span> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
-    + "\" class=\"installs\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
-    + "</span> </li> <li> <span class=\"platform\">Win</span> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
-    + "\" class=\"windows installs\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
-    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">OS X</span> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
-    + "\" class=\"osx installs\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
-    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">Linux</span> <span title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
-    + "\" class=\"linux installs\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.buy), {hash:{},inverse:self.noop,fn:self.program(25, program25, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " <li class=\"modified\"> <label>Modified</label> <span title=\""
+    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_modified), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_modified), "ISO", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_modified), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_modified), true, options)))
+    + "</span> </li> <li class=\"last_seen\"> <label>Last Seen</label> <span title=\""
+    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_seen), "ISO", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_seen), true, options)))
+    + "</span> </li> <li class=\"first_seen\"> <label>First Seen</label> <span title=\""
+    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "ISO", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.first_seen), true, options)))
+    + "</span> </li> </ul> </div> <div id=\"installs\"> <h2>Installs</h2> <ul class=\"totals\"> <li> <span class=\"total\">Total</span> <span title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
+    + "\" class=\"installs\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
+    + "</span> </li> <li> <span class=\"platform\">Win</span> <span title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
+    + "\" class=\"windows installs\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
+    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">OS X</span> <span title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
+    + "\" class=\"osx installs\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
+    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">Linux</span> <span title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
+    + "\" class=\"linux installs\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
     + " <span class=\"key\"></span></span> </li> </ul> <div id=\"daily_installs\"> <table cellspacing=\"0\"> <tr class=\"dates\"> <td class=\"none\"></td> ";
-  stack2 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.dates), {hash:{},inverse:self.noop,fn:self.program(27, program27, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.dates), {hash:{},inverse:self.noop,fn:self.program(27, program27, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </tr> ";
-  stack2 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.data), {hash:{},inverse:self.noop,fn:self.program(29, program29, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.data), {hash:{},inverse:self.noop,fn:self.program(29, program29, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </table> </div> </div> <div style=\"clear: both\"></div> <div id=\"readme\"> <h2>Readme</h2> ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.noop,fn:self.program(32, program32, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.noop,fn:self.program(32, program32, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <div class=\"contents\"> ";
-  stack2 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.program(36, program36, data),fn:self.program(34, program34, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.program(36, program36, data),fn:self.program(34, program34, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> </div> ";
   return buffer;
   });
@@ -21501,20 +21597,19 @@ function program36(depth0,data) {
   templates['partials/footer'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing;
 
 
   buffer += "</div> <footer> <section> © 2014 <a id=\"wbond\" href=\"http://wbond.net\"><img src=\"/img/wbond.svg\" width=\"570\" height=\"100\"></a> </section> </footer> <!--[if lte IE 8]> <script> /* Warning IE 6-8 users that the site won't display properly. */ /* Don't use jQuery since 1.9 doesn't load in < IE9. */ var body = document.getElementsByTagName('body')[0]; var div = document.createElement('div'); div.className = 'browser_warning'; div.innerHTML = 'Your browser can not display this site properly. Please upgrade to IE 9+, <a href=\"https://google.com/chrome\">Chrome</a> or <a href=\"http://mozilla.org/firefox\">Firefox</a>.'; body.insertBefore(div,body.firstChild); oldIE = true; </script> <![endif]--> <script src=\"/js/app.js?v=";
-  if (stack1 = helpers.__version__) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.__version__); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.__version__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__version__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "\"></script> <script> $(function() { App.initialize({ exportedRoutes: ";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.json || (depth0 && depth0.json)),stack1 ? stack1.call(depth0, (depth0 && depth0.exportedRoutes), options) : helperMissing.call(depth0, "json", (depth0 && depth0.exportedRoutes), options)))
+    + "\"></script> <script> $(function() { App.initialize({ exportedRoutes: "
+    + escapeExpression((helper = helpers.json || (depth0 && depth0.json),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.exportedRoutes), options) : helperMissing.call(depth0, "json", (depth0 && depth0.exportedRoutes), options)))
     + ", statusCode: ";
-  if (stack2 = helpers.__status_code__) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.__status_code__); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.__status_code__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__status_code__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + " }); }); </script> </body> </html> ";
   return buffer;
   });
@@ -21525,60 +21620,52 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   templates['partials/header'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <script> var oldIE = false; var _rollbarParams = { \"server.environment\": \"";
-  if (stack1 = helpers.__rollbar_env__) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.__rollbar_env__); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.__rollbar_env__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__rollbar_env__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "\", checkIgnore: function(errMsg, url, lineNo) { /* Don't cloud the error logs with extension errors */ var badSource = url.search(window.location.origin) == -1; var adBlocker = errMsg.search(\"Property 'scrollTo' of object [object global] is not a function\") != -1; var extension = errMsg.search(\"Error connecting to extension\") != -1; var npObject = errMsg.search(\"Error calling method on NPObject\") != -1; var margins = errMsg.search(\"Cannot read property 'margins' of undefined\") != -1; if (badSource || adBlocker || extension || oldIE || npObject || margins) { return true; } return false; } }; _rollbarParams[\"notifier.snippet_version\"] = \"2\"; var _rollbar=[\"";
-  if (stack1 = helpers.__rollbar_client_key__) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.__rollbar_client_key__); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.__rollbar_client_key__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__rollbar_client_key__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "\", _rollbarParams]; var _ratchet=_rollbar; (function(w,d){w.onerror=function(e,u,l){_rollbar.push({_t:'uncaught',e:e,u:u,l:l});};var i=function(){var s=d.createElement(\"script\");var f=d.getElementsByTagName(\"script\")[0];s.src=\"//d37gvrvc0wt4s1.cloudfront.net/js/1/rollbar.min.js\";s.async=!0; f.parentNode.insertBefore(s,f);};if(w.addEventListener){w.addEventListener(\"load\",i,!1);}else{w.attachEvent(\"onload\",i);}})(window,document); </script> ";
   return buffer;
   }
 
   buffer += "<!DOCTYPE html> <html> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /> <title>Package Control</title> ";
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.__env__), "prod", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.__env__), "prod", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.__env__), "prod", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.__env__), "prod", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <link href=\"//fonts.googleapis.com/css?family=Open+Sans:300,600|Open+Sans+Condensed:300,600&amp;v2\" rel=\"stylesheet\" type=\"text/css\" /> <link rel=\"stylesheet\" href=\"/css/app.css?v=";
-  if (stack2 = helpers.__version__) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.__version__); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.__version__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__version__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "\" type=\"text/css\" media=\"all\" /> <link href=\"//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css\" rel=\"stylesheet\"> <meta name=\"viewport\" content=\"width=380\" id=\"meta-viewport\" /> <script> window.onload = function() { if (screen.width < 740) { return; } /* Make phones use 380 */ document.getElementById('meta-viewport').setAttribute('content','width=device-width'); } </script> <script type=\"text/javascript\"> (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){ (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o), m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m) })(window,document,'script','//www.google-analytics.com/analytics.js','ga'); ga('create', 'UA-688035-1', 'wbond.net'); ga('send', 'pageview'); </script> </head> <body class=\"";
-  if (stack2 = helpers.__template__) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.__template__); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
-    + "\"> <header> <section> <div> <a id=\"logo\" href=\"/\"><img src=\"/img/logo.svg\" width=\"572\" height=\"102\"></a> <div id=\"nav_container\"> <nav> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
-    + "\">Installation</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
-    + "\">Browse</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "search_blank", options) : helperMissing.call(depth0, "url", "search_blank", options)))
-    + "\">Search</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "docs", options) : helperMissing.call(depth0, "url", "docs", options)))
-    + "\">Docs</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "news", options) : helperMissing.call(depth0, "url", "news", options)))
-    + "\">News</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "stats", options) : helperMissing.call(depth0, "url", "stats", options)))
-    + "\">Stats</a> <a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "about", options) : helperMissing.call(depth0, "url", "about", options)))
+  if (helper = helpers.__template__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.__template__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + "\"> <header> <section> <div> <a id=\"logo\" href=\"/\"><img src=\"/img/logo.svg\" width=\"572\" height=\"102\"></a> <div id=\"nav_container\"> <nav> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
+    + "\">Installation</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + "\">Browse</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "search_blank", options) : helperMissing.call(depth0, "url", "search_blank", options)))
+    + "\">Search</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "docs", options) : helperMissing.call(depth0, "url", "docs", options)))
+    + "\">Docs</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "news", options) : helperMissing.call(depth0, "url", "news", options)))
+    + "\">News</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "stats", options) : helperMissing.call(depth0, "url", "stats", options)))
+    + "\">Stats</a> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "about", options) : helperMissing.call(depth0, "url", "about", options)))
     + "\">About</a> <span class=\"loading\"></span> </nav> </div> <form action=\"/search\" method=\"get\"> <input id=\"search\" type=\"text\" placeholder=\"Search\" name=\"terms\" value=\"";
-  if (stack2 = helpers.terms) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.terms); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.terms) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.terms); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "\"> <span class=\"help\"> <span class=\"keys\">ctrl+shift+p</span> <span class=\"terms\"> filters: <tt>:st2</tt> <tt>:st3</tt> <tt>:win</tt> <tt>:osx</tt> <tt>:linux</tt> </span> </span> </form> </div> </section> </header> <div id=\"torso\"> ";
   return buffer;
   });
@@ -21589,123 +21676,111 @@ function program1(depth0,data) {
   templates['partials/highlights'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program5(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> ";
-  stack2 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </li> ";
   return buffer;
   }
 
 function program7(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li> <a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.word_wrap || (depth0 && depth0.word_wrap)),stack1 ? stack1.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
     + "</a> <span class=\"package_count\">";
-  if (stack2 = helpers.packages) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.packages); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</span> </li> ";
   return buffer;
   }
 
-  buffer += "<div class=\"highlights\"> <div class=\"section trending\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
+  buffer += "<div class=\"highlights\"> <div class=\"section trending\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
     + "\">Trending <i class=\"icon-chevron-sign-up\"></i></a></h2> <p>A recent, relative, increase in installs</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section new\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section new\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
     + "\">New <i class=\"icon-leaf\"></i></a></h2> <p>Just added to Package Control</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
     + "\">Popular <i class=\"icon-certificate\"></i></a></h2> <p>Randomly selected from the top 100</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
     + "\">Labels <i class=\"icon-tag\"></i></a></h2> <p>Labels with the biggest selection</p> <ul> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> </div> </div> ";
   return buffer;
   });
@@ -21716,7 +21791,7 @@ function program7(depth0,data) {
   templates['partials/minimal_new'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -21724,9 +21799,8 @@ function program1(depth0,data) {
   return " <span class=\"new\" title=\"First seen within the past two weeks\"><i class=\"icon-leaf\"></i></span> ";
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.gte || (depth0 && depth0.gte)),stack1 ? stack1.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.gte || (depth0 && depth0.gte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -21737,7 +21811,7 @@ function program1(depth0,data) {
   templates['partials/minimal_platforms'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -21748,39 +21822,31 @@ function program1(depth0,data) {
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   }
@@ -21832,9 +21898,8 @@ function program18(depth0,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">O</span>";
   }
 
-  options = {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -21845,14 +21910,14 @@ function program18(depth0,data) {
   templates['partials/minimal_top'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <span class=\"top_25\" title=\"Ranked #";
-  if (stack1 = helpers.installs_rank) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.installs_rank); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + " for total unique installs\"><i class=\"icon-certificate\"></i></span> ";
   return buffer;
@@ -21860,22 +21925,20 @@ function program1(depth0,data) {
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <span class=\"top_100\" title=\"Ranked #";
-  if (stack1 = helpers.installs_rank) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.installs_rank); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + " for total unique installs\"><i class=\"icon-certificate\"></i></span> ";
   return buffer;
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.lte || (depth0 && depth0.lte)),stack1 ? stack1.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data};
-  stack2 = ((stack1 = helpers.between || (depth0 && depth0.between)),stack1 ? stack1.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.between || (depth0 && depth0.between),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -21886,21 +21949,19 @@ function program3(depth0,data) {
   templates['partials/minimal_trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <span class=\"trending\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_ord || (depth0 && depth0.num_ord)),stack1 ? stack1.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
+  var buffer = "", helper, options;
+  buffer += " <span class=\"trending\" title=\""
+    + escapeExpression((helper = helpers.num_ord || (depth0 && depth0.num_ord),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
     + " highest percentage increase in installs recently\"><i class=\"icon-chevron-sign-up\"></i></span> ";
   return buffer;
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.lte || (depth0 && depth0.lte)),stack1 ? stack1.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -21911,18 +21972,17 @@ function program1(depth0,data) {
   templates['partials/package_author'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
 
 
-  buffer += "<span class=\"author\"><em>by</em> <a href=\"";
-  options = {hash:{
+  buffer += "<span class=\"author\"><em>by</em> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.author))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
     + "\">";
-  if (stack2 = helpers.author) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.author); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.author) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.author); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></span> ";
   return buffer;
   });
@@ -21957,7 +22017,7 @@ helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partial
   templates['partials/package_compat'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -21968,39 +22028,31 @@ function program1(depth0,data) {
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   }
@@ -22052,9 +22104,8 @@ function program18(depth0,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">Win</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">OS X</span>";
   }
 
-  options = {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.omits || (depth0 && depth0.omits)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22065,7 +22116,7 @@ function program18(depth0,data) {
   templates['partials/package_installs'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
 function program1(depth0,data) {
   
@@ -22073,16 +22124,13 @@ function program1(depth0,data) {
   return "s";
   }
 
-  buffer += "<span class=\"installs\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.unique_installs), options)))
+  buffer += "<span class=\"installs\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.unique_installs), options)))
     + " total unique install";
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.ne || (depth0 && depth0.ne)),stack1 ? stack1.call(depth0, (depth0 && depth0.unique_installs), 1, options) : helperMissing.call(depth0, "ne", (depth0 && depth0.unique_installs), 1, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.unique_installs), options)))
+  stack1 = (helper = helpers.ne || (depth0 && depth0.ne),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), 1, options) : helperMissing.call(depth0, "ne", (depth0 && depth0.unique_installs), 1, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.unique_installs), options)))
     + " <em>Installs</em></span> ";
   return buffer;
   });
@@ -22093,14 +22141,14 @@ function program1(depth0,data) {
   templates['partials/package_missing_deprecated'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <span class=\"missing\" title=\"Package info was unavailable last time crawler ran. ";
-  if (stack1 = helpers.missing_error) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.missing_error); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.missing_error) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.missing_error); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "\"><i class=\"icon-question-sign\"></i> Missing</span> ";
   return buffer;
@@ -22115,9 +22163,8 @@ function program3(depth0,data) {
   stack1 = helpers['if'].call(depth0, (depth0 && depth0.is_missing), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data};
-  stack2 = ((stack1 = helpers.contains || (depth0 && depth0.contains)),stack1 ? stack1.call(depth0, (depth0 && depth0.labels), "deprecated", options) : helperMissing.call(depth0, "contains", (depth0 && depth0.labels), "deprecated", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), "deprecated", options) : helperMissing.call(depth0, "contains", (depth0 && depth0.labels), "deprecated", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22128,7 +22175,7 @@ function program3(depth0,data) {
   templates['partials/package_new'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -22136,9 +22183,8 @@ function program1(depth0,data) {
   return " <span class=\"new\" title=\"First seen within the past two weeks\"><i class=\"icon-leaf\"></i> New</span> ";
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.gte || (depth0 && depth0.gte)),stack1 ? stack1.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.gte || (depth0 && depth0.gte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22149,14 +22195,14 @@ function program1(depth0,data) {
   templates['partials/package_top'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <span class=\"top_25\" title=\"Ranked #";
-  if (stack1 = helpers.installs_rank) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.installs_rank); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + " for total unique installs\"><i class=\"icon-certificate\"></i> Top 25</span> ";
   return buffer;
@@ -22164,22 +22210,20 @@ function program1(depth0,data) {
 
 function program3(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <span class=\"top_100\" title=\"Ranked #";
-  if (stack1 = helpers.installs_rank) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.installs_rank); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + " for total unique installs\"><i class=\"icon-certificate\"></i> Top 100</span> ";
   return buffer;
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.lte || (depth0 && depth0.lte)),stack1 ? stack1.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data};
-  stack2 = ((stack1 = helpers.between || (depth0 && depth0.between)),stack1 ? stack1.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.between || (depth0 && depth0.between),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22190,21 +22234,19 @@ function program3(depth0,data) {
   templates['partials/package_trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, options;
-  buffer += " <span class=\"trending\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_ord || (depth0 && depth0.num_ord)),stack1 ? stack1.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
+  var buffer = "", helper, options;
+  buffer += " <span class=\"trending\" title=\""
+    + escapeExpression((helper = helpers.num_ord || (depth0 && depth0.num_ord),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
     + " highest percentage increase in installs recently\"><i class=\"icon-chevron-sign-up\"></i> Trending</span> ";
   return buffer;
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.lte || (depth0 && depth0.lte)),stack1 ? stack1.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22228,17 +22270,17 @@ function program1(depth0,data) {
   }
 function program2(depth0,data) {
   
-  var buffer = "", stack1;
+  var buffer = "", stack1, helper;
   buffer += " <a href=\"";
-  if (stack1 = helpers.href) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.href); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.href) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.href); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "\"";
   stack1 = helpers['if'].call(depth0, (depth0 && depth0.selected), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += ">";
-  if (stack1 = helpers.number) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.number); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.number) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.number); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "</a> ";
   return buffer;
@@ -22301,35 +22343,30 @@ function program2(depth0,data) {
   }
 function program3(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.highlight || (depth0 && depth0.highlight)),stack1 ? stack1.call(depth0, (depth0 && depth0.highlighted_name), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_name), options)))
-    + "</a></h3> <span class=\"author\"><em>by</em> <a href=\"";
-  options = {hash:{
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_name), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_name), options)))
+    + "</a></h3> <span class=\"author\"><em>by</em> <a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.author))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.highlight || (depth0 && depth0.highlight)),stack1 ? stack1.call(depth0, (depth0 && depth0.highlighted_author), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_author), options)))
+  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+    + "\">"
+    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_author), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_author), options)))
     + "</a></span> ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
-  buffer += " </span> <div class=\"description\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.highlight || (depth0 && depth0.highlight)),stack1 ? stack1.call(depth0, (depth0 && depth0.highlighted_description), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_description), options)))
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " </span> <div class=\"description\">"
+    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_description), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_description), options)))
     + "</div> </li> ";
   return buffer;
   }
@@ -22359,7 +22396,7 @@ function program7(depth0,data) {
   templates['partials/version_qualifiers'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, stack2, options, self=this, helperMissing=helpers.helperMissing;
+  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
 
 function program1(depth0,data) {
   
@@ -22421,45 +22458,35 @@ function program19(depth0,data) {
   return "<span class=\"platforms windows also-before\" title=\"Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Windows and OS X\">O</span>";
   }
 
-  options = {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "linux-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x32", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x32", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "linux-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x64", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x64", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x32", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x32", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x64", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x64", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(17, program17, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(17, program17, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  options = {hash:{},inverse:self.noop,fn:self.program(19, program19, data),data:data};
-  stack2 = ((stack1 = helpers.eq || (depth0 && depth0.eq)),stack1 ? stack1.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(19, program19, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22470,57 +22497,54 @@ function program19(depth0,data) {
   templates['popular'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Popular Packages", options) : helperMissing.call(depth0, "title", "Popular Packages", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Popular Packages", options) : helperMissing.call(depth0, "title", "Popular Packages", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1>Popular</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> ";
   return buffer;
   });
@@ -22531,42 +22555,40 @@ function program1(depth0,data) {
   templates['rss'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
+  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
+  var buffer = "", stack1, helper, options;
   buffer += " <item> <title>";
-  if (stack1 = helpers.name) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.name); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "</title> <author>";
-  if (stack1 = helpers.author) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.author); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.author) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.author); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + "</author> <description>";
-  if (stack1 = helpers.description) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.description); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</description> <pubDate>";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.date_format || (depth0 && depth0.date_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.first_seen), "%F %T", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "%F %T", options)))
-    + "</pubDate> <link>https://sublime.wbond.net";
-  options = {hash:{
+    + "</description> <pubDate>"
+    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "%F %T", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "%F %T", options)))
+    + "</pubDate> <link>https://sublime.wbond.net"
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "</link> <guid>";
-  if (stack2 = helpers.md5) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.md5); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.md5) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.md5); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</guid> </item> ";
   return buffer;
   }
 
   buffer += "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"> <channel> <title>Newest Sublime Text Packages</title> <description>The 25 newest additions to the default Package Control channel</description> <language>en-us</language> <copyright>Copyright ";
-  if (stack1 = helpers.year) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.year); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.year) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.year); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
     + ", Will Bond</copyright> <link>https://sublime.wbond.net</link> ";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
@@ -22581,14 +22603,13 @@ function program1(depth0,data) {
   templates['search'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
 
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, (depth0 && depth0.terms), "Search", options) : helperMissing.call(depth0, "title", (depth0 && depth0.terms), "Search", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.terms), "Search", options) : helperMissing.call(depth0, "title", (depth0 && depth0.terms), "Search", options)))
     + " ";
-  stack2 = self.invokePartial(partials.results, 'results', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.results, 'results', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
   });
@@ -22599,11 +22620,11 @@ helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partial
   templates['static'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, functionType="function";
+  var buffer = "", stack1, helper, functionType="function";
 
 
-  if (stack1 = helpers.html) { stack1 = stack1.call(depth0, {hash:{},data:data}); }
-  else { stack1 = (depth0 && depth0.html); stack1 = typeof stack1 === functionType ? stack1.call(depth0, {hash:{},data:data}) : stack1; }
+  if (helper = helpers.html) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.html); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
@@ -22615,95 +22636,66 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   templates['stats'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
 
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Stats", options) : helperMissing.call(depth0, "title", "Stats", options)))
-    + " <h1>Stats</h1> <section class=\"packages\"> <h2>Packages</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.total_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_packages), options)))
-    + "</span> <span class=\"stat\"><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
-    + "\">Packages</a></span> </div> <div class=\"secondary\"> <span class=\"version st2_st3\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.st2_st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_st3_packages), options)))
-    + "</span> ST2/3 </span> <span class=\"version st3\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st3_packages), options)))
-    + "</span> ST3 </span> <span class=\"version st2\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.st2_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_packages), options)))
-    + "</span> ST2 </span> </div> <div class=\"tertiary\"> <span class=\"platform windows\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.windows_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_packages), options)))
-    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.osx_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_packages), options)))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.linux_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_packages), options)))
-    + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> ";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.total_labels), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_labels), options)))
-    + " </span> <span class=\"stat\"><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
-    + "\">Labels</a></span> </div> </div> </section> <section class=\"users\"> <h2>Users</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_users), options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.total_users), options)))
-    + "</span> <span class=\"stat\">Users</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_users), options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_users), options)))
-    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_users), options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_users), options)))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_users), options)))
-    + "\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_users), options)))
-    + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> ";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.total_authors), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_authors), options)))
-    + " </span> <span class=\"stat\"><a href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
-    + "\">Authors</a></span> </div> </div> </section> <section class=\"yesterday\"> <h2>Activity Yesterday</h2> <div class=\"installs\"> <div class=\"main\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.installs), options)))
-    + "</span> <span class=\"stat\">Package Installs</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.windows_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_installs), options)))
-    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.osx_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_installs), options)))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.linux_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_installs), options)))
-    + "</span> Linux </span> </div> </div> <div class=\"actions\"> <div class=\"main\"> <span class=\"number\">";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_abbr || (depth0 && depth0.num_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.submissions), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.submissions), options)))
-    + "</span> <span class=\"stat\">User Actions</span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\" title=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_bytes_served), options)))
-    + " bytes over ";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.num_format || (depth0 && depth0.num_format)),stack1 ? stack1.call(depth0, (depth0 && depth0.json_requests_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_requests_served), options)))
-    + " requests\"> ";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.filesize_abbr || (depth0 && depth0.filesize_abbr)),stack1 ? stack1.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "filesize_abbr", (depth0 && depth0.json_bytes_served), options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Stats", options) : helperMissing.call(depth0, "title", "Stats", options)))
+    + " <h1>Stats</h1> <section class=\"packages\"> <h2>Packages</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_packages), options)))
+    + "</span> <span class=\"stat\"><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + "\">Packages</a></span> </div> <div class=\"secondary\"> <span class=\"version st2_st3\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st2_st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_st3_packages), options)))
+    + "</span> ST2/3 </span> <span class=\"version st3\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st3_packages), options)))
+    + "</span> ST3 </span> <span class=\"version st2\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st2_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_packages), options)))
+    + "</span> ST2 </span> </div> <div class=\"tertiary\"> <span class=\"platform windows\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_packages), options)))
+    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_packages), options)))
+    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_packages), options)))
+    + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> "
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_labels), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_labels), options)))
+    + " </span> <span class=\"stat\"><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+    + "\">Labels</a></span> </div> </div> </section> <section class=\"users\"> <h2>Users</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_users), options)))
+    + "\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.total_users), options)))
+    + "</span> <span class=\"stat\">Users</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_users), options)))
+    + "\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_users), options)))
+    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_users), options)))
+    + "\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_users), options)))
+    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_users), options)))
+    + "\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_users), options)))
+    + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> "
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_authors), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_authors), options)))
+    + " </span> <span class=\"stat\"><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
+    + "\">Authors</a></span> </div> </div> </section> <section class=\"yesterday\"> <h2>Activity Yesterday</h2> <div class=\"installs\"> <div class=\"main\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.installs), options)))
+    + "</span> <span class=\"stat\">Package Installs</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_installs), options)))
+    + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_installs), options)))
+    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_installs), options)))
+    + "</span> Linux </span> </div> </div> <div class=\"actions\"> <div class=\"main\"> <span class=\"number\">"
+    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.submissions), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.submissions), options)))
+    + "</span> <span class=\"stat\">User Actions</span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\" title=\""
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_bytes_served), options)))
+    + " bytes over "
+    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_requests_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_requests_served), options)))
+    + " requests\"> "
+    + escapeExpression((helper = helpers.filesize_abbr || (depth0 && depth0.filesize_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "filesize_abbr", (depth0 && depth0.json_bytes_served), options)))
     + " </span> <span class=\"stat\">JSON Served</span> </div> </div> </section> ";
   return buffer;
   });
@@ -22714,57 +22706,54 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   templates['trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Trending Packages", options) : helperMissing.call(depth0, "title", "Trending Packages", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Trending Packages", options) : helperMissing.call(depth0, "title", "Trending Packages", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1>Trending</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> ";
   return buffer;
   });
@@ -22775,60 +22764,57 @@ function program1(depth0,data) {
   templates['updated'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, stack2, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
+  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
 
 function program1(depth0,data) {
   
-  var buffer = "", stack1, stack2, options;
-  buffer += " <li class=\"package\"> <h3><a href=\"";
-  options = {hash:{
+  var buffer = "", stack1, helper, options;
+  buffer += " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
-  },data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
     + "\">";
-  if (stack2 = helpers.name) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.name); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</a></h3> ";
-  stack2 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack2 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack2 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </span> <div class=\"description\">";
-  if (stack2 = helpers.description) { stack2 = stack2.call(depth0, {hash:{},data:data}); }
-  else { stack2 = (depth0 && depth0.description); stack2 = typeof stack2 === functionType ? stack2.call(depth0, {hash:{},data:data}) : stack2; }
-  buffer += escapeExpression(stack2)
+  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
     + "</div> </li> ";
   return buffer;
   }
 
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.title || (depth0 && depth0.title)),stack1 ? stack1.call(depth0, "Updated Packages", options) : helperMissing.call(depth0, "title", "Updated Packages", options)))
-    + " <a class=\"context\" href=\"";
-  options = {hash:{},data:data};
-  buffer += escapeExpression(((stack1 = helpers.url || (depth0 && depth0.url)),stack1 ? stack1.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Updated Packages", options) : helperMissing.call(depth0, "title", "Updated Packages", options)))
+    + " <a class=\"context\" href=\""
+    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
     + "\">Browse</a> <h1>Updated</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack2 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </ul> ";
-  stack2 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack2 || stack2 === 0) { buffer += stack2; }
+  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
+  if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> ";
   return buffer;
   });
