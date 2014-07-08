@@ -206,6 +206,7 @@ class App.Views.Index extends Snakeskin.View
           socket = _socketConfig.socket
           _socketConfig.timeoutTimeout = setTimeout(
             (->
+              return if not socket
               # Clear the global socket config
               socket.onerror()
               # Clear the event handlers on this socket in case a

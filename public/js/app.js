@@ -18320,7 +18320,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.1';
+  window.App.version = '1.0.2';
 
 }).call(this);
 
@@ -19589,6 +19589,9 @@ window.onload = function () {
           _socketConfig.send("since:" + String(_socketConfig.lastStep));
           socket = _socketConfig.socket;
           return _socketConfig.timeoutTimeout = setTimeout((function() {
+            if (!socket) {
+              return;
+            }
             socket.onerror();
             socket.onopen = null;
             socket.onerror = null;
