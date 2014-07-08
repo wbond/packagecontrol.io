@@ -56,6 +56,7 @@ pip install gears-coffeescript
 pip install gears-handlebars
 pip install gears-uglifyjs
 pip install gears-clean-css
+pip install paramiko
 ```
 
 Run the server:
