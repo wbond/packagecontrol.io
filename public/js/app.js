@@ -18488,7 +18488,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.3';
+  window.App.version = '1.0.4';
 
 }).call(this);
 
@@ -19760,7 +19760,9 @@ window.onload = function () {
             if (!socket) {
               return;
             }
-            socket.onerror();
+            if (typeof socket.onerror === "function") {
+              socket.onerror();
+            }
             socket.onopen = null;
             socket.onerror = null;
             socket.onclose = null;

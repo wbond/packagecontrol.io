@@ -208,7 +208,7 @@ class App.Views.Index extends Snakeskin.View
             (->
               return if not socket
               # Clear the global socket config
-              socket.onerror()
+              socket.onerror?()
               # Clear the event handlers on this socket in case a
               # response ever comes through
               socket.onopen = null
