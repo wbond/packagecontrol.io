@@ -13,8 +13,11 @@
                 environment: "{{__rollbar_env__}}"
               },
               checkIgnore: function(isUncaught, args, payload) {
-                var msg = args[1];
-                var url = args[2];
+                var msg = args[1] || '';
+                if (payload.body && payload.body.trace && payload.body.trace.exception) {
+                    msg = payload.body.trace.exception.message || msg;
+                }
+                var url = args[2] || '';
                 /* Don't cloud the error logs with extension errors */
                 var badSource = url.search(window.location.origin) == -1;
                 var adBlocker = msg.search("Property 'scrollTo' of object [object global] is not a function") != -1;
