@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.15';
+  window.App.version = '1.0.16';
 
 }).call(this);
 
@@ -20438,6 +20438,9 @@ window.onload = function () {
       var div, every, width, _chart;
       div = this.$('#daily_installs');
       _chart = this.chart;
+      if (!_chart) {
+        return;
+      }
       width = div.innerWidth() - this.chart.margins.left - this.chart.margins.right;
       this.chart.xScale.rangeRoundBands([0, width], 0.08);
       this.chart.svg.attr("width", width + this.chart.margins.left + this.chart.margins.right);

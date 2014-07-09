@@ -212,6 +212,9 @@ class App.Views.Package extends Snakeskin.View
     div = @$('#daily_installs')
     _chart = @chart
 
+    # If a resize happens before the chart is drawn
+    return if not _chart
+
     # Set up the dimensions of the main drawing area of the chart
     width = div.innerWidth() - @chart.margins.left - @chart.margins.right
 
