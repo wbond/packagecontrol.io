@@ -47,7 +47,6 @@ pip install git+https://github.com/wbond/python-creole
 pip install git+https://github.com/wbond/gears@disable-manifest
 pip install git+https://github.com/wbond/gears-scss
 pip install git+https://github.com/wbond/watchdog@fsevents-python3
-pip install git+https://github.com/wbond/pyrollbar@python3
 
 pip install -r setup/requirements.txt
 
