@@ -16572,7 +16572,7 @@ Backbone.addBeforePopState = function(BB) {
 };
 
 //     keymaster.js
-//     (c) 2011-2012 Thomas Fuchs
+//     (c) 2011-2013 Thomas Fuchs
 //     keymaster.js may be freely distributed under the MIT license.
 
 ;(function(global){
@@ -16636,8 +16636,8 @@ Backbone.addBeforePopState = function(BB) {
   };
 
   // handle keydown event
-  function dispatch(event, scope){
-    var key, handler, k, i, modifiersMatch;
+  function dispatch(event) {
+    var key, handler, k, i, modifiersMatch, scope;
     key = event.keyCode;
 
     if (index(_downKeys, key) == -1) {
@@ -16660,6 +16660,8 @@ Backbone.addBeforePopState = function(BB) {
 
     // abort if no potentially matching shortcuts found
     if (!(key in _handlers)) return;
+
+    scope = getScope();
 
     // for each potential shortcut
     for (i = 0; i < _handlers[key].length; i++) {
@@ -16736,28 +16738,34 @@ Backbone.addBeforePopState = function(BB) {
 
   // unbind all handlers for given key in current scope
   function unbindKey(key, scope) {
-    var keys = key.split('+'),
+    var multipleKeys, keys,
       mods = [],
-      i, obj;
+      i, j, obj;
 
-    if (keys.length > 1) {
-      mods = getMods(keys);
-      key = keys[keys.length - 1];
-    }
+    multipleKeys = getKeys(key);
 
-    key = code(key);
+    for (j = 0; j < multipleKeys.length; j++) {
+      keys = multipleKeys[j].split('+');
 
-    if (scope === undefined) {
-      scope = getScope();
-    }
-    if (!_handlers[key]) {
-      return;
-    }
-    for (i in _handlers[key]) {
-      obj = _handlers[key][i];
-      // only clear handlers if correct scope and mods match
-      if (obj.scope === scope && compareArray(obj.mods, mods)) {
-        _handlers[key][i] = {};
+      if (keys.length > 1) {
+        mods = getMods(keys);
+        key = keys[keys.length - 1];
+      }
+
+      key = code(key);
+
+      if (scope === undefined) {
+        scope = getScope();
+      }
+      if (!_handlers[key]) {
+        return;
+      }
+      for (i in _handlers[key]) {
+        obj = _handlers[key][i];
+        // only clear handlers if correct scope and mods match
+        if (obj.scope === scope && compareArray(obj.mods, mods)) {
+          _handlers[key][i] = {};
+        }
       }
     }
   };
@@ -16829,7 +16837,7 @@ Backbone.addBeforePopState = function(BB) {
   };
 
   // set the handlers globally on document
-  addEvent(document, 'keydown', function(event) { dispatch(event, _scope) }); // Passing _scope to a callback to ensure it remains the same by execution. Fixes #48
+  addEvent(document, 'keydown', function(event) { dispatch(event) }); // Passing _scope to a callback to ensure it remains the same by execution. Fixes #48
   addEvent(document, 'keyup', clearModifier);
 
   // reset modifiers to false whenever the window is (re)focused.
