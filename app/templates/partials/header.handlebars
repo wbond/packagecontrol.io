@@ -19,6 +19,7 @@
             }
           },
           checkIgnore: function(isUncaught, args, payload) {
+            if (window.oldIE) { return true; }
             try {
                 var msg = payload.body.trace.exception.message;
                 /* Don't cloud the error logs with extension errors */
@@ -27,7 +28,7 @@
                 var extension = msg.search("Error connecting to extension") != -1;
                 var npObject = msg.search("Error calling method on NPObject") != -1;
                 var margins = msg.search("Cannot read property 'margins' of undefined") != -1;
-                if (badSource || adBlocker || extension || npObject || margins || window.oldIE) {
+                if (badSource || adBlocker || extension || npObject || margins) {
                     return true;
                 }
             } catch (e) { }
