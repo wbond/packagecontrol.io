@@ -1,1 +1,1 @@
-window.App.version = '1.0.12'
+window.App.version = '1.0.13'

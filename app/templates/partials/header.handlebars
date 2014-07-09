@@ -21,14 +21,20 @@
           checkIgnore: function(isUncaught, args, payload) {
             if (window.oldIE) { return true; }
             try {
-                var msg = payload.body.trace.exception.message;
+                var browser = payload.data.client.javascript.browser;
+                var trace = payload.data.body.trace;
+                var filename = trace.frames[0].filename;
+                var msg = trace.exception.message;
+
+                if (browser.match(/Baiduspider/i)) {
+                    return true;
+                }
+
                 /* Don't cloud the error logs with extension errors */
-                var badSource = payload.body.trace.frames[0].filename == '(unknown)';
-                var adBlocker = msg.search("Property 'scrollTo' of object [object global] is not a function") != -1;
+                var badSource = filename == '(unknown)';
                 var extension = msg.search("Error connecting to extension") != -1;
                 var npObject = msg.search("Error calling method on NPObject") != -1;
-                var margins = msg.search("Cannot read property 'margins' of undefined") != -1;
-                if (badSource || adBlocker || extension || npObject || margins) {
+                if (badSource || extension || npObject) {
                     return true;
                 }
             } catch (e) { }
