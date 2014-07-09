@@ -18474,7 +18474,7 @@ window.onload = function () {
     Views: {},
     version: null,
     initialize: function(options) {
-      key.filter = function() {
+      window.key.filter = function() {
         return true;
       };
       this.router = new App.Router(options);
@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.13';
+  window.App.version = '1.0.14';
 
 }).call(this);
 
@@ -18886,10 +18886,10 @@ window.onload = function () {
 
     Header.prototype.cleanup = function() {
       this.disableShortcuts();
-      key.unbind('enter', 'search');
-      key.unbind('up', 'search');
-      key.unbind('down', 'search');
-      return key.unbind('enter');
+      window.key.unbind('enter', 'search');
+      window.key.unbind('up', 'search');
+      window.key.unbind('down', 'search');
+      return window.key.unbind('enter');
     };
 
     Header.prototype.isElementInViewport = function(el) {
@@ -18958,11 +18958,11 @@ window.onload = function () {
     };
 
     Header.prototype.enableShortcuts = function() {
-      return key.setScope('search');
+      return window.key.setScope('search');
     };
 
     Header.prototype.disableShortcuts = function() {
-      return key.setScope('all');
+      return window.key.setScope('all');
     };
 
     Header.prototype.setupShortcuts = function() {

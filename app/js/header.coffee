@@ -37,10 +37,10 @@ class App.Header extends Backbone.View
 
   cleanup: =>
     @disableShortcuts()
-    key.unbind('enter', 'search')
-    key.unbind('up', 'search')
-    key.unbind('down', 'search')
-    key.unbind('enter')
+    window.key.unbind('enter', 'search')
+    window.key.unbind('up', 'search')
+    window.key.unbind('down', 'search')
+    window.key.unbind('enter')
 
   isElementInViewport: (el) ->
     rect = el.getBoundingClientRect()
@@ -104,10 +104,10 @@ class App.Header extends Backbone.View
       elem.selectionEnd = elemLen
 
   enableShortcuts: =>
-    key.setScope('search')
+    window.key.setScope('search')
 
   disableShortcuts: =>
-    key.setScope('all')
+    window.key.setScope('all')
 
   setupShortcuts: =>
     # When JS is available, prevent default form action
