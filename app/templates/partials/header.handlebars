@@ -42,7 +42,8 @@
                 var badSource = filename == '(unknown)';
                 var extension = msg.search("Error connecting to extension") != -1;
                 var npObject = msg.search("Error calling method on NPObject") != -1;
-                if (badSource || extension || npObject) {
+                var oldBrowser = msg == 'Object.defineProperty is not a function';
+                if (badSource || extension || npObject || oldBrowser) {
                     return true;
                 }
             } catch (e) { }
