@@ -18054,29 +18054,29 @@ window.onload = function () {
 
 (function() {
   Snakeskin.Util.lowerCamel = function(string) {
-    return string.replace(/(?:_)(\w)/g, function(_, chr) {
+    return string != null ? string.replace(/(?:_)(\w)/g, function(_, chr) {
       if (chr) {
         return chr.toUpperCase();
       } else {
         return '';
       }
-    });
+    }) : void 0;
   };
 
   Snakeskin.Util.upperCamel = function(string) {
-    return string.replace(/(?:^|_)(\w)/g, function(_, chr) {
+    return string != null ? string.replace(/(?:^|_)(\w)/g, function(_, chr) {
       if (chr) {
         return chr.toUpperCase();
       } else {
         return '';
       }
-    });
+    }) : void 0;
   };
 
   Snakeskin.Util.underscore = function(string) {
-    return string.replace(/([a-z][A-Z]|[a-zA-Z][0-9]|[0-9][a-zA-Z])/g, function(chrs) {
+    return string != null ? string.replace(/([a-z][A-Z]|[a-zA-Z][0-9]|[0-9][a-zA-Z])/g, function(chrs) {
       return chrs[0] + '_' + chrs[1];
-    }).toLowerCase();
+    }).toLowerCase() : void 0;
   };
 
   Snakeskin.Util.none = function(val) {
@@ -18488,7 +18488,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.9';
+  window.App.version = '1.0.10';
 
 }).call(this);
 
