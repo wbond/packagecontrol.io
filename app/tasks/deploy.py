@@ -22,6 +22,7 @@ def try_exec(command):
 try:
     try_exec("cd /var/www/sublime.wbond.net")
     try_exec("git pull --rebase")
+    try_exec("git rev-parse HEAD > ./git-sha1.yml")
     try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-sublime.wbond.net.fifo > /dev/null")
 finally:
     connection.close()

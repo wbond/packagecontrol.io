@@ -10,7 +10,12 @@
               accessToken: "{{__rollbar_client_key__}}",
               captureUncaught: true,
               payload: {
-                environment: "{{__rollbar_env__}}"
+                environment: "{{__rollbar_env__}}",
+                client: {
+                  javascript: {
+                    code_version: "{{__sha1__}}"
+                  }
+                }
               },
               checkIgnore: function(isUncaught, args, payload) {
                 var msg = args[1] || '';

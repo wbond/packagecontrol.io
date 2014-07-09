@@ -34,6 +34,7 @@ def render(name, data=None, **kwargs):
     data['__template__'] = name
     data['__env__'] = env.name
     data['__version__'] = env.version
+    data['__sha1__'] = env.sha1
     data['__rollbar_client_key__'] = config.read_secret('rollbar_client_key')
     data['__rollbar_env__'] = {'dev': 'development', 'prod': 'production'}[env.name]
     if '__status_code__' not in data:
@@ -84,6 +85,7 @@ def render_static(name):
         '__status_code__': 200,
         '__env__': env.name,
         '__version__': env.version,
+        '__sha1__': env.sha1,
         '__rollbar_client_key__': config.read_secret('rollbar_client_key'),
         '__rollbar_env__': {'dev': 'development', 'prod': 'production'}[env.name]
     }
