@@ -3,8 +3,10 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>Package Control</title>
+        <!--[if lte IE 8]>
+        <script>window.oldIE = true;</script>
+        <![endif]-->
         <script>
-        var oldIE = false;
         var _rollbarConfig = {
           accessToken: "{{__rollbar_client_key__}}",
           captureUncaught: true,
@@ -25,7 +27,7 @@
                 var extension = msg.search("Error connecting to extension") != -1;
                 var npObject = msg.search("Error calling method on NPObject") != -1;
                 var margins = msg.search("Cannot read property 'margins' of undefined") != -1;
-                if (badSource || adBlocker || extension || oldIE || npObject || margins) {
+                if (badSource || adBlocker || extension || npObject || margins || window.oldIE) {
                     return true;
                 }
             } catch (e) { }
