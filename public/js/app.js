@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.16';
+  window.App.version = '1.0.17';
 
 }).call(this);
 
@@ -19150,7 +19150,7 @@ window.onload = function () {
     };
 
     Layout.prototype.changeView = function(class_name, class_, data) {
-      var newView, removeClass, scrollTo;
+      var destScroll, newView, removeClass;
       removeClass = null;
       if (this.initialized && !this.view) {
         this.view = new Snakeskin.View({
@@ -19181,12 +19181,12 @@ window.onload = function () {
       newView.trigger('placed');
       this.view = newView;
       if (this.lastScrollPosition) {
-        scrollTo = this.lastScrollPosition;
+        destScroll = this.lastScrollPosition;
         this.lastScrollPosition = null;
       } else {
-        scrollTo = 0;
+        destScroll = 0;
       }
-      return $(window).scrollTop(scrollTo);
+      return $(window).scrollTop(destScroll);
     };
 
     Layout.prototype.exchangeViewIf = function(class_name, class_, data, oldView) {

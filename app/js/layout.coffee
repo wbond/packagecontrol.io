@@ -69,11 +69,11 @@ class App.Layout extends Backbone.View
     @view = newView
 
     if @lastScrollPosition
-      scrollTo = @lastScrollPosition
+      destScroll = @lastScrollPosition
       @lastScrollPosition = null
     else
-      scrollTo = 0
-    $(window).scrollTop(scrollTo)
+      destScroll = 0
+    $(window).scrollTop(destScroll)
 
   # If the oldView is the name of the current view, don't
   # do a full re-render, but swap out the view objects
