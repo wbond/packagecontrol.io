@@ -1,7 +1,12 @@
+import os
+import pwd
 import sys
+import urllib.request
+import urllib.parse
 
 from ..lib import ssh
 from .. import config
+from .. import env
 
 creds = config.read('deploy')
 
@@ -28,5 +33,18 @@ try:
     try_exec("git pull --rebase")
     try_exec("git rev-parse HEAD > ./git-sha1.yml")
     try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-sublime.wbond.net.fifo > /dev/null")
+
+    puts('Notifying Rollbar of deploy ... ', False)
+    post_data = urllib.parse.urlencode({
+        'environment': 'production',
+        'access_token': config.read_secret('rollbar_key'),
+        'local_username': pwd.getpwuid(os.getuid()).pw_name,
+        'revision': env.sha1
+    })
+    request = urllib.request.Request('https://api.rollbar.com/api/1/deploy/')
+    request.add_header('Content-Type', 'application/x-www-form-urlencoded;charset=utf-8')
+    urllib.request.urlopen(request, post_data.encode('utf-8'))
+    puts('done')
+
 finally:
     connection.close()
