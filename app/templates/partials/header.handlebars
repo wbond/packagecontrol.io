@@ -21,13 +21,21 @@
           checkIgnore: function(isUncaught, args, payload) {
             if (window.oldIE) { return true; }
             try {
-                var browser = payload.data.client.javascript.browser;
-                var trace = payload.data.body.trace;
+                var data = payload.data;
+                var browser = data.client.javascript.browser;
+                var trace = data.body.trace;
                 var filename = trace.frames[0].filename;
                 var msg = trace.exception.message;
 
                 if (browser.match(/Baiduspider/i)) {
                     return true;
+                }
+
+                /* Handle browsers that didn't seem to load app.js */
+                if (trace.frames.length == 1 && filename == window.location.href) {
+                    if (msg == "Can't find variable: $" || msg == '$ is not defined') {
+                        return true;
+                    }
                 }
 
                 /* Don't cloud the error logs with extension errors */
