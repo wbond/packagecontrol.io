@@ -5,19 +5,23 @@ from .. import config
 
 creds = config.read('deploy')
 
-print('Connecting to %s@%s ... ' % (creds['username'], creds['host']), end='')
-sys.stdout.flush()
+def puts(string, include_newline=True):
+    ending = "\n" if include_newline else ""
+    print(string, end=ending)
+    sys.stdout.flush()
+
+puts('Connecting to %s@%s ... ' % (creds['username'], creds['host']), False)
 connection = ssh.SSH(creds['host'], creds['username'])
-print('done')
+puts('done')
 
 def try_exec(command):
-    print('> %s' % command)
+    puts('> %s' % command)
     code, output = connection.execute(command)
     if code != 0:
         raise Exception(output)
     output = '  ' + output.replace('\n', '  \n')
     if len(output.strip()):
-        print(output)
+        puts(output)
 
 try:
     try_exec("cd /var/www/sublime.wbond.net")
