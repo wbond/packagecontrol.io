@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.19';
+  window.App.version = '1.0.20';
 
 }).call(this);
 
@@ -20803,28 +20803,6 @@ window.onload = function () {
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['app'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, self=this, functionType="function", escapeExpression=this.escapeExpression;
-
-
-  stack1 = self.invokePartial(partials.header, 'header', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " <div id=\"content\"> ";
-  if (helper = helpers.outlet) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.outlet); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + " </div> ";
-  stack1 = self.invokePartial(partials.footer, 'footer', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
-}).call(this);
-(function() {
-  var template  = Handlebars.template,
-      templates = Handlebars.templates = Handlebars.templates || {};
   templates['author'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
@@ -21601,80 +21579,6 @@ function program36(depth0,data) {
   stack1 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.program(36, program36, data),fn:self.program(34, program34, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </div> </div> ";
-  return buffer;
-  });
-}).call(this);
-(function() {
-  var template  = Handlebars.template,
-      templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/footer'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing;
-
-
-  buffer += "</div> <footer> <section> © 2014 <a id=\"wbond\" href=\"http://wbond.net\"><img src=\"/img/wbond.svg\" width=\"570\" height=\"100\"></a> </section> </footer> <!--[if lte IE 8]> <script> /* Warning IE 6-8 users that the site won't display properly. */ /* Don't use jQuery since 1.9 doesn't load in < IE9. */ var body = document.getElementsByTagName('body')[0]; var div = document.createElement('div'); div.className = 'browser_warning'; div.innerHTML = 'Your browser can not display this site properly. Please upgrade to IE 9+, <a href=\"https://google.com/chrome\">Chrome</a> or <a href=\"http://mozilla.org/firefox\">Firefox</a>.'; body.insertBefore(div,body.firstChild); </script> <![endif]--> <script src=\"/js/app.js?v=";
-  if (helper = helpers.__version__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__version__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\"></script> <script> $(function() { App.initialize({ exportedRoutes: "
-    + escapeExpression((helper = helpers.json || (depth0 && depth0.json),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.exportedRoutes), options) : helperMissing.call(depth0, "json", (depth0 && depth0.exportedRoutes), options)))
-    + ", statusCode: ";
-  if (helper = helpers.__status_code__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__status_code__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + " }); }); </script> </body> </html> ";
-  return buffer;
-  });
-}).call(this);
-(function() {
-  var template  = Handlebars.template,
-      templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/header'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing;
-
-
-  buffer += "<!DOCTYPE html> <html> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /> <title>Package Control</title> <!--[if lte IE 8]> <script>window.oldIE = true;</script> <![endif]--> <script> var _rollbarConfig = { accessToken: \"";
-  if (helper = helpers.__rollbar_client_key__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__rollbar_client_key__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\", captureUncaught: true, payload: { environment: \"";
-  if (helper = helpers.__rollbar_env__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__rollbar_env__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\", client: { javascript: { code_version: \"";
-  if (helper = helpers.__sha1__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__sha1__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\" } } }, checkIgnore: function(isUncaught, args, payload) { if (window.oldIE) { return true; } try { var data = payload.data; var browser = data.client.javascript.browser; var trace = data.body.trace; var filename = trace.frames[0].filename; var msg = trace.exception.message; if (browser.match(/Baiduspider/i)) { return true; } /* Handle browsers that didn't seem to load app.js */ if (trace.frames.length == 1 && filename == window.location.href) { if (msg == \"Can't find variable: $\" || msg == '$ is not defined') { return true; } } /* Don't cloud the error logs with extension errors */ var badSource = filename == '(unknown)'; var extension = msg.search(\"Error connecting to extension\") != -1; var npObject = msg.search(\"Error calling method on NPObject\") != -1; var oldBrowser = msg == 'Object.defineProperty is not a function'; var crossDomainFirefox = msg == 'Script error.'; if (badSource || extension || npObject || oldBrowser || crossDomainFirefox) { return true; } } catch (e) { } return false; } }; !function(a,b){function c(b){this.shimId=++h,this.notifier=null,this.parentShim=b,this.logger=function(){},a.console&&void 0===a.console.shimId&&(this.logger=a.console.log)}function d(b,c,d){!d[4]&&a._rollbarWrappedError&&(d[4]=a._rollbarWrappedError,a._rollbarWrappedError=null),b.uncaughtError.apply(b,d),c&&c.apply(a,d)}function e(b){var d=c;return g(function(){if(this.notifier)return this.notifier[b].apply(this.notifier,arguments);var c=this,e=\"scope\"===b;e&&(c=new d(this));var f=Array.prototype.slice.call(arguments,0),g={shim:c,method:b,args:f,ts:new Date};return a._rollbarShimQueue.push(g),e?c:void 0})}function f(a,b){if(b.hasOwnProperty&&b.hasOwnProperty(\"addEventListener\")){var c=b.addEventListener;b.addEventListener=function(b,d,e){c.call(this,b,a.wrap(d),e)};var d=b.removeEventListener;b.removeEventListener=function(a,b,c){d.call(this,a,b?b._wrapped:b,c)}}}function g(a,b){return b=b||this.logger,function(){try{return a.apply(this,arguments)}catch(c){b(\"Rollbar internal error:\",c)}}}var h=0;c.init=function(a,b){var e=b.globalAlias||\"Rollbar\";if(\"object\"==typeof a[e])return a[e];a._rollbarShimQueue=[],a._rollbarWrappedError=null,b=b||{};var h=new c;return g(function(){if(h.configure(b),b.captureUncaught){var c=a.onerror;a.onerror=function(){var a=Array.prototype.slice.call(arguments,0);d(h,c,a)};var g,i,j=[\"EventTarget\",\"Window\",\"Node\",\"ApplicationCache\",\"AudioTrackList\",\"ChannelMergerNode\",\"CryptoOperation\",\"EventSource\",\"FileReader\",\"HTMLUnknownElement\",\"IDBDatabase\",\"IDBRequest\",\"IDBTransaction\",\"KeyOperation\",\"MediaController\",\"MessagePort\",\"ModalWindow\",\"Notification\",\"SVGElementInstance\",\"Screen\",\"TextTrack\",\"TextTrackCue\",\"TextTrackList\",\"WebSocket\",\"WebSocketWorker\",\"Worker\",\"XMLHttpRequest\",\"XMLHttpRequestEventTarget\",\"XMLHttpRequestUpload\"];for(g=0;g<j.length;++g)i=j[g],a[i]&&a[i].prototype&&f(h,a[i].prototype)}return a[e]=h,h},h.logger)()},c.prototype.loadFull=function(a,b,c,d){var e=g(function(){var a=b.createElement(\"script\"),e=b.getElementsByTagName(\"script\")[0];a.src=d.rollbarJsUrl,a.async=!c,a.onload=f,e.parentNode.insertBefore(a,e)},this.logger),f=g(function(){if(void 0===a._rollbarPayloadQueue)for(var b,c,d,e,f=new Error(\"rollbar.js did not load\");b=a._rollbarShimQueue.shift();)for(d=b.args,e=0;e<d.length;++e)if(c=d[e],\"function\"==typeof c){c(f);break}},this.logger);g(function(){c?e():a.addEventListener?a.addEventListener(\"load\",e,!1):a.attachEvent(\"onload\",e)},this.logger)()},c.prototype.wrap=function(b){try{if(\"function\"!=typeof b)return b;if(b._isWrap)return b;if(!b._wrapped){b._wrapped=function(){try{return b.apply(this,arguments)}catch(c){throw a._rollbarWrappedError=c,c}},b._wrapped._isWrap=!0;for(var c in b)b.hasOwnProperty(c)&&(b._wrapped[c]=b[c])}return b._wrapped}catch(d){return b}};for(var i=\"log,debug,info,warn,warning,error,critical,global,configure,scope,uncaughtError\".split(\",\"),j=0;j<i.length;++j)c.prototype[i[j]]=e(i[j]);var k=\"//d37gvrvc0wt4s1.cloudfront.net/js/v1.0/rollbar.min.js\";_rollbarConfig.rollbarJsUrl=_rollbarConfig.rollbarJsUrl||k;var l=c.init(a,_rollbarConfig);l.loadFull(a,b,!1,_rollbarConfig)}(window,document); </script> <link href=\"//fonts.googleapis.com/css?family=Open+Sans:300,600|Open+Sans+Condensed:300,600&amp;v2\" rel=\"stylesheet\" type=\"text/css\" /> <link rel=\"stylesheet\" href=\"/css/app.css?v=";
-  if (helper = helpers.__version__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__version__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\" type=\"text/css\" media=\"all\" /> <link href=\"//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css\" rel=\"stylesheet\"> <meta name=\"viewport\" content=\"width=380\" id=\"meta-viewport\" /> <script> window.onload = function() { if (screen.width < 740) { return; } /* Make phones use 380 */ document.getElementById('meta-viewport').setAttribute('content','width=device-width'); } </script> <script type=\"text/javascript\"> (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){ (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o), m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m) })(window,document,'script','//www.google-analytics.com/analytics.js','ga'); ga('create', 'UA-688035-1', 'wbond.net'); ga('send', 'pageview'); </script> </head> <body class=\"";
-  if (helper = helpers.__template__) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.__template__); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\"> <header> <section> <div> <a id=\"logo\" href=\"/\"><img src=\"/img/logo.svg\" width=\"572\" height=\"102\"></a> <div id=\"nav_container\"> <nav> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
-    + "\">Installation</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
-    + "\">Browse</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "search_blank", options) : helperMissing.call(depth0, "url", "search_blank", options)))
-    + "\">Search</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "docs", options) : helperMissing.call(depth0, "url", "docs", options)))
-    + "\">Docs</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "news", options) : helperMissing.call(depth0, "url", "news", options)))
-    + "\">News</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "stats", options) : helperMissing.call(depth0, "url", "stats", options)))
-    + "\">Stats</a> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "about", options) : helperMissing.call(depth0, "url", "about", options)))
-    + "\">About</a> <span class=\"loading\"></span> </nav> </div> <form action=\"/search\" method=\"get\"> <input id=\"search\" type=\"text\" placeholder=\"Search\" name=\"terms\" value=\"";
-  if (helper = helpers.terms) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.terms); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "\"> <span class=\"help\"> <span class=\"keys\">ctrl+shift+p</span> <span class=\"terms\"> filters: <tt>:st2</tt> <tt>:st3</tt> <tt>:win</tt> <tt>:osx</tt> <tt>:linux</tt> </span> </span> </form> </div> </section> </header> <div id=\"torso\"> ";
   return buffer;
   });
 }).call(this);

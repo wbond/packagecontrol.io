@@ -20,9 +20,10 @@ class ExtFinder(FileSystemFinder):
     Class that finds assets for gears by filtering on extension
     """
 
-    def __init__(self, directories, extensions):
+    def __init__(self, directories, extensions, ignores):
         # Create a pattern that will only match the specified extensions
         self.ext_pattern = re.compile('|'.join([re.escape(ext) + '$' for ext in extensions]))
+        self.ignore_pattern = re.compile('|'.join([re.escape(ignore) + '$' for ignore in ignores]))
         super(ExtFinder, self).__init__(directories)
 
     def list(self, path, recursive=False):
@@ -33,6 +34,9 @@ class ExtFinder(FileSystemFinder):
             for filepath in listdir(matched_path, recursive=recursive):
                 # Filter out any files that don't end in the specified extensions
                 if not self.ext_pattern.search(filepath):
+                    continue
+                # Filter out ignored paths
+                if self.ignore_pattern.search(filepath):
                     continue
 
                 absolute_path = os.path.join(matched_path, filepath)
@@ -66,7 +70,11 @@ class Assets(object):
 
         self.gears = Environment(public_dir, public_assets=[self._public_assets],
             fingerprinting=False, manifest_path=False)
-        self.gears.finders.register(ExtFinder([app_dir], ['.coffee', '.scss', '.handlebars']))
+        self.gears.finders.register(ExtFinder(
+            [app_dir],
+            ['.coffee', '.scss', '.handlebars'],
+            ['app.handlebars', 'partials/header.handlebars', 'partials/footer.handlebars']
+        ))
 
         self.gears.compilers.register('.scss', SCSSCompiler.as_handler())
         self.gears.compilers.register('.coffee', CoffeeScriptCompiler.as_handler())
