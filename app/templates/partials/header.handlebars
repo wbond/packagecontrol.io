@@ -27,15 +27,9 @@
                 var filename = trace.frames[0].filename;
                 var msg = trace.exception.message;
 
-                if (browser.match(/Baiduspider/i)) {
-                    return true;
-                }
-
                 /* Handle browsers that didn't seem to load app.js */
-                if (trace.frames.length == 1 && filename == window.location.href) {
-                    if (msg == "Can't find variable: $" || msg == '$ is not defined') {
-                        return true;
-                    }
+                if (msg == "Can't find variable: $" || msg == '$ is not defined') {
+                    return true;
                 }
 
                 /* Don't cloud the error logs with extension errors */
