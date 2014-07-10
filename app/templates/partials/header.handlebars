@@ -40,11 +40,12 @@
 
                 /* Don't cloud the error logs with extension errors */
                 var badSource = filename == '(unknown)';
-                var extension = msg.search("Error connecting to extension") != -1;
-                var npObject = msg.search("NPObject") != -1;
+                var otherDomain = filename.indexOf(window.location.origin) != 0;
+                var extension = msg.indexOf("Error connecting to extension") != -1;
+                var npObject = msg.indexOf("NPObject") != -1;
                 var oldBrowser = msg == 'Object.defineProperty is not a function';
                 var crossDomainFirefox = msg == 'Script error.';
-                if (badSource || extension || npObject || oldBrowser || crossDomainFirefox) {
+                if (badSource || otherDomain || extension || npObject || oldBrowser || crossDomainFirefox) {
                     return true;
                 }
             } catch (e) { }
