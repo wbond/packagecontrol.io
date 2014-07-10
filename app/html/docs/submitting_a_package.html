@@ -71,8 +71,12 @@
 		searching for <tt>resume</tt> will not find <tt>résumé</tt>.
 	</li>
 	<li>
-		Themes must be named in the format <tt>Theme - {name}</tt> for
-		Sublime Text to properly load certain assets.
+		<b>Check hard-coded references.</b> The package name is (effectively)
+		used as the package folder name. Any file path references in a theme or
+		Python code must use this package folder name. Be sure your local
+		package folder name matches. <em>See the <tt>.no-sublime-package</tt>
+		file discussed in step 5 if you need to ensure files are always unpacked
+		into a folder.</em>
 	</li>
 </ul>
 
