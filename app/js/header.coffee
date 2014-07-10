@@ -137,6 +137,8 @@ class App.Header extends Backbone.View
         selected = @layout.view.$results.find('li:last-child')
       else
         selected = hovered.prev()
+      if not selected[0]
+        return
       hovered.removeClass('hover')
       selected.addClass('hover')
       if not @isElementInViewport(selected[0])
@@ -155,6 +157,8 @@ class App.Header extends Backbone.View
         selected = @layout.view.$results.find('li:first-child')
       else
         selected = hovered.next()
+      if not selected[0]
+        return
       hovered.removeClass('hover')
       selected.addClass('hover')
       if not @isElementInViewport(selected[0])

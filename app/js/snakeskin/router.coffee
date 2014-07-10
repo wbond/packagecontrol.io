@@ -48,8 +48,10 @@ class window.Snakeskin.Router extends Backbone.Router
       for piece in pattern
         if piece.type == 'literal'
           url += piece.value
-        else
+        else if not piece.wildcard
           url += ':' + piece.name
+        else
+          url += '*' + piece.name
       url = url.replace(/^\//, '')
 
       options.routes[url] = method

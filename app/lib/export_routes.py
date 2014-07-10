@@ -1,3 +1,5 @@
+import re
+
 from bottle import app
 
 
@@ -27,11 +29,31 @@ def export_routes():
 
     _builder = app().router.builder
 
+    def stringify(pattern):
+        string_pattern = ''
+        for element in pattern:
+            name, value = element
+            if not name:
+                string_pattern += value
+            else:
+                string_pattern += ':' + name
+        return string_pattern
+
+    # Find all of the wildcard params
+    wildcards = {}
+    for key in _builder:
+        params = re.findall('<(\w+):re:\(\.\*\)>', key)
+        if not params:
+            continue
+        string_pattern = stringify(_builder[key])
+        wildcards[string_pattern] = params
+
     routes = {}
     for key in _builder:
         if key.find('/') == -1:
             route = []
             pattern = _builder[key]
+            string_pattern = stringify(pattern)
             for element in pattern:
                 name, value = element
 
@@ -44,7 +66,8 @@ def export_routes():
                     piece = {
                         'type': 'variable',
                         'name': name,
-                        'varType': value.__name__
+                        'varType': value.__name__,
+                        'wildcard': name in wildcards.get(string_pattern, [])
                     }
 
                 route.append(piece)

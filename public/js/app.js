@@ -17877,8 +17877,10 @@ window.onload = function () {
           piece = pattern[_i];
           if (piece.type === 'literal') {
             url += piece.value;
-          } else {
+          } else if (!piece.wildcard) {
             url += ':' + piece.name;
+          } else {
+            url += '*' + piece.name;
           }
         }
         url = url.replace(/^\//, '');
@@ -18496,7 +18498,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.26';
+  window.App.version = '1.0.27';
 
 }).call(this);
 
@@ -18994,6 +18996,9 @@ window.onload = function () {
         } else {
           selected = hovered.prev();
         }
+        if (!selected[0]) {
+          return;
+        }
         hovered.removeClass('hover');
         selected.addClass('hover');
         if (!_this.isElementInViewport(selected[0])) {
@@ -19014,6 +19019,9 @@ window.onload = function () {
           selected = _this.layout.view.$results.find('li:first-child');
         } else {
           selected = hovered.next();
+        }
+        if (!selected[0]) {
+          return;
         }
         hovered.removeClass('hover');
         selected.addClass('hover');
