@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.25';
+  window.App.version = '1.0.26';
 
 }).call(this);
 

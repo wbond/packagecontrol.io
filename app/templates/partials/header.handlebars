@@ -27,9 +27,11 @@
                 var filename = trace.frames[0].filename;
                 var msg = trace.exception.message;
 
-                /* Handle browsers that didn't seem to load app.js */
-                if (msg == "Can't find variable: $" || msg == '$ is not defined') {
-                    return true;
+                /* Handle browsers that didn't seem to load app.js, or inline JS extensions */
+                if (trace.length == 1) {
+                    if (msg.indexOf("Can't find variable:") != -1 || msg .indexOf('is not defined') != -1) {
+                        return true;
+                    }
                 }
 
                 /* Don't cloud the error logs with extension errors */
