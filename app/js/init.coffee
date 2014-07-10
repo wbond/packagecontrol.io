@@ -7,7 +7,7 @@ window.App = {
 
   initialize: (options) ->
     # Allow keyboard shortcuts in inputs
-    window.key.filter = ->
+    window.keymaster.filter = ->
       return true
     @router = new App.Router(options)
     @layout = new App.Layout()

@@ -37,10 +37,10 @@ class App.Header extends Backbone.View
 
   cleanup: =>
     @disableShortcuts()
-    window.key.unbind('enter', 'search')
-    window.key.unbind('up', 'search')
-    window.key.unbind('down', 'search')
-    window.key.unbind('enter')
+    window.keymaster.unbind('enter', 'search')
+    window.keymaster.unbind('up', 'search')
+    window.keymaster.unbind('down', 'search')
+    window.keymaster.unbind('enter')
 
   isElementInViewport: (el) ->
     rect = el.getBoundingClientRect()
@@ -104,23 +104,23 @@ class App.Header extends Backbone.View
       elem.selectionEnd = elemLen
 
   enableShortcuts: =>
-    window.key.setScope('search')
+    window.keymaster.setScope('search')
 
   disableShortcuts: =>
-    window.key.setScope('all')
+    window.keymaster.setScope('all')
 
   setupShortcuts: =>
     # When JS is available, prevent default form action
-    key('enter', (e) ->
+    window.keymaster('enter', (e) ->
       e.preventDefault()
     )
 
     # Allow users to use ctrl+shift+p or cmd+shift+p to focus search
-    key('command+shift+p, ctrl+shift+p', (e) =>
+    window.keymaster('command+shift+p, ctrl+shift+p', (e) =>
       @$search.focus()
     )
 
-    key('enter', 'search', (e) =>
+    window.keymaster('enter', 'search', (e) =>
       e.preventDefault()
       if @layout.view.name != 'Search'
         return
@@ -128,7 +128,7 @@ class App.Header extends Backbone.View
       App.router.changeUrl(href)
     )
 
-    key('up', 'search', (e) =>
+    window.keymaster('up', 'search', (e) =>
       e.preventDefault()
       if @layout.view.name != 'Search'
         return
@@ -146,7 +146,7 @@ class App.Header extends Backbone.View
         }, 150)
     )
 
-    key('down', 'search', (e) =>
+    window.keymaster('down', 'search', (e) =>
       e.preventDefault()
       if @layout.view.name != 'Search'
         return

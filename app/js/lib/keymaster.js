@@ -75,7 +75,7 @@
     if(key == 93 || key == 224) key = 91; // right command on webkit, command on Gecko
     if(key in _mods) {
       _mods[key] = true;
-      // 'assignKey' from inside this closure is exported to window.key
+      // 'assignKey' from inside this closure is exported to window.keymaster
       for(k in _MODIFIERS) if(_MODIFIERS[k] == key) assignKey[k] = true;
       return;
     }
@@ -271,26 +271,26 @@
   addEvent(window, 'focus', resetModifiers);
 
   // store previously defined key
-  var previousKey = global.key;
+  var previousKey = global.keymaster;
 
   // restore previously defined key and return reference to our key object
   function noConflict() {
-    var k = global.key;
-    global.key = previousKey;
+    var k = global.keymaster;
+    global.keymaster = previousKey;
     return k;
   }
 
-  // set window.key and window.key.set/get/deleteScope, and the default filter
-  global.key = assignKey;
-  global.key.setScope = setScope;
-  global.key.getScope = getScope;
-  global.key.deleteScope = deleteScope;
-  global.key.filter = filter;
-  global.key.isPressed = isPressed;
-  global.key.getPressedKeyCodes = getPressedKeyCodes;
-  global.key.noConflict = noConflict;
-  global.key.unbind = unbindKey;
+  // set window.keymaster and window.keymaster.set/get/deleteScope, and the default filter
+  global.keymaster = assignKey;
+  global.keymaster.setScope = setScope;
+  global.keymaster.getScope = getScope;
+  global.keymaster.deleteScope = deleteScope;
+  global.keymaster.filter = filter;
+  global.keymaster.isPressed = isPressed;
+  global.keymaster.getPressedKeyCodes = getPressedKeyCodes;
+  global.keymaster.noConflict = noConflict;
+  global.keymaster.unbind = unbindKey;
 
-  if(typeof module !== 'undefined') module.exports = key;
+  if(typeof module !== 'undefined') module.exports = keymaster;
 
 })(this);
