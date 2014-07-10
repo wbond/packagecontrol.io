@@ -28,8 +28,8 @@
                 var msg = trace.exception.message;
 
                 /* Handle browsers that didn't seem to load app.js, or inline JS extensions */
-                if (trace.length == 1) {
-                    if (msg.indexOf("Can't find variable:") != -1 || msg .indexOf('is not defined') != -1) {
+                if (trace.frames.length == 1) {
+                    if (msg.indexOf("Can't find variable:") != -1 || msg.indexOf('is not defined') != -1) {
                         return true;
                     }
                 }
