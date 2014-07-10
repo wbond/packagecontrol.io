@@ -43,7 +43,8 @@
                 var extension = msg.search("Error connecting to extension") != -1;
                 var npObject = msg.search("Error calling method on NPObject") != -1;
                 var oldBrowser = msg == 'Object.defineProperty is not a function';
-                if (badSource || extension || npObject || oldBrowser) {
+                var crossDomainFirefox = msg == 'Script error.';
+                if (badSource || extension || npObject || oldBrowser || crossDomainFirefox) {
                     return true;
                 }
             } catch (e) { }
