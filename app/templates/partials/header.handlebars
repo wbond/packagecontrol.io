@@ -28,10 +28,8 @@
                 var msg = trace.exception.message;
 
                 /* Handle browsers that didn't seem to load app.js, or inline JS extensions */
-                if (trace.frames.length == 1) {
-                    if (msg.indexOf("Can't find variable:") != -1 || msg.indexOf('is not defined') != -1) {
-                        return true;
-                    }
+                if (trace.frames.length == 1 && msg.search(/Can't find variable:|is not defined|Permission denied to access|'null' is not an object/) != -1) {
+                    return true;
                 }
 
                 /* Don't cloud the error logs with extension errors */
