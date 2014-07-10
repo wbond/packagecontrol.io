@@ -14,6 +14,21 @@ div.browser_warning {
 	}
 }
 
+div#notification {
+	@include border-radius(2px);
+
+	position: fixed;
+	bottom: 30px;
+	right: 30px;
+	min-width: 200px;
+	max-width: 300px;
+	background-color: $orange;
+	color: $white;
+	padding: 8px 10px;
+	text-shadow: 0 1px 0 $orangeDark;
+	z-index: 20;
+}
+
 span.top_25 {
 	margin-right: 10px;
 	white-space: nowrap;

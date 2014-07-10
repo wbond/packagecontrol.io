@@ -18496,7 +18496,7 @@ window.onload = function () {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.21';
+  window.App.version = '1.0.22';
 
 }).call(this);
 
@@ -19104,6 +19104,8 @@ window.onload = function () {
 
     function Layout() {
       this.exchangeViewIf = __bind(this.exchangeViewIf, this);
+      this.hideNotification = __bind(this.hideNotification, this);
+      this.notify = __bind(this.notify, this);
       this.changeView = __bind(this.changeView, this);
       this.restoreScroll = __bind(this.restoreScroll, this);
       this.saveScroll = __bind(this.saveScroll, this);
@@ -19118,7 +19120,8 @@ window.onload = function () {
       'click h2[id]': 'setHash',
       'click h3[id]': 'setHash',
       'click h4[id]': 'setHash',
-      'click h5[id]': 'setHash'
+      'click h5[id]': 'setHash',
+      'click #notification': 'hideNotification'
     };
 
     Layout.prototype.view = null;
@@ -19186,7 +19189,29 @@ window.onload = function () {
       } else {
         destScroll = 0;
       }
-      return $(window).scrollTop(destScroll);
+      if (!_.isFunction(window.scrollTo)) {
+        return this.notify('\
+        You have "Better Pop Up Blocker" installed, however it removes certain\
+        Javascript functionality used by this site. Please open the options\
+        and uncheck "Automatically moving & resizing windows" under\
+        "Blocked Functions".\
+      ');
+      } else {
+        return $(window).scrollTop(destScroll);
+      }
+    };
+
+    Layout.prototype.notify = function(message) {
+      var html;
+      this.hideNotification();
+      html = Handlebars.templates['partials/notification']({
+        message: message
+      });
+      return this.$el.append(html);
+    };
+
+    Layout.prototype.hideNotification = function() {
+      return this.$('#notification').remove();
     };
 
     Layout.prototype.exchangeViewIf = function(class_name, class_, data, oldView) {
@@ -21875,6 +21900,23 @@ function program1(depth0,data) {
   stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
+  return buffer;
+  });
+}).call(this);
+(function() {
+  var template  = Handlebars.template,
+      templates = Handlebars.templates = Handlebars.templates || {};
+  templates['partials/notification'] = template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [4,'>= 1.0.0'];
+helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
+  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression;
+
+
+  buffer += "<div id=\"notification\"> ";
+  if (helper = helpers.message) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.message); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  buffer += escapeExpression(stack1)
+    + " </div> ";
   return buffer;
   });
 }).call(this);

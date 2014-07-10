@@ -7,6 +7,7 @@ class App.Layout extends Backbone.View
     'click h3[id]': 'setHash'
     'click h4[id]': 'setHash'
     'click h5[id]': 'setHash'
+    'click #notification': 'hideNotification'
   }
 
   view: null
@@ -73,7 +74,26 @@ class App.Layout extends Backbone.View
       @lastScrollPosition = null
     else
       destScroll = 0
-    $(window).scrollTop(destScroll)
+
+    if not _.isFunction(window.scrollTo)
+      @notify('
+        You have "Better Pop Up Blocker" installed, however it removes certain
+        Javascript functionality used by this site. Please open the options
+        and uncheck "Automatically moving & resizing windows" under
+        "Blocked Functions".
+      ')
+    else
+      $(window).scrollTop(destScroll)
+
+  notify: (message) =>
+    @hideNotification()
+    html = Handlebars.templates['partials/notification']({
+      message: message
+    })
+    @$el.append(html)
+
+  hideNotification: =>
+    @$('#notification').remove()
 
   # If the oldView is the name of the current view, don't
   # do a full re-render, but swap out the view objects
