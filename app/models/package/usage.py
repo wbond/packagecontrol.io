@@ -28,6 +28,7 @@ def record(details):
         # Record the unique user
         try:
             cursor.execute("""
+                SAVEPOINT pre_ips;
                 INSERT INTO ips (
                     ip,
                     sublime_platform
@@ -44,10 +45,12 @@ def record(details):
                         WHERE
                             ip = %s AND
                             sublime_platform = %s
-                    )
+                    );
+                RELEASE pre_ips;
             """, [ip, platform, ip, platform])
         except (psycopg2.IntegrityError) as e:
-            pass # Another request happened between the select and insert
+            # Another request happened between the select and insert
+            cursor.execute("ROLLBACK TO pre_ips")
 
         cursor.execute("""
             INSERT INTO usage (
@@ -91,6 +94,7 @@ def record(details):
             increase_unique_installs = False
             try:
                 cursor.execute("""
+                    SAVEPOINT pre_unique_installs;
                     INSERT INTO unique_package_installs (
                         ip,
                         package,
@@ -110,16 +114,19 @@ def record(details):
                                 ip = %s AND
                                 package = %s AND
                                 sublime_platform = %s
-                        )
+                        );
+                    RELEASE pre_unique_installs;
                 """, [ip, package, platform, ip, package, platform])
                 if cursor.rowcount > 0:
                     increase_unique_installs = True
             except (psycopg2.IntegrityError) as e:
-                pass # Another request happened between the select and insert
+                # Another request happened between the select and insert
+                cursor.execute("ROLLBACK TO pre_unique_installs")
 
             # Initialize the daily package stats if necessary
             try:
                 cursor.execute("""
+                    SAVEPOINT pre_daily_install_counts;
                     INSERT INTO daily_install_counts (
                         date,
                         package
@@ -136,14 +143,17 @@ def record(details):
                             WHERE
                                 date = %s AND
                                 package = %s
-                        )
+                        );
+                    RELEASE pre_daily_install_counts;
                 """, [today, package, today, package])
             except (psycopg2.IntegrityError) as e:
-                pass # Another request happened between the select and insert
+                # Another request happened between the select and insert
+                cursor.execute("ROLLBACK TO pre_daily_install_counts")
 
             # Initialize the package stats if necessary
             try:
                 cursor.execute("""
+                    SAVEPOINT pre_install_counts;
                     INSERT INTO install_counts (
                         package
                     )
@@ -157,10 +167,12 @@ def record(details):
                                 install_counts
                             WHERE
                                 package = %s
-                        )
+                        );
+                    RELEASE pre_install_counts;
                 """, [package, package])
             except (psycopg2.IntegrityError) as e:
-                pass # Another request happened between the select and insert
+                # Another request happened between the select and insert
+                cursor.execute("ROLLBACK TO pre_install_counts")
 
             # Update the various install counts
             if increase_unique_installs:
