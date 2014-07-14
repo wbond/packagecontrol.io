@@ -1,3 +1,4 @@
+import re
 import math
 import urllib.parse
 
@@ -20,6 +21,9 @@ def search_controller(terms=''):
 
     # URLs are always latin1 because of WSGI, but browsers tend to send UTF-8
     terms = bytes(terms, 'latin1').decode('utf-8', errors='ignore')
+
+    # Remove zero-width punctuation
+    terms = re.sub('[\u200b-\u200d]', '', terms)
 
     page = get_page()
     per_page = 25
