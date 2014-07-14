@@ -19,10 +19,10 @@ def record(details):
     operation = details['operation']
 
     if platform not in ['osx', 'linux', 'windows']:
-        raise Exception('Invalid platform')
+        raise ValueError('Invalid platform')
 
     if operation not in ['install', 'upgrade', 'remove']:
-        raise Exception('Invalid operation')
+        raise ValueError('Invalid operation')
 
     with connection() as cursor:
         # Record the unique user

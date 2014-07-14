@@ -21,6 +21,8 @@ def submit_controller():
         'sublime_version':         request.query.sublime_version
     }
 
-    package.usage.record(data)
-
-    return {'result': 'success'}
+    try:
+        package.usage.record(data)
+        return {'result': 'success'}
+    except (ValueError) as e:
+        return {'result': 'error', 'message': str(e)}
