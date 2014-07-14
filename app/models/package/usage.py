@@ -168,8 +168,20 @@ def record(details):
                             WHERE
                                 package = %s
                         );
+                    INSERT INTO first_installs (
+                        package,
+                        first_install
+                    ) VALUES (
+                        %s,
+                        %s
+                    );
                     RELEASE pre_install_counts;
-                """, [package, package])
+                """, [
+                    package,
+                    package,
+                    package,
+                    now
+                ])
             except (psycopg2.IntegrityError) as e:
                 # Another request happened between the select and insert
                 cursor.execute("ROLLBACK TO pre_install_counts")
