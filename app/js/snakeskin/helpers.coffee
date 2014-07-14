@@ -174,6 +174,7 @@ class window.Snakeskin.Helpers
     new Handlebars.SafeString(output)
 
   @wordWrap: (word, options) ->
+    return if not word
     word = word.replace(/([a-z])([0-9A-Z])/g, "$1\u200B$2")
     word = word.replace(/([0-9])([A-Z])/g, "$1\u200B$2")
     word = word.replace(/\//, "/\u200B")

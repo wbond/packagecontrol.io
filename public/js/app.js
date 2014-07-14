@@ -17725,6 +17725,9 @@ window.onload = function () {
     };
 
     Helpers.wordWrap = function(word, options) {
+      if (!word) {
+        return;
+      }
       word = word.replace(/([a-z])([0-9A-Z])/g, "$1\u200B$2");
       word = word.replace(/([0-9])([A-Z])/g, "$1\u200B$2");
       word = word.replace(/\//, "/\u200B");
@@ -18788,9 +18791,15 @@ window.onload = function () {
       } else {
         array = [obj];
       }
+      if (!array) {
+        return;
+      }
       _results = [];
       for (_i = 0, _len = array.length; _i < _len; _i++) {
         value = array[_i];
+        if (!value) {
+          continue;
+        }
         _results.push((function() {
           var _j, _len1, _ref1, _results1;
           _ref1 = ['first_seen', 'last_seen', 'last_modified'];
@@ -20510,6 +20519,9 @@ window.onload = function () {
       key = $(e.target);
       key.toggleClass('disabled');
       platformName = key.closest('span.installs').attr('class').replace(/\s*installs\s*/, '');
+      if (!this.chart) {
+        return;
+      }
       p = this.chart.platformMap[platformName];
       this.chart.scales[p] = this.chart.scales[p] === 1 ? 0 : 1;
       _chart = this.chart;

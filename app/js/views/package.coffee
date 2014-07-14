@@ -249,6 +249,10 @@ class App.Views.Package extends Snakeskin.View
     key = $(e.target)
     key.toggleClass('disabled')
     platformName = key.closest('span.installs').attr('class').replace(/\s*installs\s*/, '')
+
+    # If a resize happens before the chart is drawn
+    return if not @chart
+
     p = @chart.platformMap[platformName]
     @chart.scales[p] = if @chart.scales[p] == 1 then 0 else 1
 

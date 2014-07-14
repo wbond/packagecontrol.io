@@ -171,8 +171,7 @@ class App.Router extends Snakeskin.Router
 
 
   _parseDates: (obj, keys) ->
-    if not obj
-      return
+    return if not obj
 
     if _.isArray(keys)
       array = _.flatten([obj[key] for key in keys])
@@ -181,7 +180,11 @@ class App.Router extends Snakeskin.Router
     else
       array = [obj]
 
+    return if not array
+
     for value in array
+      continue if not value
+
       for field in ['first_seen', 'last_seen', 'last_modified']
         if value[field]
           value[field] = Snakeskin.Dates.parseISO8601(value[field])
