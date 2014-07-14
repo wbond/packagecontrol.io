@@ -740,6 +740,8 @@ def _common_sql(details, where, order_by, page, limit):
         An array of dict object, each representing the info for a package
     """
 
+    if page < 1:
+        page = 1
     offset = (page - 1) * limit
 
     with connection() as cursor:
