@@ -17,7 +17,7 @@ def search_controller(terms=''):
         return redirect(destination, 303)
 
     # URLs are always latin1 because of WSGI, but browsers tend to send UTF-8
-    terms = bytes(terms, 'latin1').decode('utf-8')
+    terms = bytes(terms, 'latin1').decode('utf-8', errors='ignore')
 
     page = get_page()
     per_page = 25
