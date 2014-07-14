@@ -15,7 +15,7 @@ from app.lib.version_header import add_version
 from app import config
 
 
-rollbar.init(config.read_secret('rollbar_key'), 'production')
+rollbar.init(config.read_secret('rollbar_key'), 'production', code_version=app.env.sha1)
 
 
 def application(environ, start_response):
