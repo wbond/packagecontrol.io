@@ -587,8 +587,16 @@ def search(terms, page=1, limit=50):
         # to search for from the terms, so we use regex instead, but only on
         # the name of the package
         if prefix_query == '':
-            regex = "\m(%s)" % re.escape(terms)
-            match_regex = "\m(%s[^ \n\t]*)\M" % re.escape(terms)
+            escaped_terms = ''
+            for char in terms:
+                num = ord(char)
+                if num > 127:
+                    escaped_terms += '\\u%0.4X' % num
+                else:
+                    escaped_terms += re.escape(char)
+            regex = "\m(%s)" % escaped_terms
+            match_regex = "\m(%s[^ \n\t]*)\M" % escaped_terms
+
             # When we indexed the data, we added three spaces in places where spaces originally did not exist
             # so that the indexer would index the words separately, but now that we are displaying data, we
             # need to collapse it back down again
