@@ -28,7 +28,7 @@
                 var msg = trace.exception.message;
 
                 /* Handle browsers that didn't seem to load app.js, or inline JS extensions */
-                if (trace.frames.length == 1 && msg.search(/Can't find variable:|is not defined|Permission denied to access|'null' is not an object/) != -1) {
+                if (trace.frames.length == 1 && msg.search(/Can't find variable:|is not defined|Permission denied to access|is not an object|Cannot read property|Expected an identifier/) != -1) {
                     return true;
                 }
 
