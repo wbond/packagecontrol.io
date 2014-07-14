@@ -57,6 +57,11 @@
                     return true;
                 }
 
+                /* Handle what must be errors downloading the JS */
+                if (filename == window.location.origin + '/js/app.js' && trace.exception.class == 'SyntaxError') {
+                    return true;
+                }
+
                 /* Don't cloud the error logs with extension errors */
                 var badSource = filename == '(unknown)';
                 var otherDomain = filename.indexOf(window.location.origin) != 0;
