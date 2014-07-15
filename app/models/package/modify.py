@@ -31,68 +31,82 @@ def cleanup_renames():
             for prev_name in previous_names:
                 cursor.execute("""
                     SELECT
-                        package,
-                        first_install
+                        name
                     FROM
-                        first_installs
+                        packages
                     WHERE
-                        package = %s
+                        name = %s
                 """, [prev_name])
-                row = cursor.fetchone()
 
-                # If there is no first install info, we already processed it
-                if not row:
-                    cursor.execute("""
-                        SELECT
-                            name
-                        FROM
-                            packages
-                        WHERE
-                            name = %s
-                    """, [prev_name])
-                    if cursor.rowcount:
-                        print('Old package entry exists for %s, cleaning up' % prev_name)
-                        cursor.execute("""
-                            DELETE FROM
-                                packages
-                            WHERE
-                                name = %s
-                        """, [prev_name])
+                if not cursor.rowcount:
                     continue
-                print('Processing %s -> %s' % (prev_name, name))
 
-                first_install = row['first_install']
+                print('Processing %s -> %s' % (prev_name, name))
                 output[prev_name] = name
 
-                # Update the package stats
                 cursor.execute("""
-                    UPDATE
+                    SELECT
+                        *
+                    FROM
                         package_stats
-                    SET
-                        first_seen = %s
                     WHERE
-                        package = %s AND
-                        first_seen > %s
-                """, [first_install, name, first_install])
+                        package in (%s, %s)
+                    ORDER BY
+                        CASE package
+                            WHEN %s THEN 1
+                            ELSE 2
+                        END
+                """, [prev_name, name, prev_name])
 
-                # TODO: delete the first_installs table since I don't
-                # think we are using it in production once this site launches
-                cursor.execute("""
-                    UPDATE
-                        first_installs
-                    SET
-                        first_install = %s
-                    WHERE
-                        package = %s AND
-                        first_install > %s
-                """, [first_install, name, first_install])
+                # If there is no first install info, we already processed it
+                if cursor.rowcount:
+                    previous_stats = cursor.fetchone()
+                    current_stats = cursor.fetchone()
 
-                cursor.execute("""
-                    DELETE FROM
-                        first_installs
-                    WHERE
-                        package = %s
-                """, [prev_name])
+                    def pick_first(val1, val2):
+                        if not val2:
+                            return val1
+                        if not val1:
+                            return val2
+                        if val1 < val2:
+                            return val1
+                        return val2
+
+                    def pick_highest(val1, val2):
+                        if not val2:
+                            return val1
+                        if not val1:
+                            return val2
+                        if val1 > val2:
+                            return val1
+                        return val2
+
+                    # Update the package stats with the best value from the
+                    # previous name and the current name
+                    cursor.execute("""
+                        UPDATE
+                            package_stats
+                        SET
+                            first_seen = %s,
+                            installs_rank = %s,
+                            trending_rank = %s,
+                            z_value = %s
+                        WHERE
+                            package = %s
+                    """, [
+                        pick_first(previous_stats['first_seen'], current_stats['first_seen']),
+                        pick_first(previous_stats['installs_rank'], current_stats['installs_rank']),
+                        pick_first(previous_stats['trending_rank'], current_stats['trending_rank']),
+                        pick_highest(previous_stats['z_value'], current_stats['z_value']),
+                        name
+                    ])
+
+                    cursor.execute("""
+                        DELETE FROM
+                            package_stats
+                        WHERE
+                            package = %s
+                    """, [prev_name])
 
                 # Find all daily install counts where there is no version for
                 # the new package name and just change the package name

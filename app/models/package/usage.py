@@ -168,13 +168,6 @@ def record(details):
                             WHERE
                                 package = %s
                         );
-                    INSERT INTO first_installs (
-                        package,
-                        first_install
-                    ) VALUES (
-                        %s,
-                        %s
-                    );
                     RELEASE pre_install_counts;
                 """, [
                     package,
