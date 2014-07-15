@@ -171,9 +171,7 @@ def record(details):
                     RELEASE pre_install_counts;
                 """, [
                     package,
-                    package,
-                    package,
-                    now
+                    package
                 ])
             except (psycopg2.IntegrityError) as e:
                 # Another request happened between the select and insert
