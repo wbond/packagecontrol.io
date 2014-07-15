@@ -206,10 +206,11 @@ def cleanup_renames():
                         UPDATE
                             install_counts
                         SET
-                            """ + platform + """_unique_installs = """ + platform + """_unique_installs + %s
+                            """ + platform + """_unique_installs = """ + platform + """_unique_installs + %s,
+                            unique_installs = unique_installs + %s
                         WHERE
                             package = %s
-                    """, [affected, name])
+                    """, [affected, affected, name])
 
                 # Any remaining unique installs for the old package are
                 # duplicates of unique installs for the new package, so we
