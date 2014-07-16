@@ -240,8 +240,23 @@ class App.Header extends Backbone.View
     script = document.createElement('script')
     script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond'
     script.id = '_fusionads_js'
+
+    # Only run the reload code if it is present
+    runInterval = null
+    counter = 0
     script.onload = ->
-      setTimeout((-> window._bsaPRO()), 200)
+      runInterval = setInterval((->
+        counter += 1
+
+        # Give up after a while, presuming the JS must have been blocked
+        if counter > 100
+          clearInterval(runInterval)
+
+        if window._bsaPRO
+          clearInterval(runInterval)
+          window._bsaPRO()
+      ), 50)
+
     container[0].appendChild(script)
 
     # Dynamically add the loaded class as soon as the div is added. This allows

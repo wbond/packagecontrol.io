@@ -18086,7 +18086,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.31';
+  window.App.version = '1.0.32';
 
 }).call(this);
 
@@ -18680,7 +18680,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.refreshAd = function(showing) {
-      var adEl, adJsEls, container, fadeIn, fadeInterval, previouslyLoaded, script, serve;
+      var adEl, adJsEls, container, counter, fadeIn, fadeInterval, previouslyLoaded, runInterval, script, serve;
       adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1');
       adEl = $('#fusionads');
       previouslyLoaded = adJsEls.length > 0;
@@ -18704,10 +18704,19 @@ Backbone.addBeforePopState = function(BB) {
       script = document.createElement('script');
       script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond';
       script.id = '_fusionads_js';
+      runInterval = null;
+      counter = 0;
       script.onload = function() {
-        return setTimeout((function() {
-          return window._bsaPRO();
-        }), 200);
+        return runInterval = setInterval((function() {
+          counter += 1;
+          if (counter > 100) {
+            clearInterval(runInterval);
+          }
+          if (window._bsaPRO) {
+            clearInterval(runInterval);
+            return window._bsaPRO();
+          }
+        }), 50);
       };
       container[0].appendChild(script);
       fadeIn = function() {
