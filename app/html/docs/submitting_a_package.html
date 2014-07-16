@@ -92,8 +92,11 @@
 	</li>
 	<li>
 		<b>Host <tt>.sublime-package</tt> files and a <tt>packages.json</tt> on
-		a web server.</b> For each release you‘ll need to create and upload
+		a web server with SSL.</b> For each release you‘ll need to create and upload
 		a new package file and update the <tt>packages.json</tt> information.
+		Hosting of the files must be done on a secure server to help ensure the
+		security of users‘ machines. Unsecure URLs could lead to malicious code
+		being loaded and run.
 		<em>This is rarely used – see
 		<a href="https://raw.githubusercontent.com/wbond/sublime_package_control/master/example-repository.json">example-repository.json</a>
 		for documentation.</em>
