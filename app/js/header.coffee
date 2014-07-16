@@ -215,9 +215,54 @@ class App.Header extends Backbone.View
 
   refreshAd: (showing) =>
     # Remove and recreate the ad placeholder
-    was_bsap = $('#bsap_1295353').length
-    $('#bsap_1295353').remove()
-    div = $('<div id="bsap_1295353" class="bsarocks bsap_50160a01d92bfe00af00220df5815abc"></div>')
-    $('#nav_container').append(div)
+    adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1')
+    adEl = $('#fusionads')
+    previouslyLoaded = adJsEls.length > 0
 
-    window._bsap.exec()
+    if not previouslyLoaded
+      container = $('<div id="fusion-container"></div>')
+      $('#nav_container').append(container)
+    else
+      container = $('#fusion-container')
+      serve = $('#bsap_1332').data('serve')
+      adEl.attr('id', 'fusionads-old')
+
+    adJsEls.remove()
+
+    if previouslyLoaded
+      window._bsaPRO_loaded = false
+      delete window._bsaPRO
+      delete window._bsap_serving_callback
+      delete window._fusion
+      delete window._fusion_zone
+      delete window['bsa_' + serve]
+
+    script = document.createElement('script')
+    script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond'
+    script.id = '_fusionads_js'
+    script.onload = ->
+      setTimeout((-> window._bsaPRO()), 200)
+    container[0].appendChild(script)
+
+    # Dynamically add the loaded class as soon as the div is added. This allows
+    # for a cross-fade when replacing an existing ad, so we don't have to have
+    # a set height for the container.
+    fadeIn = ->
+      ad = $('#fusionads')
+      return if ad.length == 0
+      # Stop the transition if the image has not loaded yet so we don't get
+      # a flash of the image loading
+      return if ad.find('img')[0].naturalWidth == 0
+
+      clearInterval(fadeInterval)
+
+      ad.addClass('loaded')
+
+      adEl.addClass('outgoing').removeClass('loaded')
+      if adEl.find('.fusion-text').text() == ad.find('.fusion-text').text()
+        adEl.addClass('same')
+
+      setTimeout((-> adEl.remove()), 200)
+
+    fadeInterval = setInterval(fadeIn, 50)
+    fadeIn()
