@@ -93,8 +93,8 @@ def record(details):
             # Record a unique package install
             increase_unique_installs = False
             try:
+                cursor.execute("SAVEPOINT pre_unique_installs")
                 cursor.execute("""
-                    SAVEPOINT pre_unique_installs;
                     INSERT INTO unique_package_installs (
                         ip,
                         package,
@@ -114,11 +114,11 @@ def record(details):
                                 ip = %s AND
                                 package = %s AND
                                 sublime_platform = %s
-                        );
-                    RELEASE pre_unique_installs;
+                        )
                 """, [ip, package, platform, ip, package, platform])
                 if cursor.rowcount > 0:
                     increase_unique_installs = True
+                cursor.execute("RELEASE pre_unique_installs")
             except (psycopg2.IntegrityError) as e:
                 # Another request happened between the select and insert
                 cursor.execute("ROLLBACK TO pre_unique_installs")
