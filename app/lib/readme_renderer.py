@@ -87,7 +87,7 @@ class _HighlighterRenderer(HtmlRenderer, SmartyPants):
 
 
 def _markdown(text):
-    render_flags = misaka.HTML_SKIP_STYLE | misaka.HTML_HARD_WRAP
+    render_flags = misaka.HTML_SKIP_STYLE
     renderer = _HighlighterRenderer(flags=render_flags)
 
     extensions = misaka.EXT_FENCED_CODE | misaka.EXT_NO_INTRA_EMPHASIS | \
