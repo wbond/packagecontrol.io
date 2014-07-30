@@ -29,10 +29,10 @@ def try_exec(command):
         puts(output)
 
 try:
-    try_exec("cd /var/www/sublime.wbond.net")
+    try_exec("cd /var/www/%s" % creds['domain'])
     try_exec("git pull --rebase")
     try_exec("git rev-parse HEAD > ./git-sha1.yml")
-    try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-sublime.wbond.net.fifo > /dev/null")
+    try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-%s.fifo > /dev/null" % creds['domain'])
 
     puts('Notifying Rollbar of deploy ... ', False)
     post_data = urllib.parse.urlencode({
