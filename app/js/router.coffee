@@ -133,6 +133,11 @@ class App.Router extends Snakeskin.Router
       App.layout.render('news', data)
     )
 
+  purgingOldVersions: =>
+    @ensureData('html', (data) =>
+      App.layout.render('purging_old_versions', data)
+    )
+
   settings: =>
     @ensureData('html', (data) =>
       App.layout.render('settings', data)

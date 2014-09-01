@@ -18106,6 +18106,7 @@ Backbone.addBeforePopState = function(BB) {
       this.submittingAPackage = __bind(this.submittingAPackage, this);
       this.styles = __bind(this.styles, this);
       this.settings = __bind(this.settings, this);
+      this.purgingOldVersions = __bind(this.purgingOldVersions, this);
       this.news = __bind(this.news, this);
       this.messaging = __bind(this.messaging, this);
       this.issues = __bind(this.issues, this);
@@ -18303,6 +18304,13 @@ Backbone.addBeforePopState = function(BB) {
       var _this = this;
       return this.ensureData('html', function(data) {
         return App.layout.render('news', data);
+      });
+    };
+
+    Router.prototype.purgingOldVersions = function() {
+      var _this = this;
+      return this.ensureData('html', function(data) {
+        return App.layout.render('purging_old_versions', data);
       });
     };
 
@@ -20215,6 +20223,27 @@ Backbone.addBeforePopState = function(BB) {
     return Popular;
 
   })(Snakeskin.View);
+
+}).call(this);
+
+(function() {
+  var _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.PurgingOldVersions = (function(_super) {
+    __extends(PurgingOldVersions, _super);
+
+    function PurgingOldVersions() {
+      _ref = PurgingOldVersions.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    PurgingOldVersions.prototype.name = 'PurgingOldVersions';
+
+    return PurgingOldVersions;
+
+  })(Snakeskin.StaticView);
 
 }).call(this);
 

@@ -1,0 +1,32 @@
+<title>Purging Old Versions</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Purging Old Versions</h1>
+
+<p>
+	During the alpha phase of Package Control 2.0, quite a number of users
+	installed Package Control via git. However, with version 2.0.0-alpha7 there
+	was a bug that prevented automatically upgrading Package Control itself.
+	Because of this, there are quite a number of users still running old
+	versions of Package Control. These instructions will step through purging
+	the old version of Package Control and upgrading to a stable release.
+</p>
+
+<ol>
+	<li>
+		Select the <em>Preferences &gt; Browse Packages…</em> menu entry
+	</li>
+	<li>
+		Delete the folder named <tt>Package Control</tt>
+	</li>
+	<li>
+		Browse up a folder and then into <tt>Installed Packages</tt>
+	</li>
+	<li>
+		Delete <tt>Package Control.sublime-package</tt> if it exists
+	</li>
+	<li>
+		Reinstall Package Control using the
+		<a href="/installation">installation instructions</a>
+	</li>
+</ol>

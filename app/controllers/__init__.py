@@ -23,6 +23,7 @@ from .news import news_controller
 from .package import package_controller
 from .packages import packages_controller
 from .popular import popular_controller
+from .purging_old_versions import purging_old_versions_controller
 from .refresh_package import refresh_package_controller
 from .rss import rss_controller
 from .say_thanks import say_thanks_controller
