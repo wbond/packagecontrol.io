@@ -11,7 +11,7 @@ lxml==3.2.1
 misaka==1.0.2
 psycopg2==2.5
 pybars==0.0.5
-python-creole==1.0.6
+python-creole==1.2.1
 python-dateutil==2.1
 python-mimeparse==0.1.4
 redis==2.7.6

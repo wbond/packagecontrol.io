@@ -42,15 +42,13 @@ source venv/bin/activate
 pip install git+https://github.com/wbond/pymeta
 pip install git+https://github.com/wbond/pybars
 pip install git+https://github.com/wbond/python-textile@python3
-pip install git+https://github.com/wbond/python-creole
-
-pip install git+https://github.com/wbond/gears@disable-manifest
 pip install git+https://github.com/wbond/gears-scss
-pip install git+https://github.com/wbond/watchdog@fsevents-python3
 
 pip install -r setup/requirements.txt
 
 pip install sass
+pip install gears
+pip install watchdog
 pip install gears-coffeescript
 pip install gears-handlebars
 pip install gears-uglifyjs
