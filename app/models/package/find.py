@@ -51,6 +51,11 @@ def all():
                 p.buy
             FROM
                 packages AS p
+                INNER JOIN package_stats AS ps
+                    ON p.name = ps.package
+            WHERE
+                ps.is_missing != TRUE AND
+                ps.removed != TRUE
             ORDER BY
                 repository ASC,
                 LOWER(p.name) ASC
@@ -132,6 +137,7 @@ def by_name(name):
                 p.*,
                 ps.is_missing,
                 ps.missing_error,
+                ps.removed,
                 ps.trending_rank,
                 ps.installs_rank,
                 ps.first_seen,
@@ -563,6 +569,7 @@ def search(terms, page=1, limit=50):
                         or lower(p.name) = %s
                     )
                     """ + where_frag + """
+                    AND ps.removed != TRUE
                 ORDER BY
                     rank DESC
                 LIMIT %s
@@ -575,11 +582,13 @@ def search(terms, page=1, limit=50):
                     count(*) AS total
                 FROM
                     packages AS p LEFT JOIN
+                    package_stats AS ps ON p.name = ps.package LEFT JOIN
                     package_search_entries AS pse ON pse.package = p.name,
                     to_tsquery(%s) AS query
                 WHERE
                     query @@ search_vector
                     """ + where_frag + """
+                    AND ps.removed != TRUE
             """, [prefix_query])
             output['total'] = cursor.fetchone()['total']
 
@@ -639,6 +648,7 @@ def search(terms, page=1, limit=50):
                         or lower(p.name) = %s
                     )
                     """ + where_frag + """
+                    AND ps.removed != TRUE
                 ORDER BY
                     rank DESC
                 LIMIT %s
@@ -650,11 +660,13 @@ def search(terms, page=1, limit=50):
                 SELECT
                     count(*) AS total
                 FROM
-                    packages AS p INNER JOIN
+                    packages AS p LEFT JOIN
+                    package_stats AS ps ON p.name = ps.package INNER JOIN
                     package_search_entries AS pse ON pse.package = p.name
                 WHERE
                     regexp_replace(pse.name, ' (and|an|as|a) ', ' ') ~* %s
                     """ + where_frag + """
+                    AND ps.removed != TRUE
             """, [regex])
             output['total'] = cursor.fetchone()['total']
 
@@ -679,7 +691,7 @@ def top(details=False, page=1, limit=10):
         An array of dict object, each representing the info for a package
     """
 
-    return _common_sql(details, "ic.unique_installs IS NOT NULL AND ic.unique_installs > 0", "ic.unique_installs DESC", page, limit)
+    return _common_sql(details, "AND ic.unique_installs IS NOT NULL AND ic.unique_installs > 0", "ic.unique_installs DESC", page, limit)
 
 
 def top_100_random(details=False, page=1, limit=10):
@@ -699,7 +711,7 @@ def top_100_random(details=False, page=1, limit=10):
         An array of dict object, each representing the info for a package
     """
 
-    return _common_sql(details, "ps.installs_rank <= 100", "random() ASC", page, limit)
+    return _common_sql(details, "AND ps.installs_rank <= 100", "random() ASC", page, limit)
 
 
 @cache.region.cache_on_arguments()
@@ -720,7 +732,7 @@ def trending(details=False, page=1, limit=10):
         An array of dict object, each representing the info for a package
     """
 
-    return _common_sql(details, "ps.z_value IS NOT NULL", "ps.trending_rank ASC", page, limit)
+    return _common_sql(details, "AND ps.z_value IS NOT NULL", "ps.trending_rank ASC", page, limit)
 
 
 def _common_sql(details, where, order_by, page, limit):
@@ -733,7 +745,7 @@ def _common_sql(details, where, order_by, page, limit):
         number of packages without a limit
 
     :param where:
-        A SQL fragment of WHERE conditions
+        A SQL fragment of WHERE conditions, must start with "AND"
 
     :param order_by:
         A SQL fragment of the ORDER BY clause to use
@@ -776,10 +788,6 @@ def _common_sql(details, where, order_by, page, limit):
 
         columns_frag = ", ".join(columns)
 
-        where_frag = ""
-        if where:
-            where_frag = " WHERE " + where
-
         cursor.execute("""
             SELECT
                 """ + columns_frag + """
@@ -787,7 +795,10 @@ def _common_sql(details, where, order_by, page, limit):
                 packages AS p LEFT JOIN
                 package_stats AS ps ON p.name = ps.package LEFT JOIN
                 install_counts AS ic ON p.name = ic.package
-            """ + where_frag + """
+            WHERE
+                ps.is_missing != TRUE AND
+                ps.removed != TRUE
+                """ + where + """
             ORDER BY
                 """ + order_by + """
             LIMIT %s
@@ -804,7 +815,10 @@ def _common_sql(details, where, order_by, page, limit):
                     packages AS p LEFT JOIN
                     package_stats AS ps ON p.name = ps.package LEFT JOIN
                     install_counts AS ic ON p.name = ic.package
-                """ + where_frag)
+                WHERE
+                    ps.is_missing != TRUE AND
+                    ps.removed != TRUE
+                    """ + where)
             output = {
                 'packages': output,
                 'total': cursor.fetchone()['total']

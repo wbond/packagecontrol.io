@@ -1,5 +1,9 @@
-{{#if is_missing}}
-    <span class="missing" title="Package info was unavailable last time crawler ran. {{missing_error}}"><i class="icon-question-sign"></i> Missing</span>
+{{#if removed}}
+    <span class="removed" title="Package was removed and is no longer available."><i class="icon-ban-circle"></i> Removed</span>
+{{else}}
+    {{#if is_missing}}
+        <span class="missing" title="Package info was unavailable last time crawler ran. {{missing_error}}"><i class="icon-question-sign"></i> Missing</span>
+    {{/if}}
 {{/if}}
 {{#contains labels "deprecated"}}
     <span class="deprecated" title="Package has been marked as deprecated, see readme"><i class="icon-remove-sign"></i> Deprecated</span>

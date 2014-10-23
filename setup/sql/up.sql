@@ -111,6 +111,7 @@ CREATE TABLE package_stats (
     first_seen               timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_missing               boolean       NOT NULL DEFAULT FALSE,
     missing_error            varchar       NOT NULL DEFAULT '',
+    removed                  boolean       NOT NULL DEFAULT FALSE,
     installs_rank            integer,
     trending_rank            integer,
     z_value                  float

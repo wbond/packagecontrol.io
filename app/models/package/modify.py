@@ -282,7 +282,8 @@ def mark_found(package):
                 package_stats
             SET
                 is_missing = FALSE,
-                missing_error = ''
+                missing_error = '',
+                removed = FALSE
             WHERE
                 package = %s
         """, [package])

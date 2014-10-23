@@ -65,6 +65,15 @@ span.new {
 	}
 }
 
+span.removed {
+	margin-right: 10px;
+	white-space: nowrap;
+
+	i {
+		color: $red;
+	}
+}
+
 span.missing {
 	margin-right: 10px;
 	white-space: nowrap;
