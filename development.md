@@ -41,7 +41,6 @@ source venv/bin/activate
 # A number of packages have custom versions to run on Python 3.3
 pip install git+https://github.com/wbond/pymeta
 pip install git+https://github.com/wbond/pybars
-pip install git+https://github.com/wbond/python-textile@python3
 pip install git+https://github.com/wbond/gears-scss
 
 pip install -r setup/requirements.txt
