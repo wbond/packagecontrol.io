@@ -1,6 +1,8 @@
-.gittip-widget {
-	margin-right: 25px;
-	margin-bottom: 20px;
+body.about section.second p + iframe {
+	// Gratipay adds inline styles, so we have to override with !important
+	margin-right: 25px !important;
+	position: relative;
+	bottom: -15px;
 }
 
 iframe.FlattrButton {

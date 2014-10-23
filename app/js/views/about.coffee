@@ -17,10 +17,10 @@ class App.Views.About extends Snakeskin.StaticView
     flattrButton = @$('.FlattrButton')
     content = flattrButton.parent()[0]
 
-    gts = @scriptTag()
-    gts.src = 'https://www.gittip.com/assets/widgets/0002.js'
-    gts.setAttribute('data-gittip-username','wbond')
-    content.insertBefore(gts, flattrButton[0])
+    gps = @scriptTag()
+    gps.src = 'https://grtp.co/v1.js'
+    gps.setAttribute('data-gratipay-username','wbond')
+    content.insertBefore(gps, flattrButton[0])
 
     fs = @scriptTag()
     fs.src = '//api.flattr.com/js/0.6/load.js?mode=auto'
