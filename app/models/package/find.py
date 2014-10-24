@@ -87,7 +87,12 @@ def all():
                 r.date
             FROM
                 releases AS r INNER JOIN
-                packages AS p ON r.package = p.name
+                packages AS p ON r.package = p.name INNER JOIN
+                package_stats AS ps
+                    ON p.name = ps.package
+            WHERE
+                ps.is_missing != TRUE AND
+                ps.removed != TRUE
             ORDER BY
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
