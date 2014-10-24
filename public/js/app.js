@@ -18086,7 +18086,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.33';
+  window.App.version = '1.0.34';
 
 }).call(this);
 
@@ -19003,13 +19003,13 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     About.prototype.setupJS = function() {
-      var content, flattrButton, fs, gts;
+      var content, flattrButton, fs, gps;
       flattrButton = this.$('.FlattrButton');
       content = flattrButton.parent()[0];
-      gts = this.scriptTag();
-      gts.src = 'https://www.gittip.com/assets/widgets/0002.js';
-      gts.setAttribute('data-gittip-username', 'wbond');
-      content.insertBefore(gts, flattrButton[0]);
+      gps = this.scriptTag();
+      gps.src = 'https://grtp.co/v1.js';
+      gps.setAttribute('data-gratipay-username', 'wbond');
+      content.insertBefore(gps, flattrButton[0]);
       fs = this.scriptTag();
       fs.src = '//api.flattr.com/js/0.6/load.js?mode=auto';
       return content.insertBefore(fs, flattrButton[0]);
@@ -21787,6 +21787,21 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
 function program1(depth0,data) {
   
+  
+  return " <span class=\"removed\" title=\"Package was removed and is no longer available.\"><i class=\"icon-ban-circle\"></i> Removed</span> ";
+  }
+
+function program3(depth0,data) {
+  
+  var buffer = "", stack1;
+  buffer += " ";
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.is_missing), {hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " ";
+  return buffer;
+  }
+function program4(depth0,data) {
+  
   var buffer = "", stack1, helper;
   buffer += " <span class=\"missing\" title=\"Package info was unavailable last time crawler ran. ";
   if (helper = helpers.missing_error) { stack1 = helper.call(depth0, {hash:{},data:data}); }
@@ -21796,16 +21811,16 @@ function program1(depth0,data) {
   return buffer;
   }
 
-function program3(depth0,data) {
+function program6(depth0,data) {
   
   
   return " <span class=\"deprecated\" title=\"Package has been marked as deprecated, see readme\"><i class=\"icon-remove-sign\"></i> Deprecated</span> ";
   }
 
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.is_missing), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.removed), {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), "deprecated", options) : helperMissing.call(depth0, "contains", (depth0 && depth0.labels), "deprecated", options));
+  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), "deprecated", options) : helperMissing.call(depth0, "contains", (depth0 && depth0.labels), "deprecated", options));
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " ";
   return buffer;
