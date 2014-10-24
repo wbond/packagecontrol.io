@@ -120,6 +120,35 @@ def all():
     return output
 
 
+def old():
+    """
+    Finds all packages that haven't been seen in at least two hours
+
+    :return:
+        A list of dict objects containing the keys:
+         - name
+         - sources
+         - is_missing
+    """
+
+    with connection() as cursor:
+        cursor.execute("""
+            SELECT
+                p.name,
+                p.sources,
+                ps.is_missing
+            FROM
+                packages AS p
+                LEFT JOIN package_stats AS ps
+                    ON p.name = ps.package
+            WHERE
+                p.last_seen < CURRENT_TIMESTAMP - INTERVAL '2 hours' AND
+                ps.removed != TRUE
+        """)
+
+        return cursor.fetchall()
+
+
 def by_name(name):
     """
     Fetches a package

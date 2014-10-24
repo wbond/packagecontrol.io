@@ -332,6 +332,27 @@ def mark_missing_by_name(package, error):
         """, [error, package])
 
 
+def mark_removed(package):
+    """
+    Marks a package as removed
+
+    :param package:
+        The name of the package
+    """
+
+    with connection() as cursor:
+        cursor.execute("""
+            UPDATE
+                package_stats
+            SET
+                removed = TRUE,
+                is_missing = FALSE,
+                missing_error = ''
+            WHERE
+                package = %s
+        """, [package])
+
+
 def store(values):
     """
     Stores package info in the database
