@@ -179,7 +179,13 @@
 	<li>
 		<b>Fork the
 		<a href="https://github.com/wbond/package_control_channel">Package
-		Control Channel</a>.</b>
+		Control Channel</a></b>
+	</li>
+	<li>
+		<b>Clone your fork to your machine</b>
+	</li>
+	<li>
+		<b>Open the <tt>package_control_channel/</tt> folder with Sublime Text</b>
 	</li>
 	<li>
 		<p>
@@ -239,25 +245,39 @@
 			</li>
 		</ul>
 	</li>
+</ol>
+
+<h2 id="Step_7">7. Run the Tests</h2>
+<ol>
 	<li>
-		<b>Make sure your entry is in alphabetical order.</b>
+		<b>Install the <a href="/packages/ChannelRepositoryTools">ChannelRepositoryTools</a>
+		package</b> via Package Control.
 	</li>
 	<li>
-		<b>Send a pull request.</b>
-	</li>
-	<li>
-		<p>
-			<b>Review the Travis CI test results on your pull request.</b>
-			Whenever a pull request is submitted, a number of tests are run to
-			ensure some basics about proper package info. If your pull request
-			fails the tests, you‘ll need to look at the results and fix the
-			issue.
-		</p>
-		<p>
-			Just because your pull request passes the unit tests does not mean
-			your request will be automatically merged! Reviewing pull requests
-			is a thankless job, please be patient as we try to make everyone‘s
-			Sublime Text package experience easier.
-		</p>
+		<b>Run the <em>ChannelRepositoryTools: Test Default Channel</em>
+		command</b> from the command palette and ensure the tests pass.
 	</li>
 </ol>
+
+<h2 id="Step_8">8. Submit a Pull Request</h2>
+<ol>
+	<li>
+		<b>Browse to your fork on <a href="https://github.com">github.com</a></b>
+	</li>
+	<li>
+		<b>Click on <em>Pull Requests</em> in the right-hand nav and
+		click <em>New Pull Request</em></b>
+	</li>
+	<li>
+		<b>Enter a description in the <em>Title</em> field</b>
+	</li>
+	<li>
+		<b>Click the <em>Create pull request</em> button</b>
+	</li>
+</ol>
+
+<p>
+	Please be patient as your pull request is reviewed. We review changes to
+	try and help prevent duplicate packages, spot common errors and help improve
+	the package experience for users.
+</p>

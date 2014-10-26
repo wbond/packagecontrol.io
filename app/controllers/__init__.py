@@ -25,6 +25,7 @@ from .packages import packages_controller
 from .popular import popular_controller
 from .purging_old_versions import purging_old_versions_controller
 from .refresh_package import refresh_package_controller
+from .renaming_a_package import renaming_a_package_controller
 from .rss import rss_controller
 from .say_thanks import say_thanks_controller
 from .search import search_controller

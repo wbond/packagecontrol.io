@@ -32,6 +32,7 @@ def render(name, data=None, **kwargs):
 
     data['exportedRoutes'] = export_routes()
     data['__template__'] = name
+    data['__name__'] = name.replace('/index', '').replace('/', '-')
     data['__env__'] = env.name
     data['__version__'] = env.version
     data['__sha1__'] = env.sha1
@@ -82,6 +83,7 @@ def render_static(name):
         'html': static(name),
         'exportedRoutes': export_routes(),
         '__template__': name,
+        '__name__': name.replace('/index', '').replace('/', '-'),
         '__status_code__': 200,
         '__env__': env.name,
         '__version__': env.version,

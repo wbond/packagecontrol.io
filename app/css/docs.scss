@@ -38,3 +38,10 @@ body.docs {
 		}
 	}
 }
+
+body.docs-renaming_a_package,
+body.docs-submitting_a_package {
+	ol {
+		list-style-type: lower-alpha;
+	}
+}

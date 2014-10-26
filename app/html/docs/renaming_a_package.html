@@ -1,0 +1,97 @@
+<title>Renaming a Package</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Renaming a Package</h1>
+
+<p>
+    The following guide will step you through the process of renaming a
+    package you have submitted to Package Control.
+</p>
+
+<h2 id="Step_1">1. Review the New Name</h2>
+<ul>
+	<li>
+		Read the <a href="/docs/submitting_a_package#Step_2">naming guidelines</a>
+		to make sure your new name will work.
+	</li>
+</ul>
+
+<h2 id="Step_2">2. Fork the Channel</h2>
+<ol>
+	<li>
+		Fork the
+		<a href="https://github.com/wbond/package_control_channel">Package
+		Control Channel</a>.
+	</li>
+	<li>
+		Clone your fork to your machine
+	</li>
+	<li>
+		Open the <tt>package_control_channel/</tt> folder with Sublime Text
+	</li>
+</ol>
+
+<h2 id="Step_3">3. Update the Repository</h2>
+<ol>
+	<li>
+		Remove your package entry from its old location. It will be
+		in one of the JSON files in the <tt>repository/</tt> sub-folder of
+		<tt>package_control_channel/</tt>.
+	</li>
+	<li>
+		Paste the package entry into the correct JSON file based on the
+		new name. We keep package entries alphabetized to reduce conflicts
+		when merging pull requests.
+	</li>
+	<li>
+		Update the <tt>name</tt> key with the new name.
+	</li>
+	<li>
+		<p>
+			Add a <tt>previous_names</tt> key to the top-level JSON structure
+			for your package. <tt>previous_names</tt> needs to be an array
+			of strings. For example:
+		</p>
+		<pre>{
+	"name": "AlignmentPlus",
+	"previous_names": ["Alignment"],
+	"details": "https://bitbucket.org/wbond/sublime_alignment",
+	"releases": [
+		{
+			"sublime_text": "*",
+			"details": "https://bitbucket.org/wbond/sublime_alignment#tags"
+		}
+	]
+}</pre>
+	</li>
+</ol>
+
+<h2 id="Step_4">4. Run the Tests</h2>
+<ol>
+	<li>
+		Install the <a href="/packages/ChannelRepositoryTools">ChannelRepositoryTools</a>
+		package via Package Control.
+	</li>
+	<li>
+		Run the <b>ChannelRepositoryTools: Test Default Channel</b>
+		command from the command palette and ensure the tests pass.
+	</li>
+</ol>
+
+<h2 id="Step_5">5. Submit a Pull Request</h2>
+<ol>
+	<li>
+		Browse to your fork on <a href="https://github.com">github.com</a>
+	</li>
+	<li>
+		Click on <b>Pull Requests</b> in the right-hand nav and
+		click <b>New Pull Request</b>
+	</li>
+	<li>
+		Enter a description in the <b>Title</b> field
+	</li>
+	<li>
+		Click the <b>Create pull request</b> button
+	</li>
+</ol>
+
