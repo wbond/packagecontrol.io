@@ -18086,7 +18086,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.34';
+  window.App.version = '1.0.35';
 
 }).call(this);
 
@@ -20242,6 +20242,27 @@ Backbone.addBeforePopState = function(BB) {
     PurgingOldVersions.prototype.name = 'PurgingOldVersions';
 
     return PurgingOldVersions;
+
+  })(Snakeskin.StaticView);
+
+}).call(this);
+
+(function() {
+  var _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.RenamingAPackage = (function(_super) {
+    __extends(RenamingAPackage, _super);
+
+    function RenamingAPackage() {
+      _ref = RenamingAPackage.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    RenamingAPackage.prototype.name = 'RenamingAPackage';
+
+    return RenamingAPackage;
 
   })(Snakeskin.StaticView);
 
