@@ -6,3 +6,8 @@ sftp-config.json
 secrets.yml
 assets
 channel
+readmes/img/*.jpg
+readmes/img/*.gif
+readmes/img/*.png
+readmes/img/*.svg
+readmes/img/*.latex

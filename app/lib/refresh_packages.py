@@ -9,6 +9,7 @@ from .package_control.clients.readme_client import ReadmeClient
 from .. import config
 from ..models import package
 from .readme_renderer import render
+from .readme_images import cache
 
 
 def refresh_packages(invalid_sources=None):
@@ -98,6 +99,7 @@ def refresh_packages(invalid_sources=None):
                         if readme_info:
                             readme_info['url'] = info['readme']
                             readme_info['rendered_html'] = render(readme_info)
+                            readme_info['rendered_html'] = cache(settings, readme_info['rendered_html'])
                             readme_info['package'] = name
                             readme_info['source'] = readme_info['contents']
                             del readme_info['contents']

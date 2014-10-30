@@ -16,11 +16,17 @@ from app.lib.version_header import add_version
 # For development, serve static files also
 app_root = path.join(path.dirname(__file__), 'app')
 public_root = path.join(path.dirname(__file__), 'public')
+readme_img_root = path.join(path.dirname(__file__), 'readmes', 'img')
 
 
 @bottle.route('/<folder:re:(css|img|js|font)>/<filename>')
 def server_static(folder, filename):
     return bottle.static_file(filename, root="%s/%s" % (public_root, folder))
+
+
+@bottle.route('/readmes/img/<filename>')
+def serve_readme_img(filename):
+    return bottle.static_file(filename, root=readme_img_root)
 
 
 @bottle.route('/<filename:re:.*\.html$>')
