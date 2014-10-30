@@ -74,6 +74,7 @@ class _HighlighterRenderer(HtmlRenderer, SmartyPants):
         s = ''
         if not lang:
             lang = 'text'
+        lang = lang.lower()
         if lang == 'shell':
             lang = 'bash'
         try:
