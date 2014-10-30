@@ -12,7 +12,7 @@ readme_img_dir = os.path.join(project_dir, 'readmes', 'img')
 
 
 def cache(settings, rendered_html):
-    urls = re.findall('<img.*? src="https?://([^"]+)"', rendered_html)
+    urls = re.findall('<img.*? src="(https?://[^"]+)"', rendered_html)
     for url in urls:
         with downloader(url, settings) as manager:
             path = urlparse(url)[2]
