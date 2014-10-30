@@ -16,7 +16,10 @@ try:
 except (ImportError):
     ca_bundle_dir = os.path.join(os.path.expanduser('~'), '.package_control')
     if not os.path.exists(ca_bundle_dir):
-        os.mkdir(ca_bundle_dir)
+        try:
+            os.mkdir(ca_bundle_dir)
+        except (PermissionError):
+            pass
 
 
 def find_root_ca_cert(settings, domain):
