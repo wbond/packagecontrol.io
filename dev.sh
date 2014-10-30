@@ -11,7 +11,7 @@ if [[ $? != 0 ]]; then
     tmux select-layout -t packagecontrol tiled
 
     sleep 0.6
-    tmux send-keys -t packagecontrol:0.0 'psql -U postgres wbond_net' C-m
+    tmux send-keys -t packagecontrol:0.0 'psql -U postgres package_control' C-m
     tmux send-keys -t packagecontrol:0.1 '. venv/bin/activate' C-m
     tmux send-keys -t packagecontrol:0.2 '. venv/bin/activate' C-m
     tmux send-keys -t packagecontrol:0.3 '. venv/bin/activate' C-m
