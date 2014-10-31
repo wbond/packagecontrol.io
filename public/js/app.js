@@ -18086,7 +18086,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.35';
+  window.App.version = '1.0.36';
 
 }).call(this);
 
@@ -19475,7 +19475,7 @@ Backbone.addBeforePopState = function(BB) {
       var ws, _socketConfig;
       _socketConfig = this.socketConfig;
       _socketConfig.generation += 1;
-      ws = new WebSocket('wss://sublime.wbond.net/realtime');
+      ws = new WebSocket('wss://packagecontrol.io/realtime');
       ws.onopen = _socketConfig.onopen;
       ws.onerror = _socketConfig.onerror;
       ws.onmessage = _socketConfig.onmessage;
@@ -22252,7 +22252,7 @@ function program1(depth0,data) {
   buffer += escapeExpression(stack1)
     + "</description> <pubDate>"
     + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "%F %T", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "%F %T", options)))
-    + "</pubDate> <link>https://sublime.wbond.net"
+    + "</pubDate> <link>https://packagecontrol.io"
     + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
     'name': ((depth0 && depth0.name))
   },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
@@ -22268,7 +22268,7 @@ function program1(depth0,data) {
   if (helper = helpers.year) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.year); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + ", Will Bond</copyright> <link>https://sublime.wbond.net</link> ";
+    + ", Will Bond</copyright> <link>https://packagecontrol.io</link> ";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += " </channel> </rss> ";

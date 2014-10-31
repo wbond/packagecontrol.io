@@ -104,7 +104,7 @@ for domain in ssl_domains:
             continue
         output['certs'][domain] = [
             cert_hash,
-            "https://sublime.wbond.net/certs/" + cert_hash
+            "https://packagecontrol.io/certs/" + cert_hash
         ]
     with open(os.path.join(certs_dir, cert_hash), 'w', encoding='utf-8') as f:
         f.write(cert)

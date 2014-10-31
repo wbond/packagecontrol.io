@@ -5,14 +5,14 @@
         <description>The 25 newest additions to the default Package Control channel</description>
         <language>en-us</language>
         <copyright>Copyright {{year}}, Will Bond</copyright>
-        <link>https://sublime.wbond.net</link>
+        <link>https://packagecontrol.io</link>
         {{#each packages}}
             <item>
                 <title>{{name}}</title>
                 <author>{{author}}</author>
                 <description>{{description}}</description>
                 <pubDate>{{date_format first_seen "%F %T"}}</pubDate>
-                <link>https://sublime.wbond.net{{url "package" name=name}}</link>
+                <link>https://packagecontrol.io{{url "package" name=name}}</link>
                 <guid>{{md5}}</guid>
             </item> 
         {{/each}}
