@@ -1,2 +1,4 @@
 location: '/home/backups/logs'
-pattern: 'sublime.wbond.net.log.*.gz'
+patterns:
+  - 'sublime.wbond.net.log.*.gz'
+  - 'packagecontrol.io.log.*.gz'

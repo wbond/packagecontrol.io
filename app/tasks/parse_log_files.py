@@ -16,7 +16,10 @@ settings = config.read('log_files')
 
 pwd = os.getcwd()
 os.chdir(settings['location'])
-filenames = glob.glob(settings['pattern'])
+
+filenames = []
+for pattern in settings['patterns']:
+    filenames.extend(glob.glob(pattern))
 os.chdir(pwd)
 
 five_days_ago_timestamp = time.time() - (5 * 86400)
