@@ -1,11 +1,10 @@
-#= require lib/jquery.js
-#= require lib/handlebars.runtime.js
-#= require lib/lodash.compat.js
-#= require lib/backbone.js
-#= require lib/backbone-beforepopstate.js
-#= require lib/keymaster.js
-#= require lib/jquery.cookie.js
-
+#= require lib/jquery
+#= require lib/handlebars.runtime
+#= require lib/lodash.compat
+#= require lib/backbone
+#= require lib/backbone-beforepopstate
+#= require lib/keymaster
+#= require lib/jquery.cookie
 #= require snakeskin/init
 #
 #= require init
@@ -15,3 +14,5 @@
 #= require layout
 #= require_tree views
 #= require_tree ../templates
+#
+#= public

@@ -1,8 +1,9 @@
 import os
 import re
 
+import glob2
 from gears.exceptions import ImproperlyConfigured, FileNotFound
-from gears.utils import safe_join, listdir
+from gears.utils import safe_join
 
 from gears.environment import Environment, DEFAULT_PUBLIC_ASSETS
 from gears.finders import FileSystemFinder
@@ -26,22 +27,17 @@ class ExtFinder(FileSystemFinder):
         self.ignore_pattern = re.compile('|'.join([re.escape(ignore) + '$' for ignore in ignores]))
         super(ExtFinder, self).__init__(directories)
 
-    def list(self, path, recursive=False):
+    def list(self, path):
         for root in self.locations:
-            matched_path = self.find_location(root, path)
-            if not matched_path or not os.path.isdir(matched_path):
-                continue
-            for filepath in listdir(matched_path, recursive=recursive):
-                # Filter out any files that don't end in the specified extensions
-                if not self.ext_pattern.search(filepath):
-                    continue
-                # Filter out ignored paths
-                if self.ignore_pattern.search(filepath):
-                    continue
-
-                absolute_path = os.path.join(matched_path, filepath)
-                logical_path = os.path.join(path, filepath)
+            for absolute_path in glob2.iglob(os.path.join(root, path)):
                 if os.path.isfile(absolute_path):
+                    logical_path = os.path.relpath(absolute_path, root)
+                    # Filter out any files that don't end in the specified extensions
+                    if not self.ext_pattern.search(absolute_path):
+                        continue
+                    # Filter out ignored paths
+                    if self.ignore_pattern.search(absolute_path):
+                        continue
                     yield logical_path, absolute_path
 
 
@@ -68,11 +64,11 @@ class Assets(object):
         app_dir = os.path.join(project_dir, 'app')
         public_dir = os.path.join(project_dir, 'public')
 
-        self.gears = Environment(public_dir, public_assets=[self._public_assets],
-            fingerprinting=False, manifest_path=False)
+        self.gears = Environment(public_dir, fingerprinting=False,
+            manifest_path=False)
         self.gears.finders.register(ExtFinder(
             [app_dir],
-            ['.coffee', '.scss', '.handlebars'],
+            ['.coffee', '.scss', '.handlebars', '.js', '.css'],
             ['app.handlebars', 'partials/header.handlebars', 'partials/footer.handlebars']
         ))
 
@@ -84,26 +80,6 @@ class Assets(object):
             self.gears.compressors.register('text/css', CleanCSSCompressor.as_handler())
 
         self.gears.register_defaults()
-
-
-    def _public_assets(self, path):
-        """
-        Method is used by gears to determine what should be copied/published
-
-        Allows only the app.js and app.css files to be compiled, filtering out
-        all others since they should be included via require, require_tree,
-        etc directives. Also, anything not js or css will be allowed through.
-
-        :param path:
-            The filesystem path to check
-
-        :return:
-            If the path should be copied to the public folder
-        """
-
-        if path in ['js/app.js', 'css/app.css']:
-            return True
-        return not any(path.endswith(ext) for ext in ('.css', '.js'))
 
     def compile(self):
         """
