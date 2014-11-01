@@ -8756,9 +8756,9 @@ if ( typeof window === "object" && typeof window.document === "object" ) {
 
 /*!
 
- handlebars v1.3.0
+ handlebars v2.0.0
 
-Copyright (C) 2011 by Yehuda Katz
+Copyright (C) 2011-2014 by Yehuda Katz
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -8781,7 +8781,15 @@ THE SOFTWARE.
 @license
 */
 /* exported Handlebars */
-var Handlebars = (function() {
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define([], factory);
+  } else if (typeof exports === 'object') {
+    module.exports = factory();
+  } else {
+    root.Handlebars = root.Handlebars || factory();
+  }
+}(this, function () {
 // handlebars/safe-string.js
 var __module3__ = (function() {
   "use strict";
@@ -8819,15 +8827,19 @@ var __module2__ = (function(__dependency1__) {
   var possible = /[&<>"'`]/;
 
   function escapeChar(chr) {
-    return escape[chr] || "&amp;";
+    return escape[chr];
   }
 
-  function extend(obj, value) {
-    for(var key in value) {
-      if(Object.prototype.hasOwnProperty.call(value, key)) {
-        obj[key] = value[key];
+  function extend(obj /* , ...source */) {
+    for (var i = 1; i < arguments.length; i++) {
+      for (var key in arguments[i]) {
+        if (Object.prototype.hasOwnProperty.call(arguments[i], key)) {
+          obj[key] = arguments[i][key];
+        }
       }
     }
+
+    return obj;
   }
 
   __exports__.extend = extend;var toString = Object.prototype.toString;
@@ -8838,6 +8850,7 @@ var __module2__ = (function(__dependency1__) {
     return typeof value === 'function';
   };
   // fallback for older versions of Chrome and Safari
+  /* istanbul ignore next */
   if (isFunction(/x/)) {
     isFunction = function(value) {
       return typeof value === 'function' && toString.call(value) === '[object Function]';
@@ -8845,6 +8858,7 @@ var __module2__ = (function(__dependency1__) {
   }
   var isFunction;
   __exports__.isFunction = isFunction;
+  /* istanbul ignore next */
   var isArray = Array.isArray || function(value) {
     return (value && typeof value === 'object') ? toString.call(value) === '[object Array]' : false;
   };
@@ -8854,8 +8868,10 @@ var __module2__ = (function(__dependency1__) {
     // don't escape SafeStrings, since they're already safe
     if (string instanceof SafeString) {
       return string.toString();
-    } else if (!string && string !== 0) {
+    } else if (string == null) {
       return "";
+    } else if (!string) {
+      return string + '';
     }
 
     // Force a string conversion as this will be done by the append regardless and
@@ -8877,7 +8893,11 @@ var __module2__ = (function(__dependency1__) {
     }
   }
 
-  __exports__.isEmpty = isEmpty;
+  __exports__.isEmpty = isEmpty;function appendContextPath(contextPath, id) {
+    return (contextPath ? contextPath + '.' : '') + id;
+  }
+
+  __exports__.appendContextPath = appendContextPath;
   return __exports__;
 })(__module3__);
 
@@ -8922,14 +8942,16 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
   var Utils = __dependency1__;
   var Exception = __dependency2__;
 
-  var VERSION = "1.3.0";
-  __exports__.VERSION = VERSION;var COMPILER_REVISION = 4;
+  var VERSION = "2.0.0";
+  __exports__.VERSION = VERSION;var COMPILER_REVISION = 6;
   __exports__.COMPILER_REVISION = COMPILER_REVISION;
   var REVISION_CHANGES = {
     1: '<= 1.0.rc.2', // 1.0.rc.2 is actually rev2 but doesn't report it
     2: '== 1.0.0-rc.3',
     3: '== 1.0.0-rc.4',
-    4: '>= 1.0.0'
+    4: '== 1.x.x',
+    5: '== 2.0.0-alpha.x',
+    6: '>= 2.0.0-beta.1'
   };
   __exports__.REVISION_CHANGES = REVISION_CHANGES;
   var isArray = Utils.isArray,
@@ -8950,38 +8972,44 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
     logger: logger,
     log: log,
 
-    registerHelper: function(name, fn, inverse) {
+    registerHelper: function(name, fn) {
       if (toString.call(name) === objectType) {
-        if (inverse || fn) { throw new Exception('Arg not supported with multiple helpers'); }
+        if (fn) { throw new Exception('Arg not supported with multiple helpers'); }
         Utils.extend(this.helpers, name);
       } else {
-        if (inverse) { fn.not = inverse; }
         this.helpers[name] = fn;
       }
     },
+    unregisterHelper: function(name) {
+      delete this.helpers[name];
+    },
 
-    registerPartial: function(name, str) {
+    registerPartial: function(name, partial) {
       if (toString.call(name) === objectType) {
         Utils.extend(this.partials,  name);
       } else {
-        this.partials[name] = str;
+        this.partials[name] = partial;
       }
+    },
+    unregisterPartial: function(name) {
+      delete this.partials[name];
     }
   };
 
   function registerDefaultHelpers(instance) {
-    instance.registerHelper('helperMissing', function(arg) {
-      if(arguments.length === 2) {
+    instance.registerHelper('helperMissing', function(/* [args, ]options */) {
+      if(arguments.length === 1) {
+        // A missing field in a {{foo}} constuct.
         return undefined;
       } else {
-        throw new Exception("Missing helper: '" + arg + "'");
+        // Someone is actually trying to call something, blow up.
+        throw new Exception("Missing helper: '" + arguments[arguments.length-1].name + "'");
       }
     });
 
     instance.registerHelper('blockHelperMissing', function(context, options) {
-      var inverse = options.inverse || function() {}, fn = options.fn;
-
-      if (isFunction(context)) { context = context.call(this); }
+      var inverse = options.inverse,
+          fn = options.fn;
 
       if(context === true) {
         return fn(this);
@@ -8989,18 +9017,37 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
         return inverse(this);
       } else if (isArray(context)) {
         if(context.length > 0) {
+          if (options.ids) {
+            options.ids = [options.name];
+          }
+
           return instance.helpers.each(context, options);
         } else {
           return inverse(this);
         }
       } else {
-        return fn(context);
+        if (options.data && options.ids) {
+          var data = createFrame(options.data);
+          data.contextPath = Utils.appendContextPath(options.data.contextPath, options.name);
+          options = {data: data};
+        }
+
+        return fn(context, options);
       }
     });
 
     instance.registerHelper('each', function(context, options) {
+      if (!options) {
+        throw new Exception('Must pass iterator to #each');
+      }
+
       var fn = options.fn, inverse = options.inverse;
       var i = 0, ret = "", data;
+
+      var contextPath;
+      if (options.data && options.ids) {
+        contextPath = Utils.appendContextPath(options.data.contextPath, options.ids[0]) + '.';
+      }
 
       if (isFunction(context)) { context = context.call(this); }
 
@@ -9015,16 +9062,24 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
               data.index = i;
               data.first = (i === 0);
               data.last  = (i === (context.length-1));
+
+              if (contextPath) {
+                data.contextPath = contextPath + i;
+              }
             }
             ret = ret + fn(context[i], { data: data });
           }
         } else {
           for(var key in context) {
             if(context.hasOwnProperty(key)) {
-              if(data) { 
-                data.key = key; 
+              if(data) {
+                data.key = key;
                 data.index = i;
                 data.first = (i === 0);
+
+                if (contextPath) {
+                  data.contextPath = contextPath + key;
+                }
               }
               ret = ret + fn(context[key], {data: data});
               i++;
@@ -9060,12 +9115,28 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
     instance.registerHelper('with', function(context, options) {
       if (isFunction(context)) { context = context.call(this); }
 
-      if (!Utils.isEmpty(context)) return options.fn(context);
+      var fn = options.fn;
+
+      if (!Utils.isEmpty(context)) {
+        if (options.data && options.ids) {
+          var data = createFrame(options.data);
+          data.contextPath = Utils.appendContextPath(options.data.contextPath, options.ids[0]);
+          options = {data:data};
+        }
+
+        return fn(context, options);
+      } else {
+        return options.inverse(this);
+      }
     });
 
-    instance.registerHelper('log', function(context, options) {
+    instance.registerHelper('log', function(message, options) {
       var level = options.data && options.data.level != null ? parseInt(options.data.level, 10) : 1;
-      instance.log(level, context);
+      instance.log(level, message);
+    });
+
+    instance.registerHelper('lookup', function(obj, field) {
+      return obj && obj[field];
     });
   }
 
@@ -9080,22 +9151,22 @@ var __module1__ = (function(__dependency1__, __dependency2__) {
     level: 3,
 
     // can be overridden in the host environment
-    log: function(level, obj) {
+    log: function(level, message) {
       if (logger.level <= level) {
         var method = logger.methodMap[level];
         if (typeof console !== 'undefined' && console[method]) {
-          console[method].call(console, obj);
+          console[method].call(console, message);
         }
       }
     }
   };
   __exports__.logger = logger;
-  function log(level, obj) { logger.log(level, obj); }
-
-  __exports__.log = log;var createFrame = function(object) {
-    var obj = {};
-    Utils.extend(obj, object);
-    return obj;
+  var log = logger.log;
+  __exports__.log = log;
+  var createFrame = function(object) {
+    var frame = Utils.extend({}, object);
+    frame._parent = object;
+    return frame;
   };
   __exports__.createFrame = createFrame;
   return __exports__;
@@ -9109,6 +9180,7 @@ var __module5__ = (function(__dependency1__, __dependency2__, __dependency3__) {
   var Exception = __dependency2__;
   var COMPILER_REVISION = __dependency3__.COMPILER_REVISION;
   var REVISION_CHANGES = __dependency3__.REVISION_CHANGES;
+  var createFrame = __dependency3__.createFrame;
 
   function checkRevision(compilerInfo) {
     var compilerRevision = compilerInfo && compilerInfo[0] || 1,
@@ -9131,20 +9203,43 @@ var __module5__ = (function(__dependency1__, __dependency2__, __dependency3__) {
   __exports__.checkRevision = checkRevision;// TODO: Remove this line and break up compilePartial
 
   function template(templateSpec, env) {
+    /* istanbul ignore next */
     if (!env) {
       throw new Exception("No environment passed to template");
+    }
+    if (!templateSpec || !templateSpec.main) {
+      throw new Exception('Unknown template object: ' + typeof templateSpec);
     }
 
     // Note: Using env.VM references rather than local var references throughout this section to allow
     // for external users to override these as psuedo-supported APIs.
-    var invokePartialWrapper = function(partial, name, context, helpers, partials, data) {
-      var result = env.VM.invokePartial.apply(this, arguments);
-      if (result != null) { return result; }
+    env.VM.checkRevision(templateSpec.compiler);
 
-      if (env.compile) {
-        var options = { helpers: helpers, partials: partials, data: data };
-        partials[name] = env.compile(partial, { data: data !== undefined }, env);
-        return partials[name](context, options);
+    var invokePartialWrapper = function(partial, indent, name, context, hash, helpers, partials, data, depths) {
+      if (hash) {
+        context = Utils.extend({}, context, hash);
+      }
+
+      var result = env.VM.invokePartial.call(this, partial, name, context, helpers, partials, data, depths);
+
+      if (result == null && env.compile) {
+        var options = { helpers: helpers, partials: partials, data: data, depths: depths };
+        partials[name] = env.compile(partial, { data: data !== undefined, compat: templateSpec.compat }, env);
+        result = partials[name](context, options);
+      }
+      if (result != null) {
+        if (indent) {
+          var lines = result.split('\n');
+          for (var i = 0, l = lines.length; i < l; i++) {
+            if (!lines[i] && i + 1 === l) {
+              break;
+            }
+
+            lines[i] = indent + lines[i];
+          }
+          result = lines.join('\n');
+        }
+        return result;
       } else {
         throw new Exception("The partial " + name + " could not be compiled when running in runtime-only mode");
       }
@@ -9152,84 +9247,110 @@ var __module5__ = (function(__dependency1__, __dependency2__, __dependency3__) {
 
     // Just add water
     var container = {
+      lookup: function(depths, name) {
+        var len = depths.length;
+        for (var i = 0; i < len; i++) {
+          if (depths[i] && depths[i][name] != null) {
+            return depths[i][name];
+          }
+        }
+      },
+      lambda: function(current, context) {
+        return typeof current === 'function' ? current.call(context) : current;
+      },
+
       escapeExpression: Utils.escapeExpression,
       invokePartial: invokePartialWrapper,
+
+      fn: function(i) {
+        return templateSpec[i];
+      },
+
       programs: [],
-      program: function(i, fn, data) {
-        var programWrapper = this.programs[i];
-        if(data) {
-          programWrapper = program(i, fn, data);
+      program: function(i, data, depths) {
+        var programWrapper = this.programs[i],
+            fn = this.fn(i);
+        if (data || depths) {
+          programWrapper = program(this, i, fn, data, depths);
         } else if (!programWrapper) {
-          programWrapper = this.programs[i] = program(i, fn);
+          programWrapper = this.programs[i] = program(this, i, fn);
         }
         return programWrapper;
+      },
+
+      data: function(data, depth) {
+        while (data && depth--) {
+          data = data._parent;
+        }
+        return data;
       },
       merge: function(param, common) {
         var ret = param || common;
 
         if (param && common && (param !== common)) {
-          ret = {};
-          Utils.extend(ret, common);
-          Utils.extend(ret, param);
+          ret = Utils.extend({}, common, param);
         }
+
         return ret;
       },
-      programWithDepth: env.VM.programWithDepth,
+
       noop: env.VM.noop,
-      compilerInfo: null
+      compilerInfo: templateSpec.compiler
     };
 
-    return function(context, options) {
+    var ret = function(context, options) {
       options = options || {};
-      var namespace = options.partial ? options : env,
-          helpers,
-          partials;
+      var data = options.data;
 
-      if (!options.partial) {
-        helpers = options.helpers;
-        partials = options.partials;
+      ret._setup(options);
+      if (!options.partial && templateSpec.useData) {
+        data = initData(context, data);
       }
-      var result = templateSpec.call(
-            container,
-            namespace, context,
-            helpers,
-            partials,
-            options.data);
-
-      if (!options.partial) {
-        env.VM.checkRevision(container.compilerInfo);
+      var depths;
+      if (templateSpec.useDepths) {
+        depths = options.depths ? [context].concat(options.depths) : [context];
       }
 
-      return result;
+      return templateSpec.main.call(container, context, container.helpers, container.partials, data, depths);
     };
+    ret.isTop = true;
+
+    ret._setup = function(options) {
+      if (!options.partial) {
+        container.helpers = container.merge(options.helpers, env.helpers);
+
+        if (templateSpec.usePartial) {
+          container.partials = container.merge(options.partials, env.partials);
+        }
+      } else {
+        container.helpers = options.helpers;
+        container.partials = options.partials;
+      }
+    };
+
+    ret._child = function(i, data, depths) {
+      if (templateSpec.useDepths && !depths) {
+        throw new Exception('must pass parent depths');
+      }
+
+      return program(container, i, templateSpec[i], data, depths);
+    };
+    return ret;
   }
 
-  __exports__.template = template;function programWithDepth(i, fn, data /*, $depth */) {
-    var args = Array.prototype.slice.call(arguments, 3);
-
+  __exports__.template = template;function program(container, i, fn, data, depths) {
     var prog = function(context, options) {
       options = options || {};
 
-      return fn.apply(this, [context, options.data || data].concat(args));
+      return fn.call(container, context, container.helpers, container.partials, options.data || data, depths && [context].concat(depths));
     };
     prog.program = i;
-    prog.depth = args.length;
+    prog.depth = depths ? depths.length : 0;
     return prog;
   }
 
-  __exports__.programWithDepth = programWithDepth;function program(i, fn, data) {
-    var prog = function(context, options) {
-      options = options || {};
-
-      return fn(context, options.data || data);
-    };
-    prog.program = i;
-    prog.depth = 0;
-    return prog;
-  }
-
-  __exports__.program = program;function invokePartial(partial, name, context, helpers, partials, data) {
-    var options = { partial: true, helpers: helpers, partials: partials, data: data };
+  __exports__.program = program;function invokePartial(partial, name, context, helpers, partials, data, depths) {
+    var options = { partial: true, helpers: helpers, partials: partials, data: data, depths: depths };
 
     if(partial === undefined) {
       throw new Exception("The partial " + name + " could not be found");
@@ -9240,7 +9361,13 @@ var __module5__ = (function(__dependency1__, __dependency2__, __dependency3__) {
 
   __exports__.invokePartial = invokePartial;function noop() { return ""; }
 
-  __exports__.noop = noop;
+  __exports__.noop = noop;function initData(context, data) {
+    if (!data || !('root' in data)) {
+      data = data ? createFrame(data) : {};
+      data.root = context;
+    }
+    return data;
+  }
   return __exports__;
 })(__module2__, __module4__, __module1__);
 
@@ -9266,6 +9393,7 @@ var __module0__ = (function(__dependency1__, __dependency2__, __dependency3__, _
     hb.SafeString = SafeString;
     hb.Exception = Exception;
     hb.Utils = Utils;
+    hb.escapeExpression = Utils.escapeExpression;
 
     hb.VM = runtime;
     hb.template = function(spec) {
@@ -9278,12 +9406,14 @@ var __module0__ = (function(__dependency1__, __dependency2__, __dependency3__, _
   var Handlebars = create();
   Handlebars.create = create;
 
+  Handlebars['default'] = Handlebars;
+
   __exports__ = Handlebars;
   return __exports__;
 })(__module1__, __module3__, __module4__, __module2__, __module5__);
 
   return __module0__;
-})();
+}));
 
 /**
  * @license
@@ -17057,8 +17187,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -17067,8 +17196,7 @@ Backbone.addBeforePopState = function(BB) {
 
     function StaticView() {
       this.render = __bind(this.render, this);
-      _ref = StaticView.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return StaticView.__super__.constructor.apply(this, arguments);
     }
 
     StaticView.prototype.render = function() {
@@ -18086,13 +18214,12 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.36';
+  window.App.version = '1.0.37';
 
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -18121,8 +18248,7 @@ Backbone.addBeforePopState = function(BB) {
       this.search = __bind(this.search, this);
       this["package"] = __bind(this["package"], this);
       this.index = __bind(this.index, this);
-      _ref = Router.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Router.__super__.constructor.apply(this, arguments);
     }
 
     Router.prototype.errorRoutes = {
@@ -18131,88 +18257,99 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Router.prototype.index = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, ['trending', 'new', 'top']);
-        return App.layout.renderExchange('index', data, ['index', 'search']);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, ['trending', 'new', 'top']);
+          return App.layout.renderExchange('index', data, ['index', 'search']);
+        };
+      })(this));
     };
 
     Router.prototype["package"] = function(name) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data);
-        return App.layout.render('package', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data);
+          return App.layout.render('package', data);
+        };
+      })(this));
     };
 
     Router.prototype.label = function(name) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('label', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('label', data);
+        };
+      })(this));
     };
 
     Router.prototype.labels = function(name) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        return App.layout.render('labels', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          return App.layout.render('labels', data);
+        };
+      })(this));
     };
 
     Router.prototype.browse = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        return App.layout.render('browse', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          return App.layout.render('browse', data);
+        };
+      })(this));
     };
 
     Router.prototype["new"] = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('new', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('new', data);
+        };
+      })(this));
     };
 
     Router.prototype.popular = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('popular', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('popular', data);
+        };
+      })(this));
     };
 
     Router.prototype.trending = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('trending', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('trending', data);
+        };
+      })(this));
     };
 
     Router.prototype.updated = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('updated', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('updated', data);
+        };
+      })(this));
     };
 
     Router.prototype.author = function(name) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.render('author', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.render('author', data);
+        };
+      })(this));
     };
 
     Router.prototype.authors = function(name) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        return App.layout.render('authors', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          return App.layout.render('authors', data);
+        };
+      })(this));
     };
 
     Router.prototype.searchBlank = function(terms) {
@@ -18220,133 +18357,151 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Router.prototype.search = function(terms) {
-      var _this = this;
-      return this.ensureData(function(data) {
-        _this._parseDates(data, 'packages');
-        return App.layout.renderExchange('search', data, ['index', 'search']);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          _this._parseDates(data, 'packages');
+          return App.layout.renderExchange('search', data, ['index', 'search']);
+        };
+      })(this));
     };
 
     Router.prototype.stats = function() {
-      var _this = this;
-      return this.ensureData(function(data) {
-        if (data) {
-          data['date'] = Snakeskin.Dates.parseISO8601(data['date']);
-        }
-        return App.layout.render('stats', data);
-      });
+      return this.ensureData((function(_this) {
+        return function(data) {
+          if (data) {
+            data['date'] = Snakeskin.Dates.parseISO8601(data['date']);
+          }
+          return App.layout.render('stats', data);
+        };
+      })(this));
     };
 
     Router.prototype.about = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('about', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('about', data);
+        };
+      })(this));
     };
 
     Router.prototype.channelsAndRepositories = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('channels_and_repositories', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('channels_and_repositories', data);
+        };
+      })(this));
     };
 
     Router.prototype.code = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('code', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('code', data);
+        };
+      })(this));
     };
 
     Router.prototype.creatingPackageFiles = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('creating_package_files', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('creating_package_files', data);
+        };
+      })(this));
     };
 
     Router.prototype.customizingPackages = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('customizing_packages', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('customizing_packages', data);
+        };
+      })(this));
     };
 
     Router.prototype.docs = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('docs', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('docs', data);
+        };
+      })(this));
     };
 
     Router.prototype.installation = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('installation', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('installation', data);
+        };
+      })(this));
     };
 
     Router.prototype.issues = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('issues', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('issues', data);
+        };
+      })(this));
     };
 
     Router.prototype.messaging = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('messaging', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('messaging', data);
+        };
+      })(this));
     };
 
     Router.prototype.news = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('news', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('news', data);
+        };
+      })(this));
     };
 
     Router.prototype.purgingOldVersions = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('purging_old_versions', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('purging_old_versions', data);
+        };
+      })(this));
     };
 
     Router.prototype.settings = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('settings', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('settings', data);
+        };
+      })(this));
     };
 
     Router.prototype.styles = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('styles', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('styles', data);
+        };
+      })(this));
     };
 
     Router.prototype.submittingAPackage = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('submitting_a_package', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('submitting_a_package', data);
+        };
+      })(this));
     };
 
     Router.prototype.syncing = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('syncing', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('syncing', data);
+        };
+      })(this));
     };
 
     Router.prototype.usage = function() {
-      var _this = this;
-      return this.ensureData('html', function(data) {
-        return App.layout.render('usage', data);
-      });
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('usage', data);
+        };
+      })(this));
     };
 
     Router.prototype.fourOhFour = function(data) {
@@ -18394,11 +18549,11 @@ Backbone.addBeforePopState = function(BB) {
           continue;
         }
         _results.push((function() {
-          var _j, _len1, _ref1, _results1;
-          _ref1 = ['first_seen', 'last_seen', 'last_modified'];
+          var _j, _len1, _ref, _results1;
+          _ref = ['first_seen', 'last_seen', 'last_modified'];
           _results1 = [];
-          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-            field = _ref1[_j];
+          for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+            field = _ref[_j];
             if (value[field]) {
               _results1.push(value[field] = Snakeskin.Dates.parseISO8601(value[field]));
             } else {
@@ -18418,8 +18573,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -18437,8 +18591,7 @@ Backbone.addBeforePopState = function(BB) {
       this._executeSearch = __bind(this._executeSearch, this);
       this.search = __bind(this.search, this);
       this.cleanup = __bind(this.cleanup, this);
-      _ref = Header.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Header.__super__.constructor.apply(this, arguments);
     }
 
     Header.prototype.el = 'header';
@@ -18452,17 +18605,16 @@ Backbone.addBeforePopState = function(BB) {
     Header.prototype.prevTerms = '';
 
     Header.prototype.initialize = function(options) {
-      var a, keys,
-        _this = this;
+      var a, keys;
       this.layout = options.layout;
       this.layout.on('change', this.highlightNav);
       this.$links = this.$('nav a');
       this.links = (function() {
-        var _i, _len, _ref1, _results;
-        _ref1 = this.$links;
+        var _i, _len, _ref, _results;
+        _ref = this.$links;
         _results = [];
-        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-          a = _ref1[_i];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          a = _ref[_i];
           _results.push($(a));
         }
         return _results;
@@ -18474,10 +18626,12 @@ Backbone.addBeforePopState = function(BB) {
         this.prevTerms = this.$search.val();
       }
       this.executeSearch = _.debounce(this._executeSearch, 350);
-      this.listenTo(this, 'placed', function() {
-        var search;
-        return search = _this.$('input#search').attr('autocomplete', 'off');
-      });
+      this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          var search;
+          return search = _this.$('input#search').attr('autocomplete', 'off');
+        };
+      })(this));
       this.setupShortcuts();
       $(window).on('popstate', this.resetSearch);
       $(window).on('pushstate', this.resetSearch);
@@ -18570,80 +18724,87 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.setupShortcuts = function() {
-      var _this = this;
       window.keymaster('enter', function(e) {
         return e.preventDefault();
       });
-      window.keymaster('command+shift+p, ctrl+shift+p', function(e) {
-        return _this.$search.focus();
-      });
-      window.keymaster('enter', 'search', function(e) {
-        var href;
-        e.preventDefault();
-        if (_this.layout.view.name !== 'Search') {
-          return;
-        }
-        href = _this.layout.view.$results.find('li.hover a').attr('href');
-        return App.router.changeUrl(href);
-      });
-      window.keymaster('up', 'search', function(e) {
-        var hovered, offset, selected;
-        e.preventDefault();
-        if (_this.layout.view.name !== 'Search') {
-          return;
-        }
-        hovered = _this.layout.view.$results.find('li.hover');
-        if (hovered.length === 0 || hovered.is(':first-child')) {
-          selected = _this.layout.view.$results.find('li:last-child');
-        } else {
-          selected = hovered.prev();
-        }
-        if (!selected[0]) {
-          return;
-        }
-        hovered.removeClass('hover');
-        selected.addClass('hover');
-        if (!_this.isElementInViewport(selected[0])) {
-          offset = selected.offset();
-          return $('html, body').animate({
-            scrollTop: offset.top - 20
-          }, 150);
-        }
-      });
-      return window.keymaster('down', 'search', function(e) {
-        var hovered, offset, selected;
-        e.preventDefault();
-        if (_this.layout.view.name !== 'Search') {
-          return;
-        }
-        hovered = _this.layout.view.$results.find('li.hover');
-        if (hovered.length === 0 || hovered.is(':last-child')) {
-          selected = _this.layout.view.$results.find('li:first-child');
-        } else {
-          selected = hovered.next();
-        }
-        if (!selected[0]) {
-          return;
-        }
-        hovered.removeClass('hover');
-        selected.addClass('hover');
-        if (!_this.isElementInViewport(selected[0])) {
-          offset = selected.offset();
-          return $('html, body').animate({
-            scrollTop: offset.top - 20
-          }, 150);
-        }
-      });
+      window.keymaster('command+shift+p, ctrl+shift+p', (function(_this) {
+        return function(e) {
+          return _this.$search.focus();
+        };
+      })(this));
+      window.keymaster('enter', 'search', (function(_this) {
+        return function(e) {
+          var href;
+          e.preventDefault();
+          if (_this.layout.view.name !== 'Search') {
+            return;
+          }
+          href = _this.layout.view.$results.find('li.hover a').attr('href');
+          return App.router.changeUrl(href);
+        };
+      })(this));
+      window.keymaster('up', 'search', (function(_this) {
+        return function(e) {
+          var hovered, offset, selected;
+          e.preventDefault();
+          if (_this.layout.view.name !== 'Search') {
+            return;
+          }
+          hovered = _this.layout.view.$results.find('li.hover');
+          if (hovered.length === 0 || hovered.is(':first-child')) {
+            selected = _this.layout.view.$results.find('li:last-child');
+          } else {
+            selected = hovered.prev();
+          }
+          if (!selected[0]) {
+            return;
+          }
+          hovered.removeClass('hover');
+          selected.addClass('hover');
+          if (!_this.isElementInViewport(selected[0])) {
+            offset = selected.offset();
+            return $('html, body').animate({
+              scrollTop: offset.top - 20
+            }, 150);
+          }
+        };
+      })(this));
+      return window.keymaster('down', 'search', (function(_this) {
+        return function(e) {
+          var hovered, offset, selected;
+          e.preventDefault();
+          if (_this.layout.view.name !== 'Search') {
+            return;
+          }
+          hovered = _this.layout.view.$results.find('li.hover');
+          if (hovered.length === 0 || hovered.is(':last-child')) {
+            selected = _this.layout.view.$results.find('li:first-child');
+          } else {
+            selected = hovered.next();
+          }
+          if (!selected[0]) {
+            return;
+          }
+          hovered.removeClass('hover');
+          selected.addClass('hover');
+          if (!_this.isElementInViewport(selected[0])) {
+            offset = selected.offset();
+            return $('html, body').animate({
+              scrollTop: offset.top - 20
+            }, 150);
+          }
+        };
+      })(this));
     };
 
     Header.prototype.highlightNav = function() {
-      var found, link, url, _i, _len, _ref1;
+      var found, link, url, _i, _len, _ref;
       this.$links.removeClass('active');
       url = App.router.path();
       found = false;
-      _ref1 = this.links;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        link = _ref1[_i];
+      _ref = this.links;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        link = _ref[_i];
         if (url.indexOf(link.attr('href')) === 0) {
           link.addClass('active');
           found = true;
@@ -18656,8 +18817,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.animateLoadingBar = function(percentage) {
-      var complete, dimension,
-        _this = this;
+      var complete, dimension;
       dimension = 'height';
       if (parseInt(window.innerWidth, 10) <= 600) {
         dimension = 'width';
@@ -18665,15 +18825,17 @@ Backbone.addBeforePopState = function(BB) {
       complete = null;
       if (percentage >= 100) {
         percentage = 100;
-        complete = function() {
-          _this.$loading.css({
-            'transition': 'none',
-            '-moz-transition': 'none',
-            '-webkit-transition': 'none'
-          });
-          _this.$loading.removeData('css-transition');
-          return _this.$loading.css(dimension, '0');
-        };
+        complete = (function(_this) {
+          return function() {
+            _this.$loading.css({
+              'transition': 'none',
+              '-moz-transition': 'none',
+              '-webkit-transition': 'none'
+            });
+            _this.$loading.removeData('css-transition');
+            return _this.$loading.css(dimension, '0');
+          };
+        })(this);
         setTimeout(complete, 150);
       }
       if (!this.$loading.data('css-transition')) {
@@ -18757,8 +18919,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -18773,8 +18934,7 @@ Backbone.addBeforePopState = function(BB) {
       this.changeView = __bind(this.changeView, this);
       this.restoreScroll = __bind(this.restoreScroll, this);
       this.saveScroll = __bind(this.saveScroll, this);
-      _ref = Layout.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Layout.__super__.constructor.apply(this, arguments);
     }
 
     Layout.prototype.el = 'body';
@@ -18854,12 +19014,7 @@ Backbone.addBeforePopState = function(BB) {
         destScroll = 0;
       }
       if (!_.isFunction(window.scrollTo)) {
-        return this.notify('\
-        You have "Better Pop Up Blocker" installed, however it removes certain\
-        Javascript functionality used by this site. Please open the options\
-        and uncheck "Automatically moving & resizing windows" under\
-        "Blocked Functions".\
-      ');
+        return this.notify('You have "Better Pop Up Blocker" installed, however it removes certain Javascript functionality used by this site. Please open the options and uncheck "Automatically moving & resizing windows" under "Blocked Functions".');
       } else {
         return $(window).scrollTop(destScroll);
       }
@@ -18879,12 +19034,12 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Layout.prototype.exchangeViewIf = function(class_name, class_, data, oldView) {
-      var newView, removeClass, templateName, _ref1;
+      var newView, removeClass, templateName, _ref;
       removeClass = null;
       if (_.isString(oldView)) {
         oldView = [oldView];
       }
-      if (!this.view || (_ref1 = this.view.templateName, __indexOf.call(oldView, _ref1) < 0)) {
+      if (!this.view || (_ref = this.view.templateName, __indexOf.call(oldView, _ref) < 0)) {
         return this.changeView(class_name, class_, data);
       }
       templateName = Snakeskin.Util.underscore(class_name);
@@ -18969,8 +19124,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -18980,8 +19134,7 @@ Backbone.addBeforePopState = function(BB) {
     function About() {
       this.setupJS = __bind(this.setupJS, this);
       this.cleanup = __bind(this.cleanup, this);
-      _ref = About.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return About.__super__.constructor.apply(this, arguments);
     }
 
     About.prototype.name = 'About';
@@ -19039,16 +19192,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Author = (function(_super) {
     __extends(Author, _super);
 
     function Author() {
-      _ref = Author.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Author.__super__.constructor.apply(this, arguments);
     }
 
     Author.prototype.name = 'Author';
@@ -19060,16 +19211,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Authors = (function(_super) {
     __extends(Authors, _super);
 
     function Authors() {
-      _ref = Authors.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Authors.__super__.constructor.apply(this, arguments);
     }
 
     Authors.prototype.name = 'Authors';
@@ -19081,16 +19230,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Browse = (function(_super) {
     __extends(Browse, _super);
 
     function Browse() {
-      _ref = Browse.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Browse.__super__.constructor.apply(this, arguments);
     }
 
     Browse.prototype.name = 'Browse';
@@ -19102,16 +19249,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.ChannelsAndRepositories = (function(_super) {
     __extends(ChannelsAndRepositories, _super);
 
     function ChannelsAndRepositories() {
-      _ref = ChannelsAndRepositories.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return ChannelsAndRepositories.__super__.constructor.apply(this, arguments);
     }
 
     ChannelsAndRepositories.prototype.name = 'ChannelsAndRepositories';
@@ -19123,16 +19268,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Code = (function(_super) {
     __extends(Code, _super);
 
     function Code() {
-      _ref = Code.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Code.__super__.constructor.apply(this, arguments);
     }
 
     Code.prototype.name = 'Code';
@@ -19144,16 +19287,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.CreatingPackageFiles = (function(_super) {
     __extends(CreatingPackageFiles, _super);
 
     function CreatingPackageFiles() {
-      _ref = CreatingPackageFiles.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return CreatingPackageFiles.__super__.constructor.apply(this, arguments);
     }
 
     CreatingPackageFiles.prototype.name = 'CreatingPackageFiles';
@@ -19165,16 +19306,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.CustomizingPackages = (function(_super) {
     __extends(CustomizingPackages, _super);
 
     function CustomizingPackages() {
-      _ref = CustomizingPackages.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return CustomizingPackages.__super__.constructor.apply(this, arguments);
     }
 
     CustomizingPackages.prototype.name = 'CustomizingPackages';
@@ -19186,16 +19325,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Docs = (function(_super) {
     __extends(Docs, _super);
 
     function Docs() {
-      _ref = Docs.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Docs.__super__.constructor.apply(this, arguments);
     }
 
     Docs.prototype.name = 'Docs';
@@ -19207,16 +19344,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.FiveHundred = (function(_super) {
     __extends(FiveHundred, _super);
 
     function FiveHundred() {
-      _ref = FiveHundred.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return FiveHundred.__super__.constructor.apply(this, arguments);
     }
 
     FiveHundred.prototype.name = 'FiveHundred';
@@ -19228,16 +19363,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.FourOhFour = (function(_super) {
     __extends(FourOhFour, _super);
 
     function FourOhFour() {
-      _ref = FourOhFour.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return FourOhFour.__super__.constructor.apply(this, arguments);
     }
 
     FourOhFour.prototype.name = 'FourOhFour';
@@ -19249,8 +19382,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -19272,8 +19404,7 @@ Backbone.addBeforePopState = function(BB) {
       this.cleanup = __bind(this.cleanup, this);
       this.initialize = __bind(this.initialize, this);
       this.title = __bind(this.title, this);
-      _ref = Index.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Index.__super__.constructor.apply(this, arguments);
     }
 
     Index.prototype.name = 'Index';
@@ -19283,8 +19414,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Index.prototype.initialize = function(options) {
-      var d3Js, el, src,
-        _this = this;
+      var d3Js, el, src;
       if (typeof window.WebSocket !== "undefined") {
         src = '/js/d3.js';
         d3Js = $('script[src="' + src + '"]');
@@ -19296,9 +19426,11 @@ Backbone.addBeforePopState = function(BB) {
           el.onload = this.initializeStats;
           document.body.appendChild(el);
         }
-        this.listenTo(this, 'placed', function() {
-          return _this.initializeStats();
-        });
+        this.listenTo(this, 'placed', (function(_this) {
+          return function() {
+            return _this.initializeStats();
+          };
+        })(this));
         this.chart = {};
         return this.socketConfig = {};
       }
@@ -19638,7 +19770,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Index.prototype.advanceChart = function(data) {
-      var adjusted, elementsToChange, noData, paused, res, type, typeNum, _chart, _i, _len, _ref1;
+      var adjusted, elementsToChange, noData, paused, res, type, typeNum, _chart, _i, _len, _ref;
       _chart = this.chart;
       _chart.intervalsToProcess += 1;
       noData = $('#realtime .no_data');
@@ -19658,9 +19790,9 @@ Backbone.addBeforePopState = function(BB) {
         _chart.intervalsToProcess = _chart.maxEntries;
       }
       while (data['channel'].length > 0 && _chart.intervalsToProcess > 0) {
-        _ref1 = ['web', 'channel', 'usage'];
-        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-          type = _ref1[_i];
+        _ref = ['web', 'channel', 'usage'];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          type = _ref[_i];
           typeNum = _chart.typeMap[type];
           if (_chart.data[typeNum].values.length >= _chart.maxEntries) {
             _chart.data[typeNum].values.shift();
@@ -19732,8 +19864,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -19744,8 +19875,7 @@ Backbone.addBeforePopState = function(BB) {
       this.changeTab = __bind(this.changeTab, this);
       this.showSt3 = __bind(this.showSt3, this);
       this.showSt2 = __bind(this.showSt2, this);
-      _ref = Installation.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Installation.__super__.constructor.apply(this, arguments);
     }
 
     Installation.prototype.name = 'Installation';
@@ -19755,26 +19885,27 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Installation.prototype.initialize = function(options) {
-      var _this = this;
-      return this.listenTo(this, 'placed', function() {
-        var hashChange;
-        _this.st2Tab = _this.$('a.tab.st2');
-        _this.st3Tab = _this.$('a.tab.st3');
-        _this.st2Code = _this.$('p.code.st2');
-        _this.st3Code = _this.$('p.code.st3');
-        _this.st3Tab.after(_this.st2Tab);
-        hashChange = function(initial) {
-          var hash;
-          hash = window.location.hash;
-          if (hash === '#st2') {
-            return _this.showSt2();
-          } else if (hash === '#st3' || (initial && hash === '')) {
-            return _this.showSt3();
-          }
+      return this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          var hashChange;
+          _this.st2Tab = _this.$('a.tab.st2');
+          _this.st3Tab = _this.$('a.tab.st3');
+          _this.st2Code = _this.$('p.code.st2');
+          _this.st3Code = _this.$('p.code.st3');
+          _this.st3Tab.after(_this.st2Tab);
+          hashChange = function(initial) {
+            var hash;
+            hash = window.location.hash;
+            if (hash === '#st2') {
+              return _this.showSt2();
+            } else if (hash === '#st3' || (initial && hash === '')) {
+              return _this.showSt3();
+            }
+          };
+          window.onhashchange = hashChange;
+          return hashChange(true);
         };
-        window.onhashchange = hashChange;
-        return hashChange(true);
-      });
+      })(this));
     };
 
     Installation.prototype.showSt2 = function() {
@@ -19809,16 +19940,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Issues = (function(_super) {
     __extends(Issues, _super);
 
     function Issues() {
-      _ref = Issues.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Issues.__super__.constructor.apply(this, arguments);
     }
 
     Issues.prototype.name = 'Issues';
@@ -19830,16 +19959,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Label = (function(_super) {
     __extends(Label, _super);
 
     function Label() {
-      _ref = Label.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Label.__super__.constructor.apply(this, arguments);
     }
 
     Label.prototype.name = 'Label';
@@ -19851,16 +19978,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Labels = (function(_super) {
     __extends(Labels, _super);
 
     function Labels() {
-      _ref = Labels.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Labels.__super__.constructor.apply(this, arguments);
     }
 
     Labels.prototype.name = 'Labels';
@@ -19872,16 +19997,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Messaging = (function(_super) {
     __extends(Messaging, _super);
 
     function Messaging() {
-      _ref = Messaging.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Messaging.__super__.constructor.apply(this, arguments);
     }
 
     Messaging.prototype.name = 'Messaging';
@@ -19893,16 +20016,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.New = (function(_super) {
     __extends(New, _super);
 
     function New() {
-      _ref = New.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return New.__super__.constructor.apply(this, arguments);
     }
 
     New.prototype.name = 'New';
@@ -19914,16 +20035,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.News = (function(_super) {
     __extends(News, _super);
 
     function News() {
-      _ref = News.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return News.__super__.constructor.apply(this, arguments);
     }
 
     News.prototype.name = 'News';
@@ -19946,8 +20065,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -19959,8 +20077,7 @@ Backbone.addBeforePopState = function(BB) {
       this.drawChart = __bind(this.drawChart, this);
       this.initializeChart = __bind(this.initializeChart, this);
       this.initialize = __bind(this.initialize, this);
-      _ref = Package.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Package.__super__.constructor.apply(this, arguments);
     }
 
     Package.prototype.name = 'Package';
@@ -19970,15 +20087,16 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Package.prototype.initialize = function(options) {
-      var _this = this;
       this.loadScript();
       this.placed = false;
-      this.listenTo(this, 'placed', function() {
-        _this.$el.find('div#daily_installs').append('<div class="loading">Loading…</div>');
-        _this.$loading = _this.$('div#daily_installs div.loading');
-        _this.placed = true;
-        return _this.initializeChart();
-      });
+      this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          _this.$el.find('div#daily_installs').append('<div class="loading">Loading…</div>');
+          _this.$loading = _this.$('div#daily_installs div.loading');
+          _this.placed = true;
+          return _this.initializeChart();
+        };
+      })(this));
       this._redrawChart = _.debounce(this.drawChart, 150);
       return $(window).on('resize', this._redrawChart);
     };
@@ -20002,7 +20120,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Package.prototype.initializeChart = function() {
-      var $tr, div, height, hoverTimeout, i, j, table, td, th, tr, width, yMax, _chart, _i, _j, _k, _len, _len1, _len2, _ref1, _ref2, _ref3;
+      var $tr, div, height, hoverTimeout, i, j, table, td, th, tr, width, yMax, _chart, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
       div = this.$('#daily_installs');
       if (!div.length) {
         return;
@@ -20022,24 +20140,24 @@ Backbone.addBeforePopState = function(BB) {
           linux: 2
         }
       };
-      _ref1 = table.find('tr.dates th');
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        th = _ref1[_i];
+      _ref = table.find('tr.dates th');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        th = _ref[_i];
         this.chart.dates.push($(th).text());
       }
       i = 0;
-      _ref2 = table.find('tr.platform');
-      for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-        tr = _ref2[_j];
+      _ref1 = table.find('tr.platform');
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        tr = _ref1[_j];
         $tr = $(tr);
         this.chart.data[i] = {
           platform: $tr.find('th').text(),
           values: []
         };
         j = 0;
-        _ref3 = $tr.find('td');
-        for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
-          td = _ref3[_k];
+        _ref2 = $tr.find('td');
+        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+          td = _ref2[_k];
           this.chart.data[i].values.push({
             x: j,
             y: parseInt($(td).text()),
@@ -20162,7 +20280,7 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Package.prototype.togglePlatform = function(e) {
-      var adjustedData, d, key, p, platformData, platformName, value, _chart, _i, _j, _len, _len1, _ref1, _ref2;
+      var adjustedData, d, key, p, platformData, platformName, value, _chart, _i, _j, _len, _len1, _ref, _ref1;
       key = $(e.target);
       key.toggleClass('disabled');
       platformName = key.closest('span.installs').attr('class').replace(/\s*installs\s*/, '');
@@ -20173,14 +20291,14 @@ Backbone.addBeforePopState = function(BB) {
       this.chart.scales[p] = this.chart.scales[p] === 1 ? 0 : 1;
       _chart = this.chart;
       adjustedData = [[], [], []];
-      _ref1 = this.chart.data;
-      for (p = _i = 0, _len = _ref1.length; _i < _len; p = ++_i) {
-        platformData = _ref1[p];
+      _ref = this.chart.data;
+      for (p = _i = 0, _len = _ref.length; _i < _len; p = ++_i) {
+        platformData = _ref[p];
         adjustedData[p].platform = this.chart.data[p].platform;
         adjustedData[p].values = [];
-        _ref2 = platformData.values;
-        for (d = _j = 0, _len1 = _ref2.length; _j < _len1; d = ++_j) {
-          value = _ref2[d];
+        _ref1 = platformData.values;
+        for (d = _j = 0, _len1 = _ref1.length; _j < _len1; d = ++_j) {
+          value = _ref1[d];
           adjustedData[p].values[d] = {
             x: value.x,
             y: value.y * this.chart.scales[p],
@@ -20206,16 +20324,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Popular = (function(_super) {
     __extends(Popular, _super);
 
     function Popular() {
-      _ref = Popular.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Popular.__super__.constructor.apply(this, arguments);
     }
 
     Popular.prototype.name = 'Popular';
@@ -20227,16 +20343,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.PurgingOldVersions = (function(_super) {
     __extends(PurgingOldVersions, _super);
 
     function PurgingOldVersions() {
-      _ref = PurgingOldVersions.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return PurgingOldVersions.__super__.constructor.apply(this, arguments);
     }
 
     PurgingOldVersions.prototype.name = 'PurgingOldVersions';
@@ -20248,16 +20362,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.RenamingAPackage = (function(_super) {
     __extends(RenamingAPackage, _super);
 
     function RenamingAPackage() {
-      _ref = RenamingAPackage.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return RenamingAPackage.__super__.constructor.apply(this, arguments);
     }
 
     RenamingAPackage.prototype.name = 'RenamingAPackage';
@@ -20269,8 +20381,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -20279,17 +20390,17 @@ Backbone.addBeforePopState = function(BB) {
 
     function Search() {
       this.title = __bind(this.title, this);
-      _ref = Search.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Search.__super__.constructor.apply(this, arguments);
     }
 
     Search.prototype.name = 'Search';
 
     Search.prototype.initialize = function(options) {
-      var _this = this;
-      return this.listenTo(this, 'placed', function() {
-        return _this.$results = _this.$('div.results');
-      });
+      return this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          return _this.$results = _this.$('div.results');
+        };
+      })(this));
     };
 
     Search.prototype.title = function() {
@@ -20319,16 +20430,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Settings = (function(_super) {
     __extends(Settings, _super);
 
     function Settings() {
-      _ref = Settings.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Settings.__super__.constructor.apply(this, arguments);
     }
 
     Settings.prototype.name = 'Settings';
@@ -20340,16 +20449,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Stats = (function(_super) {
     __extends(Stats, _super);
 
     function Stats() {
-      _ref = Stats.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Stats.__super__.constructor.apply(this, arguments);
     }
 
     Stats.prototype.name = 'Stats';
@@ -20361,16 +20468,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Styles = (function(_super) {
     __extends(Styles, _super);
 
     function Styles() {
-      _ref = Styles.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Styles.__super__.constructor.apply(this, arguments);
     }
 
     Styles.prototype.name = 'Styles';
@@ -20382,16 +20487,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.SubmittingAPackage = (function(_super) {
     __extends(SubmittingAPackage, _super);
 
     function SubmittingAPackage() {
-      _ref = SubmittingAPackage.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return SubmittingAPackage.__super__.constructor.apply(this, arguments);
     }
 
     SubmittingAPackage.prototype.name = 'SubmittingAPackage';
@@ -20403,8 +20506,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -20416,8 +20518,7 @@ Backbone.addBeforePopState = function(BB) {
       this.changeTab = __bind(this.changeTab, this);
       this.showSt3 = __bind(this.showSt3, this);
       this.showSt2 = __bind(this.showSt2, this);
-      _ref = Syncing.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Syncing.__super__.constructor.apply(this, arguments);
     }
 
     Syncing.prototype.name = 'Syncing';
@@ -20427,18 +20528,19 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Syncing.prototype.initialize = function(options) {
-      var _this = this;
-      return this.listenTo(this, 'placed', function() {
-        var i;
-        _this.st2Tab = _this.$('a.tab.st2');
-        _this.st3Tab = _this.$('a.tab.st3');
-        _this.st2Code = _this.$('pre.st2');
-        _this.st3Code = _this.$('pre.st3');
-        for (i in _this.st2Tab.get()) {
-          _this.st3Tab.eq(i).after(_this.st2Tab.eq(i));
-        }
-        return _this.showSt3();
-      });
+      return this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          var i;
+          _this.st2Tab = _this.$('a.tab.st2');
+          _this.st3Tab = _this.$('a.tab.st3');
+          _this.st2Code = _this.$('pre.st2');
+          _this.st3Code = _this.$('pre.st3');
+          for (i in _this.st2Tab.get()) {
+            _this.st3Tab.eq(i).after(_this.st2Tab.eq(i));
+          }
+          return _this.showSt3();
+        };
+      })(this));
     };
 
     Syncing.prototype.showSt2 = function() {
@@ -20456,8 +20558,8 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Syncing.prototype.changeTab = function(e) {
-      var _ref1;
-      if (_ref1 = e.target, __indexOf.call(this.st2Tab.get(), _ref1) >= 0) {
+      var _ref;
+      if (_ref = e.target, __indexOf.call(this.st2Tab.get(), _ref) >= 0) {
         this.showSt2();
       } else {
         this.showSt3();
@@ -20472,16 +20574,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Trending = (function(_super) {
     __extends(Trending, _super);
 
     function Trending() {
-      _ref = Trending.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Trending.__super__.constructor.apply(this, arguments);
     }
 
     Trending.prototype.name = 'Trending';
@@ -20493,16 +20593,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Updated = (function(_super) {
     __extends(Updated, _super);
 
     function Updated() {
-      _ref = Updated.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Updated.__super__.constructor.apply(this, arguments);
     }
 
     Updated.prototype.name = 'Updated';
@@ -20514,16 +20612,14 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var _ref,
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.Usage = (function(_super) {
     __extends(Usage, _super);
 
     function Usage() {
-      _ref = Usage.__super__.constructor.apply(this, arguments);
-      return _ref;
+      return Usage.__super__.constructor.apply(this, arguments);
     }
 
     Usage.prototype.name = 'Usage';
@@ -20537,1965 +20633,1326 @@ Backbone.addBeforePopState = function(BB) {
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['author'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['author'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_badges, '', 'package_badges', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Authors", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Authors", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), "Authors", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
-    + "\">Authors</a> <h1>";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "authors", {"name":"url","hash":{},"data":data})))
+    + "\">Authors</a> <h1>"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</h1> <ul class=\"packages\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> ";
-  return buffer;
-  });
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['authors'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <ul class=\"authors\"> ";
-  stack1 = helpers.each.call(depth0, depth0, {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> ";
-  return buffer;
-  }
-function program2(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"author\"> <h3><em>";
-  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['authors'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " <ul class=\"authors\"> ";
+  stack1 = helpers.each.call(depth0, depth0, {"name":"each","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> ";
+},"2":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <li class=\"author\"> <h3><em>"
+    + escapeExpression(((helper = (helper = helpers.packages || (depth0 != null ? depth0.packages : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"packages","hash":{},"data":data}) : helper)))
     + "</em> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Authors", options) : helperMissing.call(depth0, "title", "Authors", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Authors", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>Authors</h1> ";
-  stack1 = (helper = helpers.split || (depth0 && depth0.split),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.authors), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.authors), 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.split || (depth0 && depth0.split) || helperMissing).call(depth0, (depth0 != null ? depth0.authors : depth0), 3, {"name":"split","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['browse'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  templates['browse'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_trending, '', 'minimal_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.minimal_top, '', 'minimal_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"3":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_new, '', 'minimal_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program5(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.minimal_top, '', 'minimal_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"5":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_new, '', 'minimal_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_trending, '', 'minimal_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program7(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.minimal_top, '', 'minimal_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"7":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_new, '', 'minimal_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program9(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+  stack1 = this.invokePartial(partials.minimal_trending, '', 'minimal_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"9":function(depth0,helpers,partials,data) {
+  var helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  return " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "label", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
-    + "</a> <span class=\"package_count\">";
-  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
+    + "</a> <span class=\"package_count\">"
+    + escapeExpression(((helper = (helper = helpers.packages || (depth0 != null ? depth0.packages : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"packages","hash":{},"data":data}) : helper)))
     + "</span> </li> ";
-  return buffer;
-  }
-
-function program11(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+},"11":function(depth0,helpers,partials,data) {
+  var helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  return " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
-    + "</a> <span class=\"package_count\">";
-  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
+    + "</a> <span class=\"package_count\">"
+    + escapeExpression(((helper = (helper = helpers.packages || (depth0 != null ? depth0.packages : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"packages","hash":{},"data":data}) : helper)))
     + "</span> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Browse", options) : helperMissing.call(depth0, "title", "Browse", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Browse", {"name":"title","hash":{},"data":data})))
     + " <h1>Browse</h1> <div class=\"section new\"> <h2> <a class=\"name\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "new", {"name":"url","hash":{},"data":data})))
     + "\">New <i class=\"icon-leaf\"></i></a> <a class=\"rss\" href=\"/browse/new/rss\" title=\"RSS feed of new packages\"><i class=\"icon-rss\"></i></a> </h2> <p>When the package was first seen</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0['new'] : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section trending\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "trending", {"name":"url","hash":{},"data":data})))
     + "\">Trending <i class=\"icon-chevron-sign-up\"></i></a></h2> <p>Recent, relative, increase in installs</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.trending : depth0), {"name":"each","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section updated\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "updated", options) : helperMissing.call(depth0, "url", "updated", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "updated", {"name":"url","hash":{},"data":data})))
     + "\">Updated <i class=\"icon-plus\"></i></a></h2> <p>When the package was last updated</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.updated), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.updated : depth0), {"name":"each","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "popular", {"name":"url","hash":{},"data":data})))
     + "\">Popular <i class=\"icon-certificate\"></i></a></h2> <p>With the most unique installs</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.top : depth0), {"name":"each","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "labels", {"name":"url","hash":{},"data":data})))
     + "\">Labels <i class=\"icon-tag\"></i></a></h2> <p>With the most packages</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.labels : depth0), {"name":"each","hash":{},"fn":this.program(9, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section authors\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "authors", {"name":"url","hash":{},"data":data})))
     + "\">Authors <i class=\"icon-user\"></i></a></h2> <p>With the most packages</p> <ul class=\"authors\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.authors), {hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> </div> ";
-  return buffer;
-  });
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.authors : depth0), {"name":"each","hash":{},"fn":this.program(11, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['five_hundred'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
-
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Server Error", options) : helperMissing.call(depth0, "title", "Server Error", options)))
+  templates['five_hundred'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Server Error", {"name":"title","hash":{},"data":data})))
     + " <h1>Server Error</h1> <p> Sorry, apparently we ran into an error we were not expecting! </p> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['four_oh_four'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
-
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Not Found", options) : helperMissing.call(depth0, "title", "Not Found", options)))
+  templates['four_oh_four'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Not Found", {"name":"title","hash":{},"data":data})))
     + " <h1>Not Found</h1> <p> Unfortunately the page you requested could not be found. </p> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['index'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Package Control - the Sublime Text package manager", options) : helperMissing.call(depth0, "title", "Package Control - the Sublime Text package manager", options)))
+  templates['index'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Package Control - the Sublime Text package manager", {"name":"title","hash":{},"data":data})))
     + " <p class=\"intro\"> <a class=\"action\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "installation", options) : helperMissing.call(depth0, "url", "installation", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "installation", {"name":"url","hash":{},"data":data})))
     + "\">Install Now <i class=\"icon-caret-right\"></i></a> The <a href=\"http://sublimetext.com\" class=\"sublime_text\">Sublime Text</a> package manager that makes it exceedingly simple to find, install and keep packages up-to-date. </p> ";
-  stack1 = self.invokePartial(partials.highlights, 'highlights', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.highlights, '', 'highlights', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['label'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['label'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_badges, '', 'package_badges', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Labels", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Labels", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), "Labels", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
-    + "\">Labels</a> <h1>";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "labels", {"name":"url","hash":{},"data":data})))
+    + "\">Labels</a> <h1>"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</h1> <ul class=\"packages\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> ";
-  return buffer;
-  });
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['labels'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <ul class=\"labels\"> ";
-  stack1 = helpers.each.call(depth0, depth0, {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> ";
-  return buffer;
-  }
-function program2(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"label\"> <h3><em>";
-  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['labels'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " <ul class=\"labels\"> ";
+  stack1 = helpers.each.call(depth0, depth0, {"name":"each","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> ";
+},"2":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <li class=\"label\"> <h3><em>"
+    + escapeExpression(((helper = (helper = helpers.packages || (depth0 != null ? depth0.packages : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"packages","hash":{},"data":data}) : helper)))
     + "</em> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "label", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Labels", options) : helperMissing.call(depth0, "title", "Labels", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Labels", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>Labels</h1> ";
-  stack1 = (helper = helpers.split || (depth0 && depth0.split),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), 3, options) : helperMissing.call(depth0, "split", (depth0 && depth0.labels), 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.split || (depth0 && depth0.split) || helperMissing).call(depth0, (depth0 != null ? depth0.labels : depth0), 3, {"name":"split","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['new'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['new'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_missing_deprecated, '', 'package_missing_deprecated', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_trending, '', 'package_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_top, '', 'package_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "New Packages", options) : helperMissing.call(depth0, "title", "New Packages", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "New Packages", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1> New <a class=\"rss\" href=\"/browse/new/rss\" title=\"RSS feed of new packages\"><i class=\"icon-rss\"></i></a> </h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['package'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
-
-function program1(depth0,data) {
-  
-  
+  templates['package'] = template({"1":function(depth0,helpers,partials,data) {
   return "<span class=\"versions both\" title=\"Works with Sublime Text 2 and 3\">ST2/ST3</span>";
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <div class=\"labels\"> <span class=\"title\">Labels</span> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  }
-function program4(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  stack1 = helpers['if'].call(depth0, (data == null || data === false ? data : data.index), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "<a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
+  },"3":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " <div class=\"labels\"> <span class=\"title\">Labels</span> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.labels : depth0), {"name":"each","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"4":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, lambda=this.lambda, buffer = "";
+  stack1 = helpers['if'].call(depth0, (data && data.index), {"name":"if","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + "<a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "label", {"name":"url","hash":{
     'name': (depth0)
-  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+  },"data":data})))
     + "\">"
-    + escapeExpression((typeof depth0 === functionType ? depth0.apply(depth0) : depth0))
+    + escapeExpression(lambda(depth0, depth0))
     + "</a>";
-  return buffer;
-  }
-function program5(depth0,data) {
-  
-  
+},"5":function(depth0,helpers,partials,data) {
   return ", ";
-  }
-
-function program7(depth0,data) {
-  
-  
+  },"7":function(depth0,helpers,partials,data) {
   return "s";
-  }
-
-function program9(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <span> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.versions), {hash:{},inverse:self.noop,fn:self.programWithDepth(10, program10, data, depth0),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> ";
-  return buffer;
-  }
-function program10(depth0,data,depth1) {
-  
-  var buffer = "", stack1;
+  },"9":function(depth0,helpers,partials,data,depths) {
+  var stack1, buffer = " <span> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.versions : depth0), {"name":"each","hash":{},"fn":this.program(10, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> ";
+},"10":function(depth0,helpers,partials,data,depths) {
+  var stack1, buffer = " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.prerelease_version : depth0), {"name":"if","hash":{},"fn":this.program(11, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.prerelease_version), {hash:{},inverse:self.noop,fn:self.programWithDepth(11, program11, data, depth1),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.version : depth0), {"name":"if","hash":{},"fn":this.program(17, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"11":function(depth0,helpers,partials,data,depths) {
+  var stack1, helper, helperMissing=helpers.helperMissing, functionType="function", escapeExpression=this.escapeExpression, buffer = " <div>  ";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depths[2] != null ? depths[2].st_versions : depths[2]), 2, 3, {"name":"eq","hash":{},"fn":this.program(12, data, depths),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.version), {hash:{},inverse:self.noop,fn:self.programWithDepth(17, program17, data, depth1),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program11(depth0,data,depth2) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <div>  ";
-  stack1 = (helper = helpers.eq || (depth2 && depth2.eq),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  stack1 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " <span class=\"versions only\" title=\"Prerelease\">PRE</span> ";
-  if (helper = helpers.prerelease_version) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.prerelease_version); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.version_qualifiers, '', 'version_qualifiers', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " <span class=\"versions only\" title=\"Prerelease\">PRE</span> "
+    + escapeExpression(((helper = (helper = helpers.prerelease_version || (depth0 != null ? depth0.prerelease_version : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"prerelease_version","hash":{},"data":data}) : helper)))
     + " </div> ";
-  return buffer;
-  }
-function program12(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
+},"12":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 2, {"name":"omits","hash":{},"fn":this.program(13, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program13(depth0,data) {
-  
-  
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 3, {"name":"omits","hash":{},"fn":this.program(15, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"13":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Sublime Text 3\">3</span>";
-  }
-
-function program15(depth0,data) {
-  
-  
+  },"15":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Sublime Text 2\">2</span>";
-  }
-
-function program17(depth0,data,depth2) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <div>  ";
-  stack1 = (helper = helpers.eq || (depth2 && depth2.eq),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth2 && depth2.st_versions), 2, 3, options) : helperMissing.call(depth0, "eq", (depth2 && depth2.st_versions), 2, 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  },"17":function(depth0,helpers,partials,data,depths) {
+  var stack1, helper, helperMissing=helpers.helperMissing, functionType="function", escapeExpression=this.escapeExpression, buffer = " <div>  ";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depths[2] != null ? depths[2].st_versions : depths[2]), 2, 3, {"name":"eq","hash":{},"fn":this.program(12, data, depths),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.version_qualifiers, 'version_qualifiers', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  if (helper = helpers.version) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.version); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.version_qualifiers, '', 'version_qualifiers', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " "
+    + escapeExpression(((helper = (helper = helpers.version || (depth0 != null ? depth0.version : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"version","hash":{},"data":data}) : helper)))
     + " </div> ";
-  return buffer;
-  }
-
-function program19(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <span>"
-    + escapeExpression(((stack1 = ((stack1 = ((stack1 = (depth0 && depth0.versions)),stack1 == null || stack1 === false ? stack1 : stack1[0])),stack1 == null || stack1 === false ? stack1 : stack1.version)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
+},"19":function(depth0,helpers,partials,data) {
+  var stack1, lambda=this.lambda, escapeExpression=this.escapeExpression;
+  return " <span>"
+    + escapeExpression(lambda(((stack1 = ((stack1 = (depth0 != null ? depth0.versions : depth0)) != null ? stack1['0'] : stack1)) != null ? stack1.version : stack1), depth0))
     + "</span> ";
-  return buffer;
-  }
-
-function program21(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <li class=\"issues\"> <label>Issues</label> <span>"
-    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.issues), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.issues), true, options)))
+},"21":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <li class=\"issues\"> <label>Issues</label> <span>"
+    + escapeExpression(((helpers.url_abbr || (depth0 && depth0.url_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.issues : depth0), true, {"name":"url_abbr","hash":{},"data":data})))
     + "</span> </li> ";
-  return buffer;
-  }
-
-function program23(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <li class=\"donate\"> <label>Donate</label> <span>"
-    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.donate), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.donate), true, options)))
+},"23":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <li class=\"donate\"> <label>Donate</label> <span>"
+    + escapeExpression(((helpers.url_abbr || (depth0 && depth0.url_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.donate : depth0), true, {"name":"url_abbr","hash":{},"data":data})))
     + "</span> </li> ";
-  return buffer;
-  }
-
-function program25(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <li class=\"buy\"> <label>Buy</label> <span>"
-    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.buy), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.buy), true, options)))
+},"25":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <li class=\"buy\"> <label>Buy</label> <span>"
+    + escapeExpression(((helpers.url_abbr || (depth0 && depth0.url_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.buy : depth0), true, {"name":"url_abbr","hash":{},"data":data})))
     + "</span> </li> ";
-  return buffer;
-  }
-
-function program27(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <th scope=\"col\">"
-    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, depth0, "%b %-d", options) : helperMissing.call(depth0, "date_format", depth0, "%b %-d", options)))
+},"27":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <th scope=\"col\">"
+    + escapeExpression(((helpers.date_format || (depth0 && depth0.date_format) || helperMissing).call(depth0, depth0, "%b %-d", {"name":"date_format","hash":{},"data":data})))
     + "</th> ";
-  return buffer;
-  }
-
-function program29(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <tr class=\"platform\"> <th scope=\"row\">";
-  if (helper = helpers.platform) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.platform); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+},"29":function(depth0,helpers,partials,data) {
+  var stack1, helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <tr class=\"platform\"> <th scope=\"row\">"
+    + escapeExpression(((helper = (helper = helpers.platform || (depth0 != null ? depth0.platform : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"platform","hash":{},"data":data}) : helper)))
     + "</th> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.totals), {hash:{},inverse:self.noop,fn:self.program(30, program30, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </tr> ";
-  return buffer;
-  }
-function program30(depth0,data) {
-  
-  var buffer = "";
-  buffer += " <td>"
-    + escapeExpression((typeof depth0 === functionType ? depth0.apply(depth0) : depth0))
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.totals : depth0), {"name":"each","hash":{},"fn":this.program(30, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </tr> ";
+},"30":function(depth0,helpers,partials,data) {
+  var lambda=this.lambda, escapeExpression=this.escapeExpression;
+  return " <td>"
+    + escapeExpression(lambda(depth0, depth0))
     + "</td> ";
-  return buffer;
-  }
-
-function program32(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <dl class=\"readme\"> <dt>Source</dt> <dd>"
-    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.readme), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.readme), true, options)))
+},"32":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <dl class=\"readme\"> <dt>Source</dt> <dd>"
+    + escapeExpression(((helpers.url_abbr || (depth0 && depth0.url_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.readme : depth0), true, {"name":"url_abbr","hash":{},"data":data})))
     + "</dd> </dl> ";
-  return buffer;
-  }
-
-function program34(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " ";
-  if (helper = helpers.readme_html) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.readme_html); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-
-function program36(depth0,data) {
-  
-  
+},"34":function(depth0,helpers,partials,data) {
+  var stack1, helper, functionType="function", helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helper = (helper = helpers.readme_html || (depth0 != null ? depth0.readme_html : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"readme_html","hash":{},"data":data}) : helper));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"36":function(depth0,helpers,partials,data) {
   return " <p><em>No readme provided</em></p> ";
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), "Packages", options) : helperMissing.call(depth0, "title", (depth0 && depth0.name), "Packages", options)))
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data,depths) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), "Packages", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</h1> <div class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, 3, options) : helperMissing.call(depth0, "contains", (depth0 && depth0.st_versions), 2, 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.contains || (depth0 && depth0.contains) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 2, 3, {"name":"contains","hash":{},"fn":this.program(1, data, depths),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> <p class=\"description\"> ";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_badges, '', 'package_badges', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  buffer += " </div> <p class=\"description\"> "
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + " </p> ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.labels : depth0), {"name":"if","hash":{},"fn":this.program(3, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <div id=\"details\"> <h2>Details</h2> <ul class=\"meta\"> <li class=\"version";
-  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.length || (depth0 && depth0.length) || helperMissing).call(depth0, (depth0 != null ? depth0.versions : depth0), "ne", 1, {"name":"length","hash":{},"fn":this.program(7, data, depths),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += "\"> <label>Version";
-  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.length || (depth0 && depth0.length) || helperMissing).call(depth0, (depth0 != null ? depth0.versions : depth0), "ne", 1, {"name":"length","hash":{},"fn":this.program(7, data, depths),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += "</label> ";
-  stack1 = (helper = helpers.length || (depth0 && depth0.length),options={hash:{},inverse:self.program(19, program19, data),fn:self.program(9, program9, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.versions), "ne", 1, options) : helperMissing.call(depth0, "length", (depth0 && depth0.versions), "ne", 1, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.length || (depth0 && depth0.length) || helperMissing).call(depth0, (depth0 != null ? depth0.versions : depth0), "ne", 1, {"name":"length","hash":{},"fn":this.program(9, data, depths),"inverse":this.program(19, data, depths),"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </li> <li class=\"homepage\"> <label>Homepage</label> <span>"
-    + escapeExpression((helper = helpers.url_abbr || (depth0 && depth0.url_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.homepage), true, options) : helperMissing.call(depth0, "url_abbr", (depth0 && depth0.homepage), true, options)))
+    + escapeExpression(((helpers.url_abbr || (depth0 && depth0.url_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.homepage : depth0), true, {"name":"url_abbr","hash":{},"data":data})))
     + "</span> </li> ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.issues), {hash:{},inverse:self.noop,fn:self.program(21, program21, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.issues : depth0), {"name":"if","hash":{},"fn":this.program(21, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.donate), {hash:{},inverse:self.noop,fn:self.program(23, program23, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.donate : depth0), {"name":"if","hash":{},"fn":this.program(23, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.buy), {hash:{},inverse:self.noop,fn:self.program(25, program25, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.buy : depth0), {"name":"if","hash":{},"fn":this.program(25, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <li class=\"modified\"> <label>Modified</label> <span title=\""
-    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_modified), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_modified), "ISO", options)))
+    + escapeExpression(((helpers.date_format || (depth0 && depth0.date_format) || helperMissing).call(depth0, (depth0 != null ? depth0.last_modified : depth0), "ISO", {"name":"date_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_modified), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_modified), true, options)))
+    + escapeExpression(((helpers.date_diff || (depth0 && depth0.date_diff) || helperMissing).call(depth0, (depth0 != null ? depth0.last_modified : depth0), true, {"name":"date_diff","hash":{},"data":data})))
     + "</span> </li> <li class=\"last_seen\"> <label>Last Seen</label> <span title=\""
-    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.last_seen), "ISO", options)))
+    + escapeExpression(((helpers.date_format || (depth0 && depth0.date_format) || helperMissing).call(depth0, (depth0 != null ? depth0.last_seen : depth0), "ISO", {"name":"date_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.last_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.last_seen), true, options)))
+    + escapeExpression(((helpers.date_diff || (depth0 && depth0.date_diff) || helperMissing).call(depth0, (depth0 != null ? depth0.last_seen : depth0), true, {"name":"date_diff","hash":{},"data":data})))
     + "</span> </li> <li class=\"first_seen\"> <label>First Seen</label> <span title=\""
-    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "ISO", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "ISO", options)))
+    + escapeExpression(((helpers.date_format || (depth0 && depth0.date_format) || helperMissing).call(depth0, (depth0 != null ? depth0.first_seen : depth0), "ISO", {"name":"date_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.date_diff || (depth0 && depth0.date_diff),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), true, options) : helperMissing.call(depth0, "date_diff", (depth0 && depth0.first_seen), true, options)))
+    + escapeExpression(((helpers.date_diff || (depth0 && depth0.date_diff) || helperMissing).call(depth0, (depth0 != null ? depth0.first_seen : depth0), true, {"name":"date_diff","hash":{},"data":data})))
     + "</span> </li> </ul> </div> <div id=\"installs\"> <h2>Installs</h2> <ul class=\"totals\"> <li> <span class=\"total\">Total</span> <span title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.total : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"installs\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.total), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.total : stack1), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> </li> <li> <span class=\"platform\">Win</span> <span title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.windows : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"windows installs\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.windows), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.windows : stack1), {"name":"num_abbr","hash":{},"data":data})))
     + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">OS X</span> <span title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.osx : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"osx installs\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.osx), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.osx : stack1), {"name":"num_abbr","hash":{},"data":data})))
     + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">Linux</span> <span title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_format", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.linux : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"linux installs\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options) : helperMissing.call(depth0, "num_abbr", ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.linux), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.linux : stack1), {"name":"num_abbr","hash":{},"data":data})))
     + " <span class=\"key\"></span></span> </li> </ul> <div id=\"daily_installs\"> <table cellspacing=\"0\"> <tr class=\"dates\"> <td class=\"none\"></td> ";
-  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.dates), {hash:{},inverse:self.noop,fn:self.program(27, program27, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.daily : stack1)) != null ? stack1.dates : stack1), {"name":"each","hash":{},"fn":this.program(27, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </tr> ";
-  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 && depth0.installs)),stack1 == null || stack1 === false ? stack1 : stack1.daily)),stack1 == null || stack1 === false ? stack1 : stack1.data), {hash:{},inverse:self.noop,fn:self.program(29, program29, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.daily : stack1)) != null ? stack1.data : stack1), {"name":"each","hash":{},"fn":this.program(29, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </table> </div> </div> <div style=\"clear: both\"></div> <div id=\"readme\"> <h2>Readme</h2> ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.noop,fn:self.program(32, program32, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.readme_html : depth0), {"name":"if","hash":{},"fn":this.program(32, data, depths),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <div class=\"contents\"> ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.readme_html), {hash:{},inverse:self.program(36, program36, data),fn:self.program(34, program34, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> </div> ";
-  return buffer;
-  });
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.readme_html : depth0), {"name":"if","hash":{},"fn":this.program(34, data, depths),"inverse":this.program(36, data, depths),"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> </div> ";
+},"usePartial":true,"useData":true,"useDepths":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/highlights'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this, functionType="function";
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  templates['partials/highlights'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_new, '', 'minimal_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.minimal_top, '', 'minimal_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"3":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_trending, '', 'minimal_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_top, 'minimal_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program5(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.minimal_top, '', 'minimal_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"5":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
     + "</a> ";
-  stack1 = self.invokePartial(partials.minimal_platforms, 'minimal_platforms', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_platforms, '', 'minimal_platforms', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_new, 'minimal_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.minimal_new, '', 'minimal_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.minimal_trending, 'minimal_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </li> ";
-  return buffer;
-  }
-
-function program7(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "label", options) : helperMissing.call(depth0, "url", "label", options)))
+  stack1 = this.invokePartial(partials.minimal_trending, '', 'minimal_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"7":function(depth0,helpers,partials,data) {
+  var helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  return " <li> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "label", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.word_wrap || (depth0 && depth0.word_wrap),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.name), options) : helperMissing.call(depth0, "word_wrap", (depth0 && depth0.name), options)))
-    + "</a> <span class=\"package_count\">";
-  if (helper = helpers.packages) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.packages); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.word_wrap || (depth0 && depth0.word_wrap) || helperMissing).call(depth0, (depth0 != null ? depth0.name : depth0), {"name":"word_wrap","hash":{},"data":data})))
+    + "</a> <span class=\"package_count\">"
+    + escapeExpression(((helper = (helper = helpers.packages || (depth0 != null ? depth0.packages : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"packages","hash":{},"data":data}) : helper)))
     + "</span> </li> ";
-  return buffer;
-  }
-
-  buffer += "<div class=\"highlights\"> <div class=\"section trending\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "trending", options) : helperMissing.call(depth0, "url", "trending", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = "<div class=\"highlights\"> <div class=\"section trending\"> <h2><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "trending", {"name":"url","hash":{},"data":data})))
     + "\">Trending <i class=\"icon-chevron-sign-up\"></i></a></h2> <p>A recent, relative, increase in installs</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.trending), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.trending : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section new\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "new", options) : helperMissing.call(depth0, "url", "new", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "new", {"name":"url","hash":{},"data":data})))
     + "\">New <i class=\"icon-leaf\"></i></a></h2> <p>Just added to Package Control</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0['new']), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0['new'] : depth0), {"name":"each","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section popular\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "popular", options) : helperMissing.call(depth0, "url", "popular", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "popular", {"name":"url","hash":{},"data":data})))
     + "\">Popular <i class=\"icon-certificate\"></i></a></h2> <p>Randomly selected from the top 100</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.top), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.top : depth0), {"name":"each","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> </div> <div class=\"section labels\"> <h2><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "labels", {"name":"url","hash":{},"data":data})))
     + "\">Labels <i class=\"icon-tag\"></i></a></h2> <p>Labels with the biggest selection</p> <ul> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.labels), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> </div> </div> ";
-  return buffer;
-  });
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.labels : depth0), {"name":"each","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> </div> </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/minimal_new'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  
+  templates['partials/minimal_new'] = template({"1":function(depth0,helpers,partials,data) {
   return " <span class=\"new\" title=\"First seen within the past two weeks\"><i class=\"icon-leaf\"></i></span> ";
-  }
-
-  stack1 = (helper = helpers.gte || (depth0 && depth0.gte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.gte || (depth0 && depth0.gte) || helperMissing).call(depth0, (depth0 != null ? depth0.first_seen : depth0), "-14 days", {"name":"gte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/minimal_platforms'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  var buffer = "";
-  buffer += "  ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
+  templates['partials/minimal_platforms'] = template({"1":function(depth0,helpers,partials,data) {
+  return "  ";
+},"3":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 2, {"name":"omits","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 3, {"name":"omits","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", {"name":"omits","hash":{},"fn":this.program(8, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "linux", {"name":"omits","hash":{},"fn":this.program(10, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "windows", {"name":"omits","hash":{},"fn":this.program(12, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", {"name":"eq","hash":{},"fn":this.program(14, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "linux", {"name":"eq","hash":{},"fn":this.program(16, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program4(depth0,data) {
-  
-  
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "osx", {"name":"eq","hash":{},"fn":this.program(18, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"4":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Only works with Sublime Text 3\">3</span>";
-  }
-
-function program6(depth0,data) {
-  
-  
+  },"6":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Only works with Sublime Text 2\">2</span>";
-  }
-
-function program8(depth0,data) {
-  
-  
+  },"8":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Only available on Windows\">W</span>";
-  }
-
-function program10(depth0,data) {
-  
-  
+  },"10":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx\" title=\"Only available on OS X\">O</span>";
-  }
-
-function program12(depth0,data) {
-  
-  
+  },"12":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Only available on Linux\">L</span>";
-  }
-
-function program14(depth0,data) {
-  
-  
+  },"14":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx also-before\" title=\"Only available on OS X and Linux\">O</span><span class=\"platforms linux also-after\" title=\"Only available on OS X and Linux\">L</span>";
-  }
-
-function program16(depth0,data) {
-  
-  
+  },"16":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Linux\">W</span><span class=\"platforms linux also-after\" title=\"Only available on Windows and Linux\">L</span>";
-  }
-
-function program18(depth0,data) {
-  
-  
+  },"18":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">O</span>";
-  }
-
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", "windows", {"name":"omits","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/minimal_top'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <span class=\"top_25\" title=\"Ranked #";
-  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['partials/minimal_top'] = template({"1":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"top_25\" title=\"Ranked #"
+    + escapeExpression(((helper = (helper = helpers.installs_rank || (depth0 != null ? depth0.installs_rank : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"installs_rank","hash":{},"data":data}) : helper)))
     + " for total unique installs\"><i class=\"icon-certificate\"></i></span> ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <span class=\"top_100\" title=\"Ranked #";
-  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+},"3":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"top_100\" title=\"Ranked #"
+    + escapeExpression(((helper = (helper = helpers.installs_rank || (depth0 != null ? depth0.installs_rank : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"installs_rank","hash":{},"data":data}) : helper)))
     + " for total unique installs\"><i class=\"icon-certificate\"></i></span> ";
-  return buffer;
-  }
-
-  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.lte || (depth0 && depth0.lte) || helperMissing).call(depth0, (depth0 != null ? depth0.installs_rank : depth0), 25, {"name":"lte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.between || (depth0 && depth0.between),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = ((helpers.between || (depth0 && depth0.between) || helperMissing).call(depth0, (depth0 != null ? depth0.installs_rank : depth0), 26, 100, {"name":"between","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/minimal_trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <span class=\"trending\" title=\""
-    + escapeExpression((helper = helpers.num_ord || (depth0 && depth0.num_ord),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
+  templates['partials/minimal_trending'] = template({"1":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"trending\" title=\""
+    + escapeExpression(((helpers.num_ord || (depth0 && depth0.num_ord) || helperMissing).call(depth0, (depth0 != null ? depth0.trending_rank : depth0), {"name":"num_ord","hash":{},"data":data})))
     + " highest percentage increase in installs recently\"><i class=\"icon-chevron-sign-up\"></i></span> ";
-  return buffer;
-  }
-
-  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.lte || (depth0 && depth0.lte) || helperMissing).call(depth0, (depth0 != null ? depth0.trending_rank : depth0), 50, {"name":"lte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/notification'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression;
-
-
-  buffer += "<div id=\"notification\"> ";
-  if (helper = helpers.message) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.message); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['partials/notification'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return "<div id=\"notification\"> "
+    + escapeExpression(((helper = (helper = helpers.message || (depth0 != null ? depth0.message : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"message","hash":{},"data":data}) : helper)))
     + " </div> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_author'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
-
-
-  buffer += "<span class=\"author\"><em>by</em> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.author))
-  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
-    + "\">";
-  if (helper = helpers.author) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.author); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['partials/package_author'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
+  return "<span class=\"author\"><em>by</em> <a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.author : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.author || (depth0 != null ? depth0.author : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"author","hash":{},"data":data}) : helper)))
     + "</a></span> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_badges'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, self=this;
-
-
-  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  templates['partials/package_badges'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, buffer = "";
+  stack1 = this.invokePartial(partials.package_missing_deprecated, '', 'package_missing_deprecated', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_new, '', 'package_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_trending, '', 'package_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.package_top, '', 'package_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_compat'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  var buffer = "";
-  buffer += "  ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
+  templates['partials/package_compat'] = template({"1":function(depth0,helpers,partials,data) {
+  return "  ";
+},"3":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 2, {"name":"omits","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 2, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 2, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.st_versions : depth0), 3, {"name":"omits","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.st_versions), 3, options) : helperMissing.call(depth0, "omits", (depth0 && depth0.st_versions), 3, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", {"name":"omits","hash":{},"fn":this.program(8, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(8, program8, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "linux", {"name":"omits","hash":{},"fn":this.program(10, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(10, program10, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "windows", {"name":"omits","hash":{},"fn":this.program(12, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.noop,fn:self.program(12, program12, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "windows", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", {"name":"eq","hash":{},"fn":this.program(14, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(14, program14, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "linux", {"name":"eq","hash":{},"fn":this.program(16, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(16, program16, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program4(depth0,data) {
-  
-  
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "osx", {"name":"eq","hash":{},"fn":this.program(18, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"4":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Only works with Sublime Text 3\">ST3</span>";
-  }
-
-function program6(depth0,data) {
-  
-  
+  },"6":function(depth0,helpers,partials,data) {
   return "<span class=\"versions only\" title=\"Only works with Sublime Text 2\">ST2</span>";
-  }
-
-function program8(depth0,data) {
-  
-  
+  },"8":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Only available on Windows\">Win</span>";
-  }
-
-function program10(depth0,data) {
-  
-  
+  },"10":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx\" title=\"Only available on OS X\">OS X</span>";
-  }
-
-function program12(depth0,data) {
-  
-  
+  },"12":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Only available on Linux\">Linux</span>";
-  }
-
-function program14(depth0,data) {
-  
-  
+  },"14":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx also-before\" title=\"Only available on OS X and Linux\">OS X</span><span class=\"platforms linux also-after\" title=\"Only available on OS X and Linux\">Linux</span>";
-  }
-
-function program16(depth0,data) {
-  
-  
+  },"16":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Linux\">Win</span><span class=\"platforms linux also-after\" title=\"Only available on Windows and Linux\">Linux</span>";
-  }
-
-function program18(depth0,data) {
-  
-  
+  },"18":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">Win</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">OS X</span>";
-  }
-
-  stack1 = (helper = helpers.omits || (depth0 && depth0.omits),options={hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", "windows", options) : helperMissing.call(depth0, "omits", (depth0 && depth0.platforms), "osx", "linux", "windows", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", "windows", {"name":"omits","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_installs'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-function program1(depth0,data) {
-  
-  
+  templates['partials/package_installs'] = template({"1":function(depth0,helpers,partials,data) {
   return "s";
-  }
-
-  buffer += "<span class=\"installs\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.unique_installs), options)))
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = "<span class=\"installs\" title=\""
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.unique_installs : depth0), {"name":"num_format","hash":{},"data":data})))
     + " total unique install";
-  stack1 = (helper = helpers.ne || (depth0 && depth0.ne),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), 1, options) : helperMissing.call(depth0, "ne", (depth0 && depth0.unique_installs), 1, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.unique_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.unique_installs), options)))
+  stack1 = ((helpers.ne || (depth0 && depth0.ne) || helperMissing).call(depth0, (depth0 != null ? depth0.unique_installs : depth0), 1, {"name":"ne","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + "\">"
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.unique_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + " <em>Installs</em></span> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_missing_deprecated'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  
+  templates['partials/package_missing_deprecated'] = template({"1":function(depth0,helpers,partials,data) {
   return " <span class=\"removed\" title=\"Package was removed and is no longer available.\"><i class=\"icon-ban-circle\"></i> Removed</span> ";
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.is_missing), {hash:{},inverse:self.noop,fn:self.program(4, program4, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program4(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <span class=\"missing\" title=\"Package info was unavailable last time crawler ran. ";
-  if (helper = helpers.missing_error) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.missing_error); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  },"3":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.is_missing : depth0), {"name":"if","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"4":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"missing\" title=\"Package info was unavailable last time crawler ran. "
+    + escapeExpression(((helper = (helper = helpers.missing_error || (depth0 != null ? depth0.missing_error : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"missing_error","hash":{},"data":data}) : helper)))
     + "\"><i class=\"icon-question-sign\"></i> Missing</span> ";
-  return buffer;
-  }
-
-function program6(depth0,data) {
-  
-  
+},"6":function(depth0,helpers,partials,data) {
   return " <span class=\"deprecated\" title=\"Package has been marked as deprecated, see readme\"><i class=\"icon-remove-sign\"></i> Deprecated</span> ";
-  }
-
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.removed), {hash:{},inverse:self.program(3, program3, data),fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.removed : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.contains || (depth0 && depth0.contains),options={hash:{},inverse:self.noop,fn:self.program(6, program6, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.labels), "deprecated", options) : helperMissing.call(depth0, "contains", (depth0 && depth0.labels), "deprecated", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = ((helpers.contains || (depth0 && depth0.contains) || helperMissing).call(depth0, (depth0 != null ? depth0.labels : depth0), "deprecated", {"name":"contains","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_new'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  
+  templates['partials/package_new'] = template({"1":function(depth0,helpers,partials,data) {
   return " <span class=\"new\" title=\"First seen within the past two weeks\"><i class=\"icon-leaf\"></i> New</span> ";
-  }
-
-  stack1 = (helper = helpers.gte || (depth0 && depth0.gte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "-14 days", options) : helperMissing.call(depth0, "gte", (depth0 && depth0.first_seen), "-14 days", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.gte || (depth0 && depth0.gte) || helperMissing).call(depth0, (depth0 != null ? depth0.first_seen : depth0), "-14 days", {"name":"gte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_top'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, functionType="function", escapeExpression=this.escapeExpression, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <span class=\"top_25\" title=\"Ranked #";
-  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['partials/package_top'] = template({"1":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"top_25\" title=\"Ranked #"
+    + escapeExpression(((helper = (helper = helpers.installs_rank || (depth0 != null ? depth0.installs_rank : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"installs_rank","hash":{},"data":data}) : helper)))
     + " for total unique installs\"><i class=\"icon-certificate\"></i> Top 25</span> ";
-  return buffer;
-  }
-
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <span class=\"top_100\" title=\"Ranked #";
-  if (helper = helpers.installs_rank) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.installs_rank); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+},"3":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"top_100\" title=\"Ranked #"
+    + escapeExpression(((helper = (helper = helpers.installs_rank || (depth0 != null ? depth0.installs_rank : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"installs_rank","hash":{},"data":data}) : helper)))
     + " for total unique installs\"><i class=\"icon-certificate\"></i> Top 100</span> ";
-  return buffer;
-  }
-
-  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 25, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.installs_rank), 25, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.lte || (depth0 && depth0.lte) || helperMissing).call(depth0, (depth0 != null ? depth0.installs_rank : depth0), 25, {"name":"lte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.between || (depth0 && depth0.between),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.installs_rank), 26, 100, options) : helperMissing.call(depth0, "between", (depth0 && depth0.installs_rank), 26, 100, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = ((helpers.between || (depth0 && depth0.between) || helperMissing).call(depth0, (depth0 != null ? depth0.installs_rank : depth0), 26, 100, {"name":"between","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", helper, options;
-  buffer += " <span class=\"trending\" title=\""
-    + escapeExpression((helper = helpers.num_ord || (depth0 && depth0.num_ord),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), options) : helperMissing.call(depth0, "num_ord", (depth0 && depth0.trending_rank), options)))
+  templates['partials/package_trending'] = template({"1":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <span class=\"trending\" title=\""
+    + escapeExpression(((helpers.num_ord || (depth0 && depth0.num_ord) || helperMissing).call(depth0, (depth0 != null ? depth0.trending_rank : depth0), {"name":"num_ord","hash":{},"data":data})))
     + " highest percentage increase in installs recently\"><i class=\"icon-chevron-sign-up\"></i> Trending</span> ";
-  return buffer;
-  }
-
-  stack1 = (helper = helpers.lte || (depth0 && depth0.lte),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.trending_rank), 50, options) : helperMissing.call(depth0, "lte", (depth0 && depth0.trending_rank), 50, options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.lte || (depth0 && depth0.lte) || helperMissing).call(depth0, (depth0 != null ? depth0.trending_rank : depth0), 50, {"name":"lte","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/pagination'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <nav class=\"pagination\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.links), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </nav> ";
-  return buffer;
-  }
-function program2(depth0,data) {
-  
-  var buffer = "", stack1, helper;
-  buffer += " <a href=\"";
-  if (helper = helpers.href) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.href); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['partials/pagination'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " <nav class=\"pagination\"> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.links : depth0), {"name":"each","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </nav> ";
+},"2":function(depth0,helpers,partials,data) {
+  var stack1, helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <a href=\""
+    + escapeExpression(((helper = (helper = helpers.href || (depth0 != null ? depth0.href : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"href","hash":{},"data":data}) : helper)))
     + "\"";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.selected), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += ">";
-  if (helper = helpers.number) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.number); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.selected : depth0), {"name":"if","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + ">"
+    + escapeExpression(((helper = (helper = helpers.number || (depth0 != null ? depth0.number : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"number","hash":{},"data":data}) : helper)))
     + "</a> ";
-  return buffer;
-  }
-function program3(depth0,data) {
-  
-  
+},"3":function(depth0,helpers,partials,data) {
   return " class=\"selected\"";
-  }
-
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.links), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, buffer = "";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.links : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/realtime'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  
-
-
+  templates['partials/realtime'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   return "<div id=\"realtime\"> <div class=\"meta\"> <span class=\"title\">Realtime</span> <span class=\"key\"> <span class=\"channel\"></span> channel json <span class=\"web\"></span> web visits <span class=\"usage\"></span> package operations </span> </div> <div class=\"no_data\">Realtime analytics data unavailable</div> <div class=\"paused\">Realtime analytics paused</div> </div> ";
-  });
+  },"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/results'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1;
+  templates['partials/results'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"if","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.unless.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"unless","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers.unless.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  }
-function program2(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += " <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </ul> ";
-  return buffer;
-  }
-function program3(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"2":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " <ul class=\"packages results\"> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> ";
+},"3":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_name), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_name), options)))
+    + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_name : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</a></h3> <span class=\"author\"><em>by</em> <a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.author))
-  },data:data},helper ? helper.call(depth0, "author", options) : helperMissing.call(depth0, "url", "author", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.author : depth0))
+  },"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_author), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_author), options)))
+    + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_author : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</a></span> ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_badges, 'package_badges', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_badges, '', 'package_badges', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">"
-    + escapeExpression((helper = helpers.highlight || (depth0 && depth0.highlight),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.highlighted_description), options) : helperMissing.call(depth0, "highlight", (depth0 && depth0.highlighted_description), options)))
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_description : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</div> </li> ";
-  return buffer;
-  }
-
-function program5(depth0,data) {
-  
-  
+},"5":function(depth0,helpers,partials,data) {
   return " <div class=\"no results\"> No packages matched your search terms </div> ";
-  }
-
-function program7(depth0,data) {
-  
-  
+  },"7":function(depth0,helpers,partials,data) {
   return " <div class=\"no results\"> Enter your search terms above </div> ";
-  }
-
-  buffer += "<div class=\"results\"> ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.terms), {hash:{},inverse:self.program(7, program7, data),fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  });
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, buffer = "<div class=\"results\"> ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.terms : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(7, data),"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/version_qualifiers'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, options, self=this, helperMissing=helpers.helperMissing;
-
-function program1(depth0,data) {
-  
-  
+  templates['partials/version_qualifiers'] = template({"1":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Linux\">L</span>";
-  }
-
-function program3(depth0,data) {
-  
-  
+  },"3":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Windows\">W</span>";
-  }
-
-function program5(depth0,data) {
-  
-  
+  },"5":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx\" title=\"OS X\">O</span>";
-  }
-
-function program7(depth0,data) {
-  
-  
+  },"7":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Linux x32\">L32</span>";
-  }
-
-function program9(depth0,data) {
-  
-  
+  },"9":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Linux x64\">L64</span>";
-  }
-
-function program11(depth0,data) {
-  
-  
+  },"11":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Windows x32\">W32</span>";
-  }
-
-function program13(depth0,data) {
-  
-  
+  },"13":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Windows x64\">W64</span>";
-  }
-
-function program15(depth0,data) {
-  
-  
+  },"15":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms osx also-before\" title=\"OS X and Linux\">O</span><span class=\"platforms linux also-after\" title=\"OS X and Linux\">L</span>";
-  }
-
-function program17(depth0,data) {
-  
-  
+  },"17":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Windows and Linux\">W</span><span class=\"platforms linux also-after\" title=\"Windows and Linux\">L</span>";
-  }
-
-function program19(depth0,data) {
-  
-  
+  },"19":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Windows and OS X\">O</span>";
-  }
-
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "linux", {"name":"eq","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", {"name":"eq","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(5, program5, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", {"name":"eq","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x32", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "linux-x32", {"name":"eq","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(9, program9, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "linux-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "linux-x64", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "linux-x64", {"name":"eq","hash":{},"fn":this.program(9, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(11, program11, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows-x32", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x32", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows-x32", {"name":"eq","hash":{},"fn":this.program(11, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(13, program13, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows-x64", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows-x64", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows-x64", {"name":"eq","hash":{},"fn":this.program(13, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "osx", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "osx", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", {"name":"eq","hash":{},"fn":this.program(15, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(17, program17, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "linux", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "linux", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "linux", {"name":"eq","hash":{},"fn":this.program(17, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = (helper = helpers.eq || (depth0 && depth0.eq),options={hash:{},inverse:self.noop,fn:self.program(19, program19, data),data:data},helper ? helper.call(depth0, (depth0 && depth0.platforms), "windows", "osx", options) : helperMissing.call(depth0, "eq", (depth0 && depth0.platforms), "windows", "osx", options));
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "windows", "osx", {"name":"eq","hash":{},"fn":this.program(19, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['popular'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['popular'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_missing_deprecated, '', 'package_missing_deprecated', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_new, '', 'package_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_trending, '', 'package_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Popular Packages", options) : helperMissing.call(depth0, "title", "Popular Packages", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Popular Packages", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>Popular</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['rss'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, functionType="function", escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <item> <title>";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "</title> <author>";
-  if (helper = helpers.author) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.author); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
-    + "</author> <description>";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['rss'] = template({"1":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <item> <title>"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
+    + "</title> <author>"
+    + escapeExpression(((helper = (helper = helpers.author || (depth0 != null ? depth0.author : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"author","hash":{},"data":data}) : helper)))
+    + "</author> <description>"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</description> <pubDate>"
-    + escapeExpression((helper = helpers.date_format || (depth0 && depth0.date_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.first_seen), "%F %T", options) : helperMissing.call(depth0, "date_format", (depth0 && depth0.first_seen), "%F %T", options)))
+    + escapeExpression(((helpers.date_format || (depth0 && depth0.date_format) || helperMissing).call(depth0, (depth0 != null ? depth0.first_seen : depth0), "%F %T", {"name":"date_format","hash":{},"data":data})))
     + "</pubDate> <link>https://packagecontrol.io"
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "</link> <guid>";
-  if (helper = helpers.md5) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.md5); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "</link> <guid>"
+    + escapeExpression(((helper = (helper = helpers.md5 || (depth0 != null ? depth0.md5 : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"md5","hash":{},"data":data}) : helper)))
     + "</guid> </item> ";
-  return buffer;
-  }
-
-  buffer += "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"> <channel> <title>Newest Sublime Text Packages</title> <description>The 25 newest additions to the default Package Control channel</description> <language>en-us</language> <copyright>Copyright ";
-  if (helper = helpers.year) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.year); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"> <channel> <title>Newest Sublime Text Packages</title> <description>The 25 newest additions to the default Package Control channel</description> <language>en-us</language> <copyright>Copyright "
+    + escapeExpression(((helper = (helper = helpers.year || (depth0 != null ? depth0.year : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"year","hash":{},"data":data}) : helper)))
     + ", Will Bond</copyright> <link>https://packagecontrol.io</link> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </channel> </rss> ";
-  return buffer;
-  });
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </channel> </rss> ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['search'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, self=this;
-
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.terms), "Search", options) : helperMissing.call(depth0, "title", (depth0 && depth0.terms), "Search", options)))
+  templates['search'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, (depth0 != null ? depth0.terms : depth0), "Search", {"name":"title","hash":{},"data":data})))
     + " ";
-  stack1 = self.invokePartial(partials.results, 'results', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.results, '', 'results', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['static'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, helper, functionType="function";
-
-
-  if (helper = helpers.html) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.html); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " ";
-  return buffer;
-  });
+  templates['static'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helper, functionType="function", helperMissing=helpers.helperMissing, buffer = "";
+  stack1 = ((helper = (helper = helpers.html || (depth0 != null ? depth0.html : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"html","hash":{},"data":data}) : helper));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['stats'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
-
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Stats", options) : helperMissing.call(depth0, "title", "Stats", options)))
+  templates['stats'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Stats", {"name":"title","hash":{},"data":data})))
     + " <h1>Stats</h1> <section class=\"packages\"> <h2>Packages</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.total_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> <span class=\"stat\"><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Packages</a></span> </div> <div class=\"secondary\"> <span class=\"version st2_st3\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st2_st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_st3_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.st2_st3_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> ST2/3 </span> <span class=\"version st3\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st3_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st3_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.st3_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> ST3 </span> <span class=\"version st2\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.st2_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.st2_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.st2_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> ST2 </span> </div> <div class=\"tertiary\"> <span class=\"platform windows\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_packages), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_packages), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> "
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_labels), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_labels), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.total_labels : depth0), {"name":"num_format","hash":{},"data":data})))
     + " </span> <span class=\"stat\"><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "labels", options) : helperMissing.call(depth0, "url", "labels", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "labels", {"name":"url","hash":{},"data":data})))
     + "\">Labels</a></span> </div> </div> </section> <section class=\"users\"> <h2>Users</h2> <div class=\"total\"> <div class=\"main\"> <span class=\"number\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_users), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.total_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.total_users), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.total_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> <span class=\"stat\">Users</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.windows_users), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_users), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.osx_users), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_users), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.linux_users), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_users), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_users), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> "
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.total_authors), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.total_authors), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.total_authors : depth0), {"name":"num_format","hash":{},"data":data})))
     + " </span> <span class=\"stat\"><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "authors", options) : helperMissing.call(depth0, "url", "authors", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "authors", {"name":"url","hash":{},"data":data})))
     + "\">Authors</a></span> </div> </div> </section> <section class=\"yesterday\"> <h2>Activity Yesterday</h2> <div class=\"installs\"> <div class=\"main\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.installs), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> <span class=\"stat\">Package Installs</span> </div> <div class=\"secondary\"> <span class=\"platform windows\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.windows_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.windows_installs), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.osx_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.osx_installs), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.linux_installs), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.linux_installs), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Linux </span> </div> </div> <div class=\"actions\"> <div class=\"main\"> <span class=\"number\">"
-    + escapeExpression((helper = helpers.num_abbr || (depth0 && depth0.num_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.submissions), options) : helperMissing.call(depth0, "num_abbr", (depth0 && depth0.submissions), options)))
+    + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.submissions : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> <span class=\"stat\">User Actions</span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\" title=\""
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_bytes_served), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.json_bytes_served : depth0), {"name":"num_format","hash":{},"data":data})))
     + " bytes over "
-    + escapeExpression((helper = helpers.num_format || (depth0 && depth0.num_format),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_requests_served), options) : helperMissing.call(depth0, "num_format", (depth0 && depth0.json_requests_served), options)))
+    + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.json_requests_served : depth0), {"name":"num_format","hash":{},"data":data})))
     + " requests\"> "
-    + escapeExpression((helper = helpers.filesize_abbr || (depth0 && depth0.filesize_abbr),options={hash:{},data:data},helper ? helper.call(depth0, (depth0 && depth0.json_bytes_served), options) : helperMissing.call(depth0, "filesize_abbr", (depth0 && depth0.json_bytes_served), options)))
+    + escapeExpression(((helpers.filesize_abbr || (depth0 && depth0.filesize_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.json_bytes_served : depth0), {"name":"filesize_abbr","hash":{},"data":data})))
     + " </span> <span class=\"stat\">JSON Served</span> </div> </div> </section> ";
-  return buffer;
-  });
+},"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['trending'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['trending'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_missing_deprecated, '', 'package_missing_deprecated', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_new, '', 'package_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_top, '', 'package_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Trending Packages", options) : helperMissing.call(depth0, "title", "Trending Packages", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Trending Packages", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>Trending</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['updated'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); partials = this.merge(partials, Handlebars.partials); data = data || {};
-  var buffer = "", stack1, helper, options, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", self=this;
-
-function program1(depth0,data) {
-  
-  var buffer = "", stack1, helper, options;
-  buffer += " <li class=\"package\"> <h3><a href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{
-    'name': ((depth0 && depth0.name))
-  },data:data},helper ? helper.call(depth0, "package", options) : helperMissing.call(depth0, "url", "package", options)))
-    + "\">";
-  if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  templates['updated'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = " <li class=\"package\"> <h3><a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.name : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</a></h3> ";
-  stack1 = self.invokePartial(partials.package_author, 'package_author', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_author, '', 'package_author', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_compat, 'package_compat', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
-  stack1 = self.invokePartial(partials.package_missing_deprecated, 'package_missing_deprecated', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_missing_deprecated, '', 'package_missing_deprecated', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_new, 'package_new', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_new, '', 'package_new', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_trending, 'package_trending', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_trending, '', 'package_trending', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_top, 'package_top', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = this.invokePartial(partials.package_top, '', 'package_top', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = self.invokePartial(partials.package_installs, 'package_installs', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </span> <div class=\"description\">";
-  if (helper = helpers.description) { stack1 = helper.call(depth0, {hash:{},data:data}); }
-  else { helper = (depth0 && depth0.description); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
-  buffer += escapeExpression(stack1)
+  stack1 = this.invokePartial(partials.package_installs, '', 'package_installs', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </span> <div class=\"description\">"
+    + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</div> </li> ";
-  return buffer;
-  }
-
-  buffer += escapeExpression((helper = helpers.title || (depth0 && depth0.title),options={hash:{},data:data},helper ? helper.call(depth0, "Updated Packages", options) : helperMissing.call(depth0, "title", "Updated Packages", options)))
+},"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Updated Packages", {"name":"title","hash":{},"data":data})))
     + " <a class=\"context\" href=\""
-    + escapeExpression((helper = helpers.url || (depth0 && depth0.url),options={hash:{},data:data},helper ? helper.call(depth0, "browse", options) : helperMissing.call(depth0, "url", "browse", options)))
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "browse", {"name":"url","hash":{},"data":data})))
     + "\">Browse</a> <h1>Updated</h1> <div class=\"results\"> <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 && depth0.packages), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
-  if(stack1 || stack1 === 0) { buffer += stack1; }
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
   buffer += " </ul> ";
-  stack1 = self.invokePartial(partials.pagination, 'pagination', depth0, helpers, partials, data);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += " </div> ";
-  return buffer;
-  });
+  stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </div> ";
+},"usePartial":true,"useData":true});
 }).call(this);
 (function() {
 
