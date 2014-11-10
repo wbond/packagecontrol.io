@@ -156,10 +156,27 @@ header {
 				width: 130px;
 				margin-bottom: 10px;
 			}
+
+			@media (max-width: 600px) {
+				width: 100%;
+				overflow: hidden;
+				padding: 15px;
+				margin-bottom: 20px;
+
+				img {
+					float: left;
+					margin-right: 20px;
+					margin-bottom: 0;
+				}
+			}
 		}
 
 		div#fusion-container {
 			position: relative;
+
+			@media (max-width: 600px) {
+				height: 180px;
+			}
 		}
 
 		div#fusionads,
