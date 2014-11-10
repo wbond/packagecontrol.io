@@ -140,6 +140,24 @@ header {
 			padding-bottom: 5px;
 		}
 
+		> a {
+			@include box-sizing(border-box);
+
+			margin-top: 20px;
+			border: 1px solid $greyLight;
+			padding: 20px 18px 10px 18px;
+			font-size: 0.85em;
+			width: 168px;
+			display: block;
+			background-color: #fff;
+			color: $grey;
+
+			img {
+				width: 130px;
+				margin-bottom: 10px;
+			}
+		}
+
 		div#fusion-container {
 			position: relative;
 		}

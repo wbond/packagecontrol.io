@@ -214,14 +214,18 @@ class App.Header extends Backbone.View
     @$loading.css(dimension, percentage + '%')
 
   refreshAd: (showing) =>
+    if $('a[href="/redirect/book"]').length > 0
+      return
+
     # Remove and recreate the ad placeholder
     adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1')
     adEl = $('#fusionads')
     previouslyLoaded = adJsEls.length > 0
+    navContainer = $('#nav_container')
 
     if not previouslyLoaded
       container = $('<div id="fusion-container"></div>')
-      $('#nav_container').append(container)
+      navContainer.append(container)
     else
       container = $('#fusion-container')
       serve = $('#bsap_1332').data('serve')
@@ -241,10 +245,29 @@ class App.Header extends Backbone.View
     script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond'
     script.id = '_fusionads_js'
 
+    showBookTimeout = null
+    adBook = (e) ->
+      clearTimeout(showBookTimeout)
+      clearInterval(runInterval)
+      clearInterval(fadeInterval)
+      container[0].removeChild(script)
+      container.remove()
+      link = $('<a href="/redirect/book"><img src="/img/book.png"> Save 30 minutes a day by speeding up development and optimizing your workflows.</a>')
+      if e
+        navContainer.append(link)
+      else
+        link.css({display: 'none'})
+        navContainer.append(link)
+        link.fadeIn(150)
+    # On Safari, onerror is never triggered with certain blockers,
+    # so we use a timeout to detect failure
+    showBookTimeout = setTimeout(adBook, 3000)
+
     # Only run the reload code if it is present
     runInterval = null
     counter = 0
     script.onload = ->
+      clearTimeout(showBookTimeout)
       runInterval = setInterval((->
         counter += 1
 
@@ -256,6 +279,8 @@ class App.Header extends Backbone.View
           clearInterval(runInterval)
           window._bsaPRO()
       ), 50)
+
+    script.onerror = adBook
 
     container[0].appendChild(script)
 
