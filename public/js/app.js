@@ -18214,7 +18214,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.37';
+  window.App.version = '1.0.38';
 
 }).call(this);
 
@@ -18850,13 +18850,17 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.refreshAd = function(showing) {
-      var adEl, adJsEls, container, counter, fadeIn, fadeInterval, previouslyLoaded, runInterval, script, serve;
+      var adBook, adEl, adJsEls, container, counter, fadeIn, fadeInterval, navContainer, previouslyLoaded, runInterval, script, serve, showBookTimeout;
+      if ($('a[href="/redirect/book"]').length > 0) {
+        return;
+      }
       adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1');
       adEl = $('#fusionads');
       previouslyLoaded = adJsEls.length > 0;
+      navContainer = $('#nav_container');
       if (!previouslyLoaded) {
         container = $('<div id="fusion-container"></div>');
-        $('#nav_container').append(container);
+        navContainer.append(container);
       } else {
         container = $('#fusion-container');
         serve = $('#bsap_1332').data('serve');
@@ -18874,9 +18878,30 @@ Backbone.addBeforePopState = function(BB) {
       script = document.createElement('script');
       script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond';
       script.id = '_fusionads_js';
+      showBookTimeout = null;
+      adBook = function(e) {
+        var link;
+        clearTimeout(showBookTimeout);
+        clearInterval(runInterval);
+        clearInterval(fadeInterval);
+        container[0].removeChild(script);
+        container.remove();
+        link = $('<a href="/redirect/book"><img src="/img/book.png"> Save 30 minutes a day by speeding up development and optimizing your workflows.</a>');
+        if (e) {
+          return navContainer.append(link);
+        } else {
+          link.css({
+            display: 'none'
+          });
+          navContainer.append(link);
+          return link.fadeIn(150);
+        }
+      };
+      showBookTimeout = setTimeout(adBook, 3000);
       runInterval = null;
       counter = 0;
       script.onload = function() {
+        clearTimeout(showBookTimeout);
         return runInterval = setInterval((function() {
           counter += 1;
           if (counter > 100) {
@@ -18888,6 +18913,7 @@ Backbone.addBeforePopState = function(BB) {
           }
         }), 50);
       };
+      script.onerror = adBook;
       container[0].appendChild(script);
       fadeIn = function() {
         var ad;
