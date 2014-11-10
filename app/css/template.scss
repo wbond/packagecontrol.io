@@ -33,16 +33,15 @@ header {
 	}
 
 	a#logo {
-		@include transition(opacity 0.15s ease-in-out);
-
 		overflow: hidden;
 
 		img {
+			@include transition(opacity 0.15s ease-in-out);
+
 			border: none;
 			display: block;
 			float: left;
 			max-height: 51px;
-			opacity: 0.7;
 			max-width: 286px;
 			margin-right: 30px;
 
@@ -321,8 +320,8 @@ footer {
 			margin-left: 10px;
 			position: relative;
 			bottom: -2px;
-			height: 25px;
-			width: 80px;
+			max-height: 25px;
+			max-width: 80px;
 		}
 	}
 }
