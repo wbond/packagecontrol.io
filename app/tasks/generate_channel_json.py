@@ -2,6 +2,7 @@ import re
 import json
 import os
 import gzip
+import bz2
 from urllib.parse import urlparse
 
 from ..models import package
@@ -74,17 +75,26 @@ for domain in ssl_domains:
 
 output['repositories'] = sorted(output['repositories'])
 
-new_json_path    = os.path.join(assets_dir, 'channel.json-new')
-new_json_gz_path = os.path.join(assets_dir, 'channel.json.gz-new')
-json_path        = os.path.join(assets_dir, 'channel.json')
-json_gz_path     = os.path.join(assets_dir, 'channel.json.gz')
+new_json_path     = os.path.join(assets_dir, 'channel.json-new')
+new_json_gz_path  = os.path.join(assets_dir, 'channel.json.gz-new')
+new_json_bz2_path = os.path.join(assets_dir, 'channel.json.bz2-new')
+json_path         = os.path.join(assets_dir, 'channel.json')
+json_gz_path      = os.path.join(assets_dir, 'channel.json.gz')
+json_bz2_path     = os.path.join(assets_dir, 'channel.json.bz2')
 
-with open(new_json_path, 'w', encoding='utf-8') as f:
-    json.dump(output, f, cls=JsonDatetimeEncoder)
+encoded_json = json.dumps(output, cls=JsonDatetimeEncoder).encode('utf-8')
+
+with open(new_json_path, 'wb') as f:
+    f.write(encoded_json)
 
 os.rename(new_json_path, json_path)
 
 with gzip.open(new_json_gz_path, 'w') as f:
-    f.write(json.dumps(output, cls=JsonDatetimeEncoder).encode('utf-8'))
+    f.write(encoded_json)
 
 os.rename(new_json_gz_path, json_gz_path)
+
+with bz2.open(new_json_bz2_path, 'w') as f:
+    f.write(encoded_json)
+
+os.rename(new_json_bz2_path, json_bz2_path)
