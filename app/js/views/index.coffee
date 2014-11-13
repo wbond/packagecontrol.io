@@ -5,6 +5,11 @@ class App.Views.Index extends Snakeskin.View
     Snakeskin.Helpers.title('Package Control', 'the Sublime Text package manager')
 
   initialize: (options) =>
+    @listenTo(@, 'placed', =>
+      if window.App.rootHash == '#discover'
+        $('#search').focus()
+    )
+
     # If a browser doesn't support websockets (IE9, Android 2) then no charts
     if typeof window.WebSocket != "undefined"
       src = '/js/d3.js'
