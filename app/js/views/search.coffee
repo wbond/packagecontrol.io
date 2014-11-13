@@ -3,9 +3,18 @@ class App.Views.Search extends Snakeskin.View
 
   initialize: (options) ->
     @listenTo(@, 'placed', =>
+      input = $('#search')
+      input.focus()
+      # Everything but IE supports setSelectionRange
+      if input[0].setSelectionRange
+        length = input.val().length * 2
+        input[0].setSelectionRange(length, length)
+      # IE sets the cursor to the end if you set the value to its previous value
+      else
+        input.val(input.val())
+
       @$results = @$('div.results')
     )
-
 
   title: =>
     terms = App.router.path().replace(/^.*\/([^\/]+)$/, '$1')
