@@ -18199,6 +18199,12 @@ Backbone.addBeforePopState = function(BB) {
       this.layout = new App.Layout();
       Snakeskin.Helpers.register();
       Snakeskin.View.registerPartials();
+      if (window.location.hash !== '' && window.location.pathname === '/') {
+        window.App.rootHash = window.location.hash;
+        if (history.replaceState) {
+          history.replaceState(null, null, '/');
+        }
+      }
       Backbone.history.start({
         pushState: true,
         hashChange: false
@@ -18214,7 +18220,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.39';
+  window.App.version = '1.0.40';
 
 }).call(this);
 
@@ -19441,6 +19447,13 @@ Backbone.addBeforePopState = function(BB) {
 
     Index.prototype.initialize = function(options) {
       var d3Js, el, src;
+      this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          if (window.App.rootHash === '#discover') {
+            return $('#search').focus();
+          }
+        };
+      })(this));
       if (typeof window.WebSocket !== "undefined") {
         src = '/js/d3.js';
         d3Js = $('script[src="' + src + '"]');
@@ -20424,6 +20437,15 @@ Backbone.addBeforePopState = function(BB) {
     Search.prototype.initialize = function(options) {
       return this.listenTo(this, 'placed', (function(_this) {
         return function() {
+          var input, length;
+          input = $('#search');
+          input.focus();
+          if (input[0].setSelectionRange) {
+            length = input.val().length * 2;
+            input[0].setSelectionRange(length, length);
+          } else {
+            input.val(input.val());
+          }
           return _this.$results = _this.$('div.results');
         };
       })(this));
