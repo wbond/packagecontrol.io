@@ -42,6 +42,8 @@ def list(details=False, page=1, limit=10):
                 ) AS l ON p.labels @> ARRAY[l.label]::varchar[]
             GROUP BY
                 l.label
+            HAVING
+                COUNT(p.name) > 1
             ORDER BY
                 COUNT(p.name) DESC
             LIMIT %s
@@ -52,14 +54,19 @@ def list(details=False, page=1, limit=10):
         if details:
             cursor.execute("""
                 SELECT
-                    COUNT(*) AS total
+                    COUNT(l.label) AS total
                 FROM
+                    packages AS p INNER JOIN
                     (
                         SELECT
                             DISTINCT unnest(labels) AS label
                         FROM
                             packages
-                    ) AS sq
+                    ) AS l ON p.labels @> ARRAY[l.label]::varchar[]
+                GROUP BY
+                    l.label
+                HAVING
+                    COUNT(p.name) > 1
                 """)
             output = {
                 'labels': output,
