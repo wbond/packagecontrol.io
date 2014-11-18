@@ -40,6 +40,8 @@ def list(details=False, page=1, limit=10):
                     FROM
                         packages
                 ) AS l ON p.labels @> ARRAY[l.label]::varchar[]
+            WHERE
+                l.label NOT IN ('SublimeLinter', 'sublime-enhanced')
             GROUP BY
                 l.label
             HAVING
@@ -63,6 +65,8 @@ def list(details=False, page=1, limit=10):
                         FROM
                             packages
                     ) AS l ON p.labels @> ARRAY[l.label]::varchar[]
+                WHERE
+                    l.label NOT IN ('SublimeLinter', 'sublime-enhanced')
                 GROUP BY
                     l.label
                 HAVING
