@@ -10,7 +10,7 @@ from ... import cache
 synonyms = config.read('synonyms')
 
 
-def all():
+def all(limit_one_per_package=False):
     """
     Fetches info about all packages for the purpose of writing JSON files
 
@@ -84,7 +84,14 @@ def all():
                 r.sublime_text,
                 r.version,
                 r.url,
-                r.date
+                r.date,
+                CASE
+                    WHEN r.version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                        then -1
+                    WHEN r.version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                        then 1
+                    ELSE 0
+                END AS semver_variant
             FROM
                 releases AS r INNER JOIN
                 packages AS p ON r.package = p.name INNER JOIN
@@ -113,14 +120,33 @@ def all():
                     ELSE version
                 END DESC
         """)
+
+        packages_with_prerelease = {}
+        packages_with_non_prerelease = {}
+
         for row in cursor.fetchall():
-            output[row['package']]['releases'].append({
+            package = row['package']
+            prerelease = row['semver_variant'] == -1
+
+            if limit_one_per_package:
+                if prerelease and package in packages_with_prerelease:
+                    continue
+                if not prerelease and package in packages_with_non_prerelease:
+                    continue
+
+            output[package]['releases'].append({
                 'platforms':    row['platforms'],
                 'sublime_text': row['sublime_text'],
                 'version':      row['version'],
                 'url':          row['url'],
                 'date':         row['date']
             })
+
+            if limit_one_per_package:
+                if prerelease:
+                    packages_with_prerelease[package] = True
+                else:
+                    packages_with_non_prerelease[package] = True
 
     return output
 

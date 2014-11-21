@@ -34,7 +34,7 @@ def add_ssl_domain(url):
     if domain not in ssl_domains:
         ssl_domains.append(domain)
 
-package_info = package.find.all()
+package_info = package.find.all(limit_one_per_package=True)
 
 output = {
     'schema_version': '1.2',
