@@ -97,7 +97,7 @@ def all():
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
                 -- The semver without a suffix
-                regexp_replace(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') DESC,
+                string_to_array(regexp_replace(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1'), '.')::int[] DESC,
                 -- If the version is a build, bare or prerelease
                 CASE
                     WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
@@ -208,7 +208,7 @@ def by_name(name):
                     platforms,
                     ROW_NUMBER() OVER (
                         ORDER BY
-                            semver_without_suffix DESC,
+                            string_to_array(semver_without_suffix, '.')::int[] DESC,
                             semver_suffix_type DESC,
                             normalized_version DESC
                     ) AS num,
@@ -218,7 +218,7 @@ def by_name(name):
                             sublime_text,
                             platforms
                         ORDER BY
-                            semver_without_suffix DESC,
+                            string_to_array(semver_without_suffix, '.')::int[] DESC,
                             semver_suffix_type DESC,
                             normalized_version DESC
                     ) AS qual_num,
@@ -229,7 +229,7 @@ def by_name(name):
                             platforms,
                             prerelease
                         ORDER BY
-                            semver_without_suffix DESC,
+                            string_to_array(semver_without_suffix, '.')::int[] DESC,
                             semver_suffix_type DESC,
                             normalized_version DESC
                     ) AS type_num,
@@ -270,10 +270,6 @@ def by_name(name):
                             package = %s
                         GROUP BY
                             version
-                        ORDER BY
-                            semver_without_suffix DESC,
-                            semver_suffix_type DESC,
-                            normalized_version DESC
                     ) sq
                 ORDER BY
                     num ASC
