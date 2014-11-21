@@ -1,5 +1,7 @@
 # Not shared with Package Control
 
+import os
+
 from datetime import datetime, timedelta
 
 from ..connection import connection
@@ -54,6 +56,18 @@ class HttpCache(object):
             cursor.execute("SELECT key FROM http_cache_entries WHERE key = %s", [key])
             return cursor.fetchone() != None
 
+    def path(self, key):
+        """
+        Returns the filesystem path to the key
+
+        :param key:
+            The key to get the path for
+
+        :return:
+            The absolute filesystem path to the cache file
+        """
+
+        return "SELECT * FROM http_cache_entries WHERE key = '%s'" % key
 
     def set(self, key, content):
         """

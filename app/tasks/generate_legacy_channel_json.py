@@ -5,7 +5,8 @@ import gzip
 from urllib.parse import urlparse
 
 from ..models import package
-from ..lib.package_control.ca_certs import find_root_ca_cert
+from ..lib.ca_certs_legacy import find_root_ca_cert
+from ..lib.package_control.versions import version_exclude_prerelease
 from ..lib.json_datetime_encoder import JsonDatetimeEncoder
 
 
@@ -72,7 +73,7 @@ for name, info in package_info.items():
     releases = info['releases']
     del info['releases']
     info['platforms'] = {}
-    for release in releases:
+    for release in version_exclude_prerelease(releases):
         # Skip ST3-only packages
         if re.match('>=?3', release['sublime_text']):
             continue
@@ -97,7 +98,6 @@ for domain in ssl_domains:
             "https://sublime.wbond.net/certs/7f4f8622b4fd001c7f648e09aae7edaa"
         ]
     else:
-        print(domain)
         cert, cert_hash = find_root_ca_cert({}, domain)
         if not cert:
             print('Error fetching cert for %s' % domain)

@@ -8,12 +8,13 @@ from .cli_downloader import CliDownloader
 from .non_clean_exit_error import NonCleanExitError
 from .rate_limit_exception import RateLimitException
 from .downloader_exception import DownloaderException
-from .cert_provider import CertProvider
+from ..ca_certs import get_ca_bundle_path
 from .limiting_downloader import LimitingDownloader
 from .caching_downloader import CachingDownloader
+from .decoding_downloader import DecodingDownloader
 
 
-class CurlDownloader(CliDownloader, CertProvider, LimitingDownloader, CachingDownloader):
+class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, CachingDownloader):
     """
     A downloader that uses the command line program curl
 
@@ -58,7 +59,6 @@ class CurlDownloader(CliDownloader, CertProvider, LimitingDownloader, CachingDow
             If a cached version should be returned instead of trying a new request
 
         :raises:
-            NoCaCertException: when no CA certs can be found for the url
             RateLimitException: when a rate limit is hit
             DownloaderException: when any other download error occurs
 
@@ -72,18 +72,21 @@ class CurlDownloader(CliDownloader, CertProvider, LimitingDownloader, CachingDow
                 return cached
 
         self.tmp_file = tempfile.NamedTemporaryFile().name
-        command = [self.curl, '--user-agent', self.settings.get('user_agent'),
-            '--connect-timeout', str(int(timeout)), '-sSL',
-            # Don't be alarmed if the response from the server does not select
-            # one of these since the server runs a relatively new version of
-            # OpenSSL which supports compression on the SSL layer, and Apache
-            # will use that instead of HTTP-level encoding.
-            '--compressed',
+        command = [self.curl, '--connect-timeout', str(int(timeout)), '-sSL',
             '--tlsv1',
             # We have to capture the headers to check for rate limit info
             '--dump-header', self.tmp_file]
 
+        user_agent = self.settings.get('user_agent')
+        if user_agent:
+            command.extend(['--user-agent', user_agent])
+
         request_headers = self.add_conditional_headers(url, {})
+        # Don't be alarmed if the response from the server does not select
+        # one of these since the server runs a relatively new version of
+        # OpenSSL which supports compression on the SSL layer, and Apache
+        # will use that instead of HTTP-level encoding.
+        request_headers['Accept-Encoding'] = self.supported_encodings()
 
         for name, value in request_headers.items():
             command.extend(['--header', "%s: %s" % (name, value)])
@@ -91,7 +94,7 @@ class CurlDownloader(CliDownloader, CertProvider, LimitingDownloader, CachingDow
         secure_url_match = re.match('^https://([^/]+)', url)
         if secure_url_match != None:
             secure_domain = secure_url_match.group(1)
-            bundle_path = self.check_certs(secure_domain, timeout)
+            bundle_path = get_ca_bundle_path(self.settings)
             command.extend(['--cacert', bundle_path])
 
         debug = self.settings.get('debug')
@@ -156,6 +159,9 @@ class CurlDownloader(CliDownloader, CertProvider, LimitingDownloader, CachingDow
                     e = NonCleanExitError(22)
                     e.stderr = "%s %s" % (status, message)
                     raise e
+
+                encoding = headers.get('content-encoding')
+                output = self.decode_response(encoding, output)
 
                 output = self.cache_result('get', url, status, headers, output)
 

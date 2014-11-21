@@ -6,7 +6,7 @@ import bz2
 from urllib.parse import urlparse
 
 from ..models import package
-from ..lib.package_control.ca_certs import find_root_ca_cert
+from ..lib.ca_certs_legacy import find_root_ca_cert
 from ..lib.json_datetime_encoder import JsonDatetimeEncoder
 
 
