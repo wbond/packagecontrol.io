@@ -14,6 +14,9 @@ current list of valid tasks:
  - `cleanup_renames` - updates various tables to move stats from an old name
    to a new one.
 
+ - `compute_package_hashes` - compute the SHA-256 hash for the various packages
+   that are made available for download via non-secure HTTP
+
  - `crawl` - uses the Package Control channel info from `config/crawler.yml` to
    crawl GitHub, BitBucket and other repositories for package data. Looks for
    packages that have not been seen in the past hour. Only crawls 200 sources
