@@ -128,10 +128,11 @@ def all(limit_one_per_package=False):
             package = row['package']
             prerelease = row['semver_variant'] == -1
 
+            key = '%s-%s-%s' % (package, row['sublime_text'], ','.join(row['platforms']))
             if limit_one_per_package:
-                if prerelease and package in packages_with_prerelease:
+                if prerelease and key in packages_with_prerelease:
                     continue
-                if not prerelease and package in packages_with_non_prerelease:
+                if not prerelease and key in packages_with_non_prerelease:
                     continue
 
             output[package]['releases'].append({
@@ -144,9 +145,9 @@ def all(limit_one_per_package=False):
 
             if limit_one_per_package:
                 if prerelease:
-                    packages_with_prerelease[package] = True
+                    packages_with_prerelease[key] = True
                 else:
-                    packages_with_non_prerelease[package] = True
+                    packages_with_non_prerelease[key] = True
 
     return output
 
