@@ -168,9 +168,14 @@ def gather_for(interval='1 day'):
             SELECT
                 'total_authors',
                 CURRENT_DATE - INTERVAL %s,
-                COUNT(DISTINCT author)
+                COUNT(*)
             FROM
-                packages
+                (
+                    SELECT
+                        DISTINCT unnest(authors)
+                    FROM
+                        packages
+                ) AS sq
         """, [interval])
 
         cursor.execute("""

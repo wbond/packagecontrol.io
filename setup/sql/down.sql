@@ -1,3 +1,6 @@
+DROP FUNCTION highlight_result_array(varcharp[], tsquery, boolean);
+DROP FUNCTION highlight_result(varchar, tsquery, boolean);
+
 DROP INDEX package_search_idx;
 DROP TRIGGER search_vector_update ON packages;
 DROP FUNCTION package_search_trigger();

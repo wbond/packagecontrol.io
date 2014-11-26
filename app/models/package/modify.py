@@ -383,7 +383,7 @@ def store(values):
             sql = """
                 INSERT INTO packages (
                     description,
-                    author,
+                    authors,
                     homepage,
                     previous_names,
                     labels,
@@ -421,7 +421,7 @@ def store(values):
                     packages
                 SET
                     description = %s,
-                    author = %s,
+                    authors = %s,
                     homepage = %s,
                     previous_names = %s,
                     labels = %s,
@@ -460,9 +460,14 @@ def store(values):
             else:
                 st_versions = [2,3]
 
+        if not isinstance(values['author'], list):
+            authors = re.split('\s*,\s*', values['author'])
+        else:
+            authors = values['author']
+
         cursor.execute(sql, [
             values['description'],
-            values['author'],
+            authors,
             values['homepage'],
             values['previous_names'],
             values['labels'],

@@ -6,7 +6,7 @@
                 <li class="package">
                     <h3><a href="{{url "package" name=name}}">{{highlight highlighted_name}}</a></h3>
 
-                    <span class="author"><em>by</em> <a href="{{url "author" name=author}}">{{highlight highlighted_author}}</a></span>
+                    <span class="author"><em>by</em> {{#multi_each authors highlighted_authors}}{{#if @index}}, {{/if}}<a href="{{url "author" name=value_1}}">{{highlight value_2}}{{/multi_each}}</a></span>
                     
                     {{>package_compat this}}
                     <span class="meta">

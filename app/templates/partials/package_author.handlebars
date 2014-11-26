@@ -1,1 +1,1 @@
-<span class="author"><em>by</em> <a href="{{url "author" name=author}}">{{author}}</a></span>
+<span class="author"><em>by</em> {{#each authors}}{{#if @index}}, {{/if}}<a href="{{url "author" name=this}}">{{this}}</a>{{/each}}</span>

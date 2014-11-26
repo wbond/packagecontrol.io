@@ -26,6 +26,7 @@ class window.Snakeskin.Helpers
     Handlebars.registerHelper('url_abbr', @urlAbbr)
     Handlebars.registerHelper('word_wrap', @wordWrap)
     Handlebars.registerHelper('title', @title)
+    Handlebars.registerHelper('multi_each', @multiEach)
 
   @lt: (val1, val2, options) ->
     isNone = Snakeskin.Util.none(val1) or Snakeskin.Util.none(val2)
@@ -251,4 +252,16 @@ class window.Snakeskin.Helpers
       output = (value / divisor).toFixed(scale) + suffix
       break
 
+    output
+
+  @multiEach: (list1, list2, options) ->
+    total = Math.max(list1.length, list2.length)
+    i = 0
+
+    output = ''
+    while i < total
+      values = {'value_1': list1[i], 'value_2': list2[i]}
+      opts = {'data': {'index': i}}
+      output += options['fn'](values, opts)
+      i = i + 1
     output

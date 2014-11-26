@@ -20,7 +20,7 @@ def all(limit_one_per_package=False):
             'Package Name': {
                 'name': 'Package Name',
                 'description': 'Package description',
-                'author': 'Package description',
+                'authors': ['author', 'names'],
                 'homepage': 'http://example.com',
                 'previous_names': [],
                 'labels': ['color scheme'],
@@ -40,7 +40,7 @@ def all(limit_one_per_package=False):
                 p.sources[1] AS repository,
                 p.name,
                 p.description,
-                p.author,
+                p.authors,
                 p.homepage,
                 p.previous_names,
                 p.labels,
@@ -65,7 +65,7 @@ def all(limit_one_per_package=False):
                 'repository':     row['repository'],
                 'name':           row['name'],
                 'description':    row['description'],
-                'author':         row['author'],
+                'authors':        row['authors'],
                 'homepage':       row['homepage'],
                 'previous_names': row['previous_names'],
                 'labels':         row['labels'],
@@ -444,7 +444,7 @@ def new(details=False, page=1, limit=10):
     Fetches the most recently created packages
 
     :param details:
-        If the description and author should be included
+        If the description and authors should be included
 
     :param page:
         Which page (int) of the packages to return
@@ -465,7 +465,7 @@ def updated(details=False, page=1, limit=10):
     Fetches the most recently modified packages
 
     :param details:
-        If the description and author should be included
+        If the description and authors should be included
 
     :param page:
         Which page (int) of the packages to return
@@ -576,17 +576,17 @@ def search(terms, page=1, limit=50):
                 SELECT
                     p.name,
                     CASE
-                        WHEN position('\002' in ts_headline(pse.split_name, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003')) <> 0
-                        THEN replace(ts_headline(pse.split_name, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003'), '   ', '')
-                        ELSE replace(ts_headline(pse.name, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003'), '   ', '')
+                        WHEN position('\002' in highlight_result(pse.split_name, query, FALSE)) <> 0
+                        THEN highlight_result(pse.split_name, query, TRUE)
+                        ELSE highlight_result(pse.name, query, TRUE)
                     END AS highlighted_name,
                     CASE
-                        WHEN position('\002' in ts_headline(pse.split_description, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003')) <> 0
-                        THEN replace(ts_headline(pse.split_description, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003'), '   ', '')
-                        ELSE replace(ts_headline(pse.description, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003'), '   ', '')
+                        WHEN position('\002' in highlight_result(pse.split_description, query, FALSE)) <> 0
+                        THEN highlight_result(pse.split_description, query, TRUE)
+                        ELSE highlight_result(pse.description, query, TRUE)
                     END AS highlighted_description,
-                    replace(ts_headline(pse.author, query, 'HighlightAll=TRUE, StartSel=\002, StopSel=\003'), '   ', '') AS highlighted_author,
-                    p.author,
+                    highlight_result_array(pse.authors, query, TRUE) AS highlighted_authors,
+                    p.authors,
                     p.labels,
                     p.platforms,
                     p.st_versions,
@@ -671,8 +671,8 @@ def search(terms, page=1, limit=50):
                     p.name,
                     replace(regexp_replace(pse.name, %s, E'\002\\\\1\003', 'gi'), '   ', '') AS highlighted_name,
                     p.description AS highlighted_description,
-                    p.author AS highlighted_author,
-                    p.author,
+                    p.authors AS highlighted_authors,
+                    p.authors,
                     p.labels,
                     p.platforms,
                     p.st_versions,
@@ -736,7 +736,7 @@ def top(details=False, page=1, limit=10):
     Fetches the most downloaded packages
 
     :param details:
-        If the description and author should be included
+        If the description and authors should be included
 
     :param page:
         Which page (int) of the packages to return
@@ -756,7 +756,7 @@ def top_100_random(details=False, page=1, limit=10):
     Fetches the most downloaded packages
 
     :param details:
-        If the description and author should be included
+        If the description and authors should be included
 
     :param page:
         Which page (int) of the packages to return
@@ -777,7 +777,7 @@ def trending(details=False, page=1, limit=10):
     Fetches the most downloaded packages
 
     :param details:
-        If the description and author should be included
+        If the description and authors should be included
 
     :param page:
         Which page (int) of the packages to return
@@ -798,7 +798,7 @@ def _common_sql(details, where, order_by, page, limit):
     allowing users to browse around the site
 
     :param details:
-        If the description and author should be included along with a total
+        If the description and authors should be included along with a total
         number of packages without a limit
 
     :param where:
@@ -835,7 +835,7 @@ def _common_sql(details, where, order_by, page, limit):
         # "Details" columns
         if details:
             columns.extend([
-                'p.author',
+                'p.authors',
                 'p.description',
                 'p.last_modified',
                 'ps.first_seen',

@@ -17247,7 +17247,8 @@ Backbone.addBeforePopState = function(BB) {
       Handlebars.registerHelper('filesize_abbr', this.filesizeAbbr);
       Handlebars.registerHelper('url_abbr', this.urlAbbr);
       Handlebars.registerHelper('word_wrap', this.wordWrap);
-      return Handlebars.registerHelper('title', this.title);
+      Handlebars.registerHelper('title', this.title);
+      return Handlebars.registerHelper('multi_each', this.multiEach);
     };
 
     Helpers.lt = function(val1, val2, options) {
@@ -17530,6 +17531,27 @@ Backbone.addBeforePopState = function(BB) {
         }
         output = (value / divisor).toFixed(scale) + suffix;
         break;
+      }
+      return output;
+    };
+
+    Helpers.multiEach = function(list1, list2, options) {
+      var i, opts, output, total, values;
+      total = Math.max(list1.length, list2.length);
+      i = 0;
+      output = '';
+      while (i < total) {
+        values = {
+          'value_1': list1[i],
+          'value_2': list2[i]
+        };
+        opts = {
+          'data': {
+            'index': i
+          }
+        };
+        output += options['fn'](values, opts);
+        i = i + 1;
       }
       return output;
     };
@@ -18220,7 +18242,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.40';
+  window.App.version = '1.0.41';
 
 }).call(this);
 
@@ -21430,15 +21452,24 @@ Backbone.addBeforePopState = function(BB) {
 (function() {
   var template  = Handlebars.template,
       templates = Handlebars.templates = Handlebars.templates || {};
-  templates['partials/package_author'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
-  var helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function";
-  return "<span class=\"author\"><em>by</em> <a href=\""
+  templates['partials/package_author'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, lambda=this.lambda, buffer = "";
+  stack1 = helpers['if'].call(depth0, (data && data.index), {"name":"if","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + "<a href=\""
     + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
-    'name': ((depth0 != null ? depth0.author : depth0))
+    'name': (depth0)
   },"data":data})))
     + "\">"
-    + escapeExpression(((helper = (helper = helpers.author || (depth0 != null ? depth0.author : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"author","hash":{},"data":data}) : helper)))
-    + "</a></span> ";
+    + escapeExpression(lambda(depth0, depth0))
+    + "</a>";
+},"2":function(depth0,helpers,partials,data) {
+  return ", ";
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, buffer = "<span class=\"author\"><em>by</em> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.authors : depth0), {"name":"each","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + "</span> ";
 },"useData":true});
 }).call(this);
 (function() {
@@ -21648,7 +21679,7 @@ Backbone.addBeforePopState = function(BB) {
   stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"if","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers.unless.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"unless","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  stack1 = helpers.unless.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"unless","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   buffer += " ";
   stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
@@ -21666,13 +21697,10 @@ Backbone.addBeforePopState = function(BB) {
   },"data":data})))
     + "\">"
     + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_name : depth0), {"name":"highlight","hash":{},"data":data})))
-    + "</a></h3> <span class=\"author\"><em>by</em> <a href=\""
-    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
-    'name': ((depth0 != null ? depth0.author : depth0))
-  },"data":data})))
-    + "\">"
-    + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_author : depth0), {"name":"highlight","hash":{},"data":data})))
-    + "</a></span> ";
+    + "</a></h3> <span class=\"author\"><em>by</em> ";
+  stack1 = ((helpers.multi_each || (depth0 && depth0.multi_each) || helperMissing).call(depth0, (depth0 != null ? depth0.authors : depth0), (depth0 != null ? depth0.highlighted_authors : depth0), {"name":"multi_each","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += "</a></span> ";
   stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
   if (stack1 != null) { buffer += stack1; }
   buffer += " <span class=\"meta\"> ";
@@ -21684,13 +21712,25 @@ Backbone.addBeforePopState = function(BB) {
   return buffer + " </span> <div class=\"description\">"
     + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_description : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</div> </li> ";
+},"4":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = "";
+  stack1 = helpers['if'].call(depth0, (data && data.index), {"name":"if","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + "<a href=\""
+    + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
+    'name': ((depth0 != null ? depth0.value_1 : depth0))
+  },"data":data})))
+    + "\">"
+    + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.value_2 : depth0), {"name":"highlight","hash":{},"data":data})));
 },"5":function(depth0,helpers,partials,data) {
-  return " <div class=\"no results\"> No packages matched your search terms </div> ";
+  return ", ";
   },"7":function(depth0,helpers,partials,data) {
+  return " <div class=\"no results\"> No packages matched your search terms </div> ";
+  },"9":function(depth0,helpers,partials,data) {
   return " <div class=\"no results\"> Enter your search terms above </div> ";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, buffer = "<div class=\"results\"> ";
-  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.terms : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(7, data),"data":data});
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.terms : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(9, data),"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + " </div> ";
 },"usePartial":true,"useData":true});
@@ -21804,7 +21844,7 @@ Backbone.addBeforePopState = function(BB) {
   return " <item> <title>"
     + escapeExpression(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"name","hash":{},"data":data}) : helper)))
     + "</title> <author>"
-    + escapeExpression(((helper = (helper = helpers.author || (depth0 != null ? depth0.author : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"author","hash":{},"data":data}) : helper)))
+    + escapeExpression(((helpers.join || (depth0 && depth0.join) || helperMissing).call(depth0, (depth0 != null ? depth0.authors : depth0), ", ", {"name":"join","hash":{},"data":data})))
     + "</author> <description>"
     + escapeExpression(((helper = (helper = helpers.description || (depth0 != null ? depth0.description : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"description","hash":{},"data":data}) : helper)))
     + "</description> <pubDate>"

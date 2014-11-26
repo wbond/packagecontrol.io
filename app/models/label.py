@@ -98,7 +98,7 @@ def load(name):
             SELECT
                 p.name,
                 p.description,
-                p.author,
+                p.authors,
                 p.labels,
                 p.platforms,
                 p.st_versions,

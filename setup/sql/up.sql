@@ -68,7 +68,7 @@ CREATE INDEX usage_date_time ON usage USING btree (date_time);
 CREATE TABLE packages (
     name                     varchar(500)  NOT NULL PRIMARY KEY,
     description              varchar       NOT NULL DEFAULT '',
-    author                   varchar       NOT NULL,
+    authors                  varchar[],
     homepage                 varchar       NOT NULL DEFAULT '',
     previous_names           varchar array,
     labels                   varchar array,
@@ -161,7 +161,7 @@ CREATE TABLE package_search_entries (
     -- Track the space-separated version of these fields for highlighting
     name                     varchar(500),
     description              varchar,
-    author                   varchar,
+    authors                  varchar[],
     split_name               varchar(500),
     split_description        varchar
 );
@@ -183,6 +183,31 @@ END
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
+-- Highlight a search result
+CREATE FUNCTION highlight_result(value varchar, query tsquery, collapse_spaces boolean) RETURNS varchar AS $$
+BEGIN
+    value := ts_headline(value, query, E'HighlightAll=TRUE, StartSel="\002", StopSel="\003"');
+    IF (collapse_spaces = TRUE) THEN
+        value := replace(value, '   ', '');
+    END IF;
+    RETURN value;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+
+-- Highlights an array of varchars from search results
+CREATE FUNCTION highlight_result_array(vals varchar[], query tsquery, collapse_spaces boolean) RETURNS varchar[] AS $$
+DECLARE
+    output varchar[];
+BEGIN
+    FOR I IN array_lower(vals, 1)..array_upper(vals, 1) LOOP
+        output[I] := highlight_result(vals[I], query, collapse_spaces);
+    END LOOP;
+    RETURN output;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+
 -- Function to update the full text index for a package
 CREATE FUNCTION package_search_trigger() RETURNS trigger AS $$
 BEGIN
@@ -195,7 +220,7 @@ BEGIN
         search_vector,
         name,
         description,
-        author,
+        authors,
         split_name,
         split_description
     ) VALUES (
@@ -203,12 +228,12 @@ BEGIN
         -- The name gets weighted most heavily
         setweight(to_tsvector('english', split_package_name(NEW.name) || ' ' || NEW.name), 'A') ||
             -- The author is fairly important
-            setweight(to_tsvector('english', NEW.author), 'B') ||
+            setweight(to_tsvector('english', array_to_string(NEW.authors, ', ')), 'B') ||
             -- The description is pretty low since they tend to include a lot of unhelpful text
             setweight(to_tsvector('english', split_package_name(coalesce(NEW.description, '')) || ' ' || coalesce(NEW.description, '')), 'D'),
         NEW.name,
         NEW.description,
-        NEW.author,
+        NEW.authors,
         split_package_name(NEW.name),
         split_package_name(NEW.description)
     );

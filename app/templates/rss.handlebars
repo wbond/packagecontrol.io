@@ -9,7 +9,7 @@
         {{#each packages}}
             <item>
                 <title>{{name}}</title>
-                <author>{{author}}</author>
+                <author>{{join authors ", "}}</author>
                 <description>{{description}}</description>
                 <pubDate>{{date_format first_seen "%F %T"}}</pubDate>
                 <link>https://packagecontrol.io{{url "package" name=name}}</link>

@@ -33,7 +33,13 @@ def list(details=False, page=1, limit=10):
                 author AS name,
                 COUNT(name) AS packages
             FROM
-                packages
+                (
+                    SELECT
+                        *,
+                        unnest(authors) AS author
+                    FROM
+                        packages
+                ) AS sq
             GROUP BY
                 author
             ORDER BY
@@ -47,9 +53,14 @@ def list(details=False, page=1, limit=10):
         if details:
             cursor.execute("""
                 SELECT
-                    COUNT(DISTINCT author) AS total
+                    COUNT(*) AS total
                 FROM
-                    packages
+                    (
+                        SELECT
+                            DISTINCT unnest(authors)
+                        FROM
+                            packages
+                    ) AS sq
                 """)
             output = {
                 'authors': output,
@@ -63,7 +74,7 @@ def load(author):
     """
     Fetches an author
 
-    :param name:
+    :param author:
         The name of the author
 
     :return:
@@ -77,7 +88,7 @@ def load(author):
             SELECT
                 p.name,
                 p.description,
-                p.author,
+                p.authors,
                 p.labels,
                 p.platforms,
                 p.st_versions,
@@ -94,7 +105,7 @@ def load(author):
                 package_stats AS ps ON ps.package = p.name LEFT JOIN
                 install_counts AS ic ON p.name = ic.package
             WHERE
-                p.author = %s
+                p.authors @> ARRAY[%s]::varchar[]
             ORDER BY
                 p.name ASC
         """, [author])
