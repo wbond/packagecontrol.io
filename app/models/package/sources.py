@@ -17,11 +17,15 @@ def dependent_sources(source):
     with connection() as cursor:
         cursor.execute("""
             SELECT
-                DISTINCT unnest(sources) AS source
+                DISTINCT unnest(p.sources) AS source
             FROM
-                packages
+                packages AS p
+                INNER JOIN package_stats AS ps
+                    ON p.name = ps.package
             WHERE
-                sources @> ARRAY[%s]::varchar[]
+                p.sources @> ARRAY[%s]::varchar[] AND
+                ps.removed != TRUE
+
         """, [source])
         return [row['source'] for row in cursor]
 
@@ -46,13 +50,16 @@ def outdated_sources(minutes, limit):
             FROM
                 (
                     SELECT
-                        sources
+                        p.sources
                     FROM
-                        packages
+                        packages AS p
+                        INNER JOIN package_stats AS ps
+                            ON p.name = ps.package
                     WHERE
-                        last_seen <= %s
+                        p.last_seen <= %s AND
+                        ps.removed != TRUE
                     ORDER BY
-                        last_seen ASC
+                        p.last_seen ASC
                     LIMIT
                         %s
                 ) AS packages
@@ -76,7 +83,11 @@ def invalid_sources(valid_sources):
             SELECT
                 DISTINCT unnest(sources) AS source
             FROM
-                packages
+                packages AS p
+                INNER JOIN package_stats AS ps
+                    ON p.name = ps.package
+            WHERE
+                ps.removed != TRUE
         """)
         all_sources = [row['source'] for row in cursor]
 
