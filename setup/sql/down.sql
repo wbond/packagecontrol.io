@@ -17,6 +17,7 @@ DROP TABLE system_stats;
 DROP TABLE package_stats;
 DROP TABLE readmes;
 DROP TABLE releases;
+DROP TABLE dependencies;
 DROP TABLE packages;
 DROP TABLE usage;
 DROP TABLE unique_package_installs;

@@ -85,6 +85,7 @@ def all(limit_one_per_package=False):
                 r.version,
                 r.url,
                 r.date,
+                r.dependencies,
                 CASE
                     WHEN r.version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
                         then -1
@@ -122,32 +123,67 @@ def all(limit_one_per_package=False):
         """)
 
         packages_with_prerelease = {}
-        packages_with_non_prerelease = {}
+        packages_with_release = {}
+        package_major_versions = {}
+        package_minor_versions = {}
 
         for row in cursor.fetchall():
             package = row['package']
             prerelease = row['semver_variant'] == -1
 
             key = '%s-%s-%s' % (package, row['sublime_text'], ','.join(row['platforms']))
-            if limit_one_per_package:
-                if prerelease and key in packages_with_prerelease:
-                    continue
-                if not prerelease and key in packages_with_non_prerelease:
-                    continue
 
-            output[package]['releases'].append({
+            # Only ever include one pre-release
+            if prerelease:
+                if key in packages_with_prerelease:
+                    continue
+            else:
+                # If we are limiting to a single version, just grab the highest
+                if limit_one_per_package:
+                    if key in packages_with_release:
+                        continue
+
+                # Newer versions properly support multiple releases, but we
+                # don't send every release since some packages has tens to
+                # hundreds of them and most users will never use anything but
+                # the latest release.
+                else:
+                    version_parts = row['version'].split('.')
+                    major_key = '%s-%s' % (key, version_parts[0])
+                    minor_key = '%s-%s' % (major_key, version_parts[1])
+
+                    # Only allow 3 releases per major version
+                    if major_key in package_major_versions and package_major_versions[major_key] >= 3:
+                        continue
+
+                    # Only allow 1 releases per minor version - this makes the
+                    # latest bug fix version the only one available.
+                    if minor_key in package_minor_versions:
+                        continue
+
+            release = {
                 'platforms':    row['platforms'],
                 'sublime_text': row['sublime_text'],
                 'version':      row['version'],
                 'url':          row['url'],
                 'date':         row['date']
-            })
+            }
 
-            if limit_one_per_package:
-                if prerelease:
-                    packages_with_prerelease[key] = True
-                else:
-                    packages_with_non_prerelease[key] = True
+            if row['dependencies']:
+                release['dependencies'] = row['dependencies']
+
+            output[package]['releases'].append(release)
+
+            if prerelease:
+                packages_with_prerelease[key] = True
+            else:
+                packages_with_release[key] = True
+                if major_key not in package_major_versions:
+                    package_major_versions[major_key] = 0
+                package_major_versions[major_key] += 1
+                if minor_key not in package_minor_versions:
+                    package_minor_versions[minor_key] = 0
+                package_minor_versions[minor_key] += 1
 
     return output
 

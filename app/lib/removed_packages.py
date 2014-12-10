@@ -4,7 +4,8 @@ import os
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .. import config
 from .connection import connection
-from ..models import package
+from ..models import package, dependency
+
 
 
 def mark():
@@ -15,8 +16,7 @@ def mark():
 
     active_sources = find_active_sources()
 
-    old_packages = package.find.old()
-    for info in old_packages:
+    for info in package.find.old():
         mark_removed = False
 
         # If one of the sources for a package is no longer part of the channel,
@@ -39,7 +39,22 @@ def mark():
 
         if mark_removed:
             package.modify.mark_removed(info['name'])
-            print("%s: marked as removed" % info['name'])
+            print('Package "%s" marked as removed' % info['name'])
+
+    for info in dependency.old():
+        mark_removed = False
+
+        for source in info['sources']:
+            if source not in active_sources:
+                mark_removed = True
+                break
+
+        if not info['is_missing']:
+            mark_removed = True
+
+        if mark_removed:
+            dependency.mark_removed(info['name'])
+            print('Dependency "%s" marked as removed' % info['name'])
 
 
 def find_active_sources():
@@ -48,7 +63,7 @@ def find_active_sources():
     repository.
 
     :return:
-        A list of the names of all of the packages that were marked removed
+        A list of all active source URLs
     """
 
     settings = {}

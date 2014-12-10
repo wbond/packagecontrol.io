@@ -492,8 +492,10 @@ def store(values):
                     sublime_text,
                     version,
                     url,
-                    date
+                    date,
+                    dependencies
                 ) VALUES (
+                    %s,
                     %s,
                     %s,
                     %s,
@@ -523,7 +525,8 @@ def store(values):
                 sublime_text,
                 release['version'],
                 release['url'],
-                release['date']
+                release['date'],
+                release.get('dependencies', [])
             ])
 
 

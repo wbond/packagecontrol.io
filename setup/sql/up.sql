@@ -70,13 +70,13 @@ CREATE TABLE packages (
     description              varchar       NOT NULL DEFAULT '',
     authors                  varchar[],
     homepage                 varchar       NOT NULL DEFAULT '',
-    previous_names           varchar array,
-    labels                   varchar array,
-    platforms                varchar array,
-    st_versions              integer array,
+    previous_names           varchar[],
+    labels                   varchar[],
+    platforms                varchar[],
+    st_versions              integer[],
     last_modified            timestamp     NOT NULL,
     last_seen                timestamp     NOT NULL,
-    sources                  varchar array NOT NULL,
+    sources                  varchar[]     NOT NULL,
     readme                   varchar,
     issues                   varchar,
     donate                   varchar,
@@ -84,14 +84,40 @@ CREATE TABLE packages (
 );
 
 
+CREATE TABLE dependencies (
+    name                     varchar(500)  NOT NULL PRIMARY KEY,
+    load_order               varchar(2)    NOT NULL,
+    description              varchar       NOT NULL DEFAULT '',
+    authors                  varchar[],
+    issues                   varchar       NOT NULL DEFAULT '',
+    last_seen                timestamp     NOT NULL,
+    sources                  varchar[]     NOT NULL,
+    is_missing               boolean       NOT NULL DEFAULT FALSE,
+    missing_error            varchar       NOT NULL DEFAULT '',
+    removed                  boolean       NOT NULL DEFAULT FALSE
+);
+
+
+CREATE TABLE dependency_releases (
+    dependency               varchar(500)  NOT NULL REFERENCES dependencies(name) ON DELETE CASCADE ON UPDATE CASCADE,
+    platforms                varchar[]     NOT NULL,
+    sublime_text             varchar       NOT NULL,
+    version                  varchar       NOT NULL,
+    url                      varchar       NOT NULL,
+    sha256                   varchar,
+    PRIMARY KEY(dependency, platforms, sublime_text, version)
+);
+
+
 -- Each package can have more than one release at a time, and for different platforms
 CREATE TABLE releases (
     package                  varchar(500)  NOT NULL REFERENCES packages(name) ON DELETE CASCADE ON UPDATE CASCADE,
-    platforms                varchar array NOT NULL,
+    platforms                varchar[]     NOT NULL,
     sublime_text             varchar       NOT NULL,
     version                  varchar       NOT NULL,
     url                      varchar       NOT NULL,
     date                     timestamp     NOT NULL,
+    dependencies             varchar[],
     PRIMARY KEY(package, platforms, sublime_text, version)
 );
 
