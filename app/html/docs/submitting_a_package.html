@@ -113,30 +113,13 @@
 <h2 id="Step_4">4. Pick a Versioning Strategy</h2>
 <p>
 	If you are using GitHub or BitBucket for your hosting, you will need to
-	choose one of the following versioning strategies:
+	create a tag each time you want to make a new version available to users.
+	The tag names must be a <a href="http://semver.org">semantic version number</a>.
 </p>
-<ul>
-	<li>
-		<b>RECOMMENDED: Use git/hg tags with each tag being a
-		<a href="http://semver.org">semantic version number</a>.</b> This allows
-		features like
-		<a href="/docs/settings#setting-install_prereleases">install_prereleases</a>
-		and <a href="/docs/messaging">messaging</a> to work properly.
-	</li>
-	<li>
-		<b>Use a branch of the repository, e.g. <tt>master</tt> or
-		<tt>default</tt>.</b> For this versioning scheme, every commit is a new
-		release and the version number is formulated from the latest commit
-		date. <em>To properly use this, the branch used by you for development
-		should be different than the release branch.</em>
-	</li>
-</ul>
 <p>
-	Please note that once you use any semantic version numbers either via
-	tags or manual releases, it will not be possible to go back to commit-based
-	versioning. This is because all commit-based versions are prefixed with a
-	<tt>0.</tt> when doing comparisons to allow for an upgrade path to explicit
-	versioning.
+	<em>Please note that branch-based releases have been deprecated and no
+	new packages will be accepted that utilize that feature. Existing packages
+	are encouraged to update to using tags.</em>
 </p>
 <p>
 	If you chose manual package hosting, you will need to use semantic
@@ -198,8 +181,7 @@
 					the proper JSON file in <tt>repository/</tt> folder.
 				</p>
 				<p>
-					<em>Example of GitHub hosting using semantic versioning via
-					tags:</em>
+					<em>Example of GitHub hosting:</em>
 				</p>
 				<pre>{
 	"name": "Alignment",
@@ -207,13 +189,12 @@
 	"releases": [
 		{
 			"sublime_text": "*",
-			"details": "https://github.com/wbond/sublime_alignment/tags"
+			"tags": true
 		}
 	]
 }</pre>
 				<p>
-					<em>Example of BitBucket hosting using semantic versioning
-					via tags:</em>
+					<em>Example of BitBucket hosting:</em>
 				</p>
 				<pre>{
 	"name": "Alignment",
@@ -221,7 +202,7 @@
 	"releases": [
 		{
 			"sublime_text": "*",
-			"details": "https://bitbucket.org/wbond/sublime_alignment#tags"
+			"tags": true
 		}
 	]
 }</pre>
