@@ -9,6 +9,17 @@ from .. import config
 from .. import env
 
 creds = config.read('deploy')
+db_creds = config.read('db')['prod']
+
+
+migration = None
+if sys.argv and sys.argv[1]:
+    migration = sys.argv[1]
+    migration_path = 'setup/sql/migrations/%s.sql' % migration
+    if not os.path.exists(migration_path):
+        print('Migration "%s" does not exist' % migration, file=sys.stderr)
+        sys.exit(1)
+
 
 def puts(string, include_newline=True):
     ending = "\n" if include_newline else ""
@@ -32,6 +43,11 @@ try:
     try_exec("cd /var/www/%s" % creds['domain'])
     try_exec("git pull --rebase")
     try_exec("git rev-parse HEAD > ./git-sha1.yml")
+
+    if migration:
+        try_exec("psql -U %s -d %s -f %s" % (db_creds['user'], db_creds['database'], migration_path))
+
+    # Restart uwsgi workers so new codebase is used
     try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-%s.fifo > /dev/null" % creds['domain'])
 
     puts('Notifying Rollbar of deploy ... ', False)

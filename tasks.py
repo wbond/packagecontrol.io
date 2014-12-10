@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 import argparse
 import importlib
 
@@ -18,7 +19,12 @@ for filename in os.listdir(tasks_root):
 
 parser = argparse.ArgumentParser(description='Run a task from app/tasks/')
 parser.add_argument('task_name', choices=valid_tasks)
+parser.add_argument('params', nargs='*')
 
 args = parser.parse_args()
+
+# Put extra params in sys.argv so the tasks can get them
+sys.argv = [args.task_name + '.py']
+sys.argv.extend(args.params)
 
 importlib.import_module('app.tasks.%s' % args.task_name)
