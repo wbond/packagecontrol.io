@@ -13,7 +13,7 @@ db_creds = config.read('db')['prod']
 
 
 migration = None
-if sys.argv and sys.argv[1]:
+if len(sys.argv) > 1 and sys.argv[1]:
     migration = sys.argv[1]
     migration_path = 'setup/sql/migrations/%s.sql' % migration
     if not os.path.exists(migration_path):
