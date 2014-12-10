@@ -132,6 +132,8 @@ def all(limit_one_per_package=False):
             prerelease = row['semver_variant'] == -1
 
             key = '%s-%s-%s' % (package, row['sublime_text'], ','.join(row['platforms']))
+            major_key = None
+            minor_key = None
 
             # Only ever include one pre-release
             if prerelease:
