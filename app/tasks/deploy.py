@@ -51,7 +51,7 @@ try:
     try_exec("echo r | sudo -u daemon tee /var/tmp/uwsgi-%s.fifo > /dev/null" % creds['domain'])
 
     # Clear all cached function results in case data structures changed
-    try_exec('redis-cli EVAL "return redis.call(\'del\', unpack(redis.call(\'keys\', ARGV[1])))" 0 app.*')
+    try_exec("redis-cli EVAL \"return redis.call('del', unpack(redis.call('keys', ARGV[1])))\" 0 'app.*'")
 
     puts('Notifying Rollbar of deploy ... ', False)
     post_data = urllib.parse.urlencode({
