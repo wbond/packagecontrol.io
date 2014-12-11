@@ -1,39 +1,44 @@
-body.about section.second p + iframe {
-	// Gratipay adds inline styles, so we have to override with !important
-	margin-right: 25px !important;
-	position: relative;
-	bottom: -15px;
+@import "partials/colors";
+@import "partials/cross_browser";
+
+body.about section.second div.options iframe {
+
+	width: 116px;
+	height: 70px;
+
+	display: inline-block;
+	vertical-align: bottom;
 }
 
-iframe.FlattrButton {
-	display: inline-block;
+div.options {
+	height: 70px;
+	line-height: 70px;
 	position: relative;
-	bottom: -10px;
-	margin-right: 20px;
+	max-height: 70px;
 }
 
 form.paypal {
 	display: inline-block;
 	position: relative;
-	top: -10px;
 	margin-right: 20px;
+	vertical-align: top;
+
+	button {
+		border: none;
+		font-size: 15px;
+		background-color: $blueLink;
+		text-shadow: 0 1px 0 $blueLinkHover;
+
+		&:hover {
+			cursor: pointer;
+			background-color: $blueLinkHover;
+		}
+	}
 }
 
-iframe[src^='https://coinbase.com'] {
-	height: 30px !important;
+a.action.coinbase-button {
 	position: relative;
-	top: -8px;
-}
-
-a.coinbase-button,
-a.FlattrButton {
-	display: inline-block;
-	top: -17px;
-	position: relative;
-	font-weight: bold;
 	margin-right: 20px;
-}
-
-a.coinbase-button {
-	margin-top: 20px;
+	margin-top: 22px;
+	vertical-align: top;
 }

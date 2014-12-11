@@ -10,26 +10,14 @@ class App.Views.About extends Snakeskin.StaticView
     @search = _.throttle(@_search, 500)
     @listenTo(@, 'placed', @setupJS)
 
-  cleanup: =>
-    $('iframe[src^="https://coinbase.com"]').remove()
-
   setupJS: =>
-    flattrButton = @$('.FlattrButton')
-    content = flattrButton.parent()[0]
+    paypal = @$('form.paypal')[0]
+    content = @$('div.options')[0]
 
     gps = @scriptTag()
     gps.src = 'https://grtp.co/v1.js'
     gps.setAttribute('data-gratipay-username','wbond')
-    content.insertBefore(gps, flattrButton[0])
-
-    fs = @scriptTag()
-    fs.src = '//api.flattr.com/js/0.6/load.js?mode=auto'
-    content.insertBefore(fs, flattrButton[0])
-
-    # Disabled due to JS issues with IE
-    #cbs = @scriptTag()
-    #cbs.src = '//coinbase.com/assets/button.js'
-    #content.appendChild(cbs)
+    content.appendChild(gps)
 
   scriptTag: ->
     el = document.createElement('script')

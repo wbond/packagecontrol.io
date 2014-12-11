@@ -365,7 +365,8 @@ div#content {
 	position: relative;
 }
 
-a.action {
+a.action,
+button.action {
 	@include border-radius(2px);
 	@include transition(background-color 0.1s ease-in-out);
 
@@ -375,7 +376,7 @@ a.action {
 	font-weight: bold;
 	line-height: 1.5;
 	padding: 2px 12px;
-	text-shadow: 0 1px 0 $greenDark;
+	text-shadow: 0 1px 1px $greenDark;
 
 	&:hover {
 		background-color: $greenMedium;

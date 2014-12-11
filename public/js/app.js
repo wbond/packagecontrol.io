@@ -18242,7 +18242,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.42';
+  window.App.version = '1.0.43';
 
 }).call(this);
 
@@ -19187,7 +19187,6 @@ Backbone.addBeforePopState = function(BB) {
 
     function About() {
       this.setupJS = __bind(this.setupJS, this);
-      this.cleanup = __bind(this.cleanup, this);
       return About.__super__.constructor.apply(this, arguments);
     }
 
@@ -19205,21 +19204,14 @@ Backbone.addBeforePopState = function(BB) {
       return this.listenTo(this, 'placed', this.setupJS);
     };
 
-    About.prototype.cleanup = function() {
-      return $('iframe[src^="https://coinbase.com"]').remove();
-    };
-
     About.prototype.setupJS = function() {
-      var content, flattrButton, fs, gps;
-      flattrButton = this.$('.FlattrButton');
-      content = flattrButton.parent()[0];
+      var content, gps, paypal;
+      paypal = this.$('form.paypal')[0];
+      content = this.$('div.options')[0];
       gps = this.scriptTag();
       gps.src = 'https://grtp.co/v1.js';
       gps.setAttribute('data-gratipay-username', 'wbond');
-      content.insertBefore(gps, flattrButton[0]);
-      fs = this.scriptTag();
-      fs.src = '//api.flattr.com/js/0.6/load.js?mode=auto';
-      return content.insertBefore(fs, flattrButton[0]);
+      return content.appendChild(gps);
     };
 
     About.prototype.scriptTag = function() {
