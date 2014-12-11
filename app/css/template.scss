@@ -275,12 +275,22 @@ header {
 			-webkit-border-top-right-radius:     3px;
 			border-top-right-radius:             3px;
 
+			i.news {
+				font-size: 0.9em;
+				color: $orange;
+				opacity: 0.8;
+			}
+
 			&:first-child {
 				margin-left: 0;
 			}
 
 			&:hover {
 				color: $black;
+
+				i.news {
+					opacity: 1.0;
+				}
 			}
 
 			&.active {
