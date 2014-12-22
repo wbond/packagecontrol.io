@@ -1,0 +1,131 @@
+<title>Dependencies</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Dependencies</h1>
+
+<p>
+	One of the new features of Package Control 3.0 is support for dependencies.
+	Dependencies are non-user-visible packages that contain binaries, shared
+	libraries or Python modules.
+</p>
+<p>
+	<em>Dependencies are not a way to install multiple related packages. As of
+	version 3.0.0 of Package Control, no such functionality exists.</em>
+</p>
+
+<h2>How They Work</h2>
+
+<p>
+	Similar to packages, dependencies are distributed through a repository.
+	Dependencies are always fully extracted to the user‘s <tt>Packages/</tt>
+	folder, using their name. Thus, dependency and package names exist in a
+	single namespace. This means you can not have a dependency with the same
+	name as a package.
+</p>
+
+<p>
+	Once the package is extracted, a custom-generated python file is added to
+	a special package named <tt>0_package_control_loader</tt>. For Sublime
+	Text 3, this is a <tt>.sublime-package</tt> file, whereas for Sublime Text
+	2 it is just a folder. The reason for the name (and creating it as a
+	<tt>.sublime-package</tt> file in ST3) is to ensure it is the very first
+	non-default package that Sublime Text loads.
+</p>
+
+<p>
+	The generated python file injects looks for predefined subfolder names in
+	the dependency folder, based on the user‘s machine. Each matching subfolder
+	that is found will be added to Python‘s <tt>sys.path</tt> list, which is
+	used to load modules.
+</p>
+
+<p>
+	The predefined subfolder names are in the formats:
+	<tt>st{st_version}_{os}_{arch}</tt>, <tt>st{st_version}_{os}</tt> and
+	<tt>st{st_version}</tt>. For example, Sublime Text 3 on a 64bit Linux
+	machine, the following subfolders will be checked:
+</p>
+
+<ul>
+	<li><tt>st3_linux_x64</tt></li>
+	<li><tt>st3_linux</tt></li>
+	<li><tt>st3</tt></li>
+</ul>
+
+<p>
+	The valid list of Sublime Text versions is: <tt>st2</tt> and
+	<tt>st3</tt>. The valid list of operating systems is: <tt>windows</tt>,
+	<tt>osx</tt> and <tt>linux</tt>. The valid list of architectures is:
+	<tt>x32</tt> and <tt>x64</tt>.
+</p>
+
+<p>
+	If for some reason you need different logic, create a single python file
+	in the root folder of the dependency named <tt>loader.py</tt>. This python
+	file would be fully responsible for making any and all changes necessary
+	to <tt>sys.path</tt>.
+</p>
+
+<h2>Examples</h2>
+
+<p>
+	If the explanation of how dependencies work seems kind of abstract, take
+	a moment and look at the following examples:
+</p>
+
+<ul>
+	<li>
+		<a href="https://github.com/codexns/sublime-bz2">bz2</a> - a simple
+		shared library that Package Control uses to obtain better compression
+		of the default channel
+	</li>
+	<li>
+		<a href="https://github.com/codexns/sublime-cffi">cffi</a> - another
+		standard dependency that makes a shared library available to all
+		platforms and architectures
+	</li>
+	<li>
+		<a href="https://github.com/codexns/sublime-ssl-linux">ssl-linux</a> -
+		a complex example using <tt>loader.py</tt> to determine what version
+		of OpenSSL a user has installed
+	</li>
+</ul>
+
+<h2>Publishing</h2>
+
+<p>
+	Like packages, dependencies are distributed through repositories and cached
+	in channels. See <a href="https://github.com/wbond/package_control/blob/master/example-repository.json#L372-L428">example-repository.json</a> for the
+	basic documentation on how to add a dependency to the repository JSON.
+</p>
+
+<p>
+	The dependencies in the default repository are tracked in the file
+	<a href="https://github.com/wbond/package_control_channel/blob/master/repository/dependencies.json">repository/dependencies.json</a>. To add a new
+	dependency, fork the channel and submit a pull request. Be sure to use the
+	<a href="https://packagecontrol.io/packages/ChannelRepositoryTools">ChannelRepositoryTools</a> to test your addition.
+</p>
+
+<h2>Using Dependencies</h2>
+
+<p>
+	To mark a package as requiring one or more dependencies, there are two
+	options:
+</p>
+
+<ol>
+	<li>
+		Add a <tt>dependencies</tt> key to one of the releases -
+		<a href="https://github.com/wbond/package_control/blob/master/example-repository.json#L248-L258">docs</a>
+	</li>
+	<li>
+		Add a <tt>dependencies.json</tt> file to the root of the package -
+		<a href="https://github.com/wbond/package_control/blob/master/example-dependencies.json">docs</a>
+	</li>
+</ol>
+
+<p>
+	The <tt>dependencies.json</tt> approach will likely be more convenient for
+	package developers since they will not be installing their own packages
+	from a channel or repository.
+</p>

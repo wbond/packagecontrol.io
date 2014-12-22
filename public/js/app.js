@@ -18242,7 +18242,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.44';
+  window.App.version = '1.0.45';
 
 }).call(this);
 
@@ -19365,6 +19365,25 @@ Backbone.addBeforePopState = function(BB) {
     CustomizingPackages.prototype.name = 'CustomizingPackages';
 
     return CustomizingPackages;
+
+  })(Snakeskin.StaticView);
+
+}).call(this);
+
+(function() {
+  var __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.Dependencies = (function(_super) {
+    __extends(Dependencies, _super);
+
+    function Dependencies() {
+      return Dependencies.__super__.constructor.apply(this, arguments);
+    }
+
+    Dependencies.prototype.name = 'Dependencies';
+
+    return Dependencies;
 
   })(Snakeskin.StaticView);
 

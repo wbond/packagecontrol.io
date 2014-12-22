@@ -8,6 +8,7 @@ from .channels_and_repositories import channels_and_repositories_controller
 from .code import code_controller
 from .creating_package_files import creating_package_files_controller
 from .customizing_packages import customizing_packages_controller
+from .dependencies import dependencies_controller
 from .developers import developers_controller
 from .docs import docs_controller
 from .five_hundred import five_hundred_controller
