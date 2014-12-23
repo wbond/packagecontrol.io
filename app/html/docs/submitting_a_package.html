@@ -226,6 +226,45 @@
 			</li>
 		</ul>
 	</li>
+	<li>
+		<p>
+			<strong>Add the <tt>platforms</tt> key to your <tt>releases</tt> if necessary.</strong>
+		</p>
+		<ul>
+			<li>
+				<p>
+					<em>Package that only works on OS X and Linux</em>
+				</p>
+				<pre>{
+	"name": "Alignment",
+	"details": "https://github.com/wbond/sublime_alignment",
+	"releases": [
+		{
+			"sublime_text": "*",
+			"platforms": ["osx", "linux"],
+			"tags": true
+		}
+	]
+}</pre>
+			</li>
+			<li>
+				<p>
+					<em>Package that only works on Windows</em>
+				</p>
+				<pre>{
+	"name": "Alignment",
+	"details": "https://github.com/wbond/sublime_alignment",
+	"releases": [
+		{
+			"sublime_text": "*",
+			"platforms": ["windows"],
+			"tags": true
+		}
+	]
+}</pre>
+			</li>
+		</ul>
+	</li>
 </ol>
 
 <h2 id="Step_7">7. Run the Tests</h2>
