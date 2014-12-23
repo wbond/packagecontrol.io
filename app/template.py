@@ -93,6 +93,8 @@ def load_partials():
     """
 
     for filename in os.listdir(partials_root):
+        if filename.find('.handlebars') == -1:
+            continue
         path = os.path.join(partials_root, filename)
         _load_partial(path)
 
