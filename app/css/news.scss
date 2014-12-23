@@ -4,22 +4,34 @@
 
 body.news {
 
-	h2 {
-		margin-bottom: 5px;
-
-		&[id] {
-			cursor: pointer;
+	div#torso {
+		h1 + section {
+			border-top: none;
+			margin-top: 0;
 		}
-	}
-	p.meta {
-		position: relative;
-		color: $grey;
-		padding-left: 2px;
 
-		span.by,
-		span.time,
-		span.date {
-			font-weight: bold;
+		section {
+			margin-top: 30px;
+			border-top: 1px solid #ddd;
+		}
+
+		h2 {
+			margin-bottom: 5px;
+
+			&[id] {
+				cursor: pointer;
+			}
+		}
+		p.meta {
+			position: relative;
+			color: $grey;
+			padding-left: 2px;
+
+			span.by,
+			span.time,
+			span.date {
+				font-weight: bold;
+			}
 		}
 	}
 }
