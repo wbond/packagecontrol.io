@@ -11,6 +11,7 @@ from .customizing_packages import customizing_packages_controller
 from .dependencies import dependencies_controller
 from .developers import developers_controller
 from .docs import docs_controller
+from .events import events_controller
 from .five_hundred import five_hundred_controller
 from .four_oh_four import four_oh_four_controller
 from .index import index_controller

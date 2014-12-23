@@ -1,0 +1,119 @@
+<title>Events</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Events</h1>
+
+<p>
+	Package Control 3.0 adds an API for package developers to be able to more
+	easily respond to events that affect their packages. The events API is used
+	in concert with the Sublime Text package load/unload handlers.
+</p>
+
+<p>
+	The following events can be detected:
+</p>
+
+<ul>
+	<li>After Install</li>
+	<li>Before Upgrade</li>
+	<li>After Upgrade</li>
+	<li>Before Removal</li>
+</ul>
+
+<p>
+	<em><strong>Please note that this API is only available starting with
+	Package Control 3.0.</strong> Users who have not upgraded to 3.0 will not
+	have the <tt>package_control</tt> modules available to all packages and
+	errors will occur. In an effort to solve this issue, the old channel files
+	for Package Control 1.x and 2.0 will only contain Package Control itself as
+	of early January 2015. This will ensure that only Package Control 3.0 users
+	will be installing and upgrading packages, making it possible for
+	package developers to use the new events API and
+	<a href="/docs/dependencies">dependencies</a>.</em>
+</p>
+
+<h2>Sublime Text Load/Unload Handlers</h2>
+
+<p>
+	The events API is a layer of extra information that allows code being run
+	inside of the Sublime Text 3 <tt>plugin_loaded()</tt> and
+	<tt>plugin_unloaded()</tt> handlers. These handlers are automatically
+	executed whenever a package is install/enabled or removed/disabled,
+	respectively.
+</p>
+
+<p>
+	Part of what makes these handlers applicable is that Package Control
+	always disables and reenables packages when performing operations on them.
+	This helps ensure that Sublime Text does not parse partially extracted
+	file contents or retain a filesystem lock on files about to be written or
+	removed.
+</p>
+
+<p>
+	Packages that run on Sublime Text 2 also have slightly different handlers.
+	The example below will include code and comments showing how to support
+	both ST2 and ST3.
+</p>
+
+<h2>API</h2>
+
+<p>
+	The events API is located in the <tt>package_control.events</tt> module.
+	It has four functions. Each of these functions returns either a string
+	version number, or <tt>None</tt> if the package is not in the state
+	specified.
+</p>
+
+<ul>
+	<li>
+		<tt>events.install("Package Name")</tt> - package was just installed
+	</li>
+	<li>
+		<tt>events.pre_upgrade("Package Name")</tt> - package is about to be
+		upgraded
+	</li>
+	<li>
+		<tt>events.post_upgrade("Package Name")</tt> - package was just upgraded
+	</li>
+	<li>
+		<tt>events.remove("Package Name")</tt> - package is about to be removed
+	</li>
+</ul>
+
+<h2>Example Code</h2>
+
+<p>
+	The following code should be located in one of the <tt>.py</tt> files in
+	the root of your package.
+</p>
+
+<pre>import sys
+
+
+package_name = 'My Package'
+
+
+def plugin_loaded():
+    from package_control import events
+
+    if events.install(package_name):
+        print('Installed %s!' % events.install(package_name))
+    elif events.post_upgrade(package_name):
+        print('Upgraded to %s!' % events.post_upgrade(package_name))
+
+
+def plugin_unloaded():
+    from package_control import events
+
+    if events.pre_upgrade(package_name):
+        print('Upgrading from %s!' % events.pre_upgrade(package_name))
+    elif events.remove(package_name):
+        print('Removing %s!' % events.remove(package_name))
+
+
+# Compat with ST2
+if sys.version_info &lt; (3,):
+    plugin_loaded()
+    unload_handler = plugin_unloaded
+</pre>

@@ -18266,6 +18266,7 @@ Backbone.addBeforePopState = function(BB) {
       this.messaging = __bind(this.messaging, this);
       this.issues = __bind(this.issues, this);
       this.installation = __bind(this.installation, this);
+      this.events = __bind(this.events, this);
       this.docs = __bind(this.docs, this);
       this.dependencies = __bind(this.dependencies, this);
       this.customizingPackages = __bind(this.customizingPackages, this);
@@ -18457,6 +18458,14 @@ Backbone.addBeforePopState = function(BB) {
       return this.ensureData('html', (function(_this) {
         return function(data) {
           return App.layout.render('docs', data);
+        };
+      })(this));
+    };
+
+    Router.prototype.events = function() {
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('events', data);
         };
       })(this));
     };
@@ -19630,6 +19639,25 @@ Backbone.addBeforePopState = function(BB) {
     Docs.prototype.name = 'Docs';
 
     return Docs;
+
+  })(Snakeskin.StaticView);
+
+}).call(this);
+
+(function() {
+  var __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.Events = (function(_super) {
+    __extends(Events, _super);
+
+    function Events() {
+      return Events.__super__.constructor.apply(this, arguments);
+    }
+
+    Events.prototype.name = 'Events';
+
+    return Events;
 
   })(Snakeskin.StaticView);
 

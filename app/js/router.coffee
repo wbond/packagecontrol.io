@@ -118,6 +118,11 @@ class App.Router extends Snakeskin.Router
       App.layout.render('docs', data)
     )
 
+  events: =>
+    @ensureData('html', (data) =>
+      App.layout.render('events', data)
+    )
+
   installation: =>
     @ensureData('html', (data) =>
       App.layout.render('installation', data)
