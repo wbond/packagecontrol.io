@@ -6,11 +6,19 @@
 <p>
 	One of the new features of Package Control 3.0 is support for dependencies.
 	Dependencies are non-user-visible packages that contain binaries, shared
-	libraries or Python modules.
+	libraries or Python modules. Dependencies are not a way to install multiple
+	related packages. Currently no such functionality exists.
 </p>
+
 <p>
-	<em>Dependencies are not a way to install multiple related packages. As of
-	version 3.0.0 of Package Control, no such functionality exists.</em>
+	<em><strong>Please note that this dependencies are only available starting
+	with Package Control 3.0.</strong> Users who have not upgraded to 3.0 will
+	not automatically download required dependencies. In an effort to solve this
+	issue, the old channel files for Package Control 1.x and 2.0 will only
+	contain Package Control itself as of early January 2015. This will ensure
+	that only Package Control 3.0 users will be installing and upgrading
+	packages, making it possible for package developers to use the dependencies
+	and the <a href="/docs/events">events API</a>.</em>
 </p>
 
 <h2>How They Work</h2>
