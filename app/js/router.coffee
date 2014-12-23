@@ -108,6 +108,11 @@ class App.Router extends Snakeskin.Router
       App.layout.render('customizing_packages', data)
     )
 
+  dependencies: =>
+    @ensureData('html', (data) =>
+      App.layout.render('dependencies', data)
+    )
+
   docs: =>
     @ensureData('html', (data) =>
       App.layout.render('docs', data)

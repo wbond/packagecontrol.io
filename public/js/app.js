@@ -18242,7 +18242,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.0.47';
+  window.App.version = '1.0.48';
 
 }).call(this);
 
@@ -18267,6 +18267,7 @@ Backbone.addBeforePopState = function(BB) {
       this.issues = __bind(this.issues, this);
       this.installation = __bind(this.installation, this);
       this.docs = __bind(this.docs, this);
+      this.dependencies = __bind(this.dependencies, this);
       this.customizingPackages = __bind(this.customizingPackages, this);
       this.creatingPackageFiles = __bind(this.creatingPackageFiles, this);
       this.code = __bind(this.code, this);
@@ -18440,6 +18441,14 @@ Backbone.addBeforePopState = function(BB) {
       return this.ensureData('html', (function(_this) {
         return function(data) {
           return App.layout.render('customizing_packages', data);
+        };
+      })(this));
+    };
+
+    Router.prototype.dependencies = function() {
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('dependencies', data);
         };
       })(this));
     };
