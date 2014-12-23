@@ -28,3 +28,19 @@
 	all futher updates to the package can be performed via the GitHub or
 	BitBucket user interfaces.
 </p>
+
+<h2>Upgrading Repositories to the Newest Schema Version</h2>
+
+<p>
+	The package <a href="/packages/ChannelRepositoryTools">ChannelRepositoryTools</a>
+	includes a command <em>Upgrade Repository Schema (Current File)</em> that
+	will upgrade the currently open repository JSON to the newest
+	<tt>schema_version</tt>.
+</p>
+
+<p>
+	Once the file has been upgraded, most packages can then be migrated into
+	the <a href="https://github.com/wbond/package_control_channel/tree/master/repository">default repository</a>.
+	Most uses of custom repository JSON files was due to deficiencies with
+	<tt>schema_version</tt> <tt>1.2</tt> and <tt>2.0</tt>.
+</p>
