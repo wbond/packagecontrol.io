@@ -3,8 +3,38 @@
 <a class="context" href="/docs">Docs</a>
 <h1>Troubleshooting</h1>
 
+<ul>
+	<li><a href="#Enabling_the_Debug_Log">Enabling the Debug Log</a></li>
+	<li><a href="#Windows_Errors_12029_and_12057">Windows Errors 12029 and 12057</a></li>
+	<li><a href="#Purging_Old_Versions">Purging Old Versions</a></li>
+</ul>
 
-<h2>Windows Errors 12029 and 12057</h2>
+<h2 id="Enabling_the_Debug_Log">Enabling the Debug Log</h2>
+
+<p>
+	In order to help diagnose issues with Package Control, it is necessary to
+	have a debug log. The debug logs contains extensive information about
+	what Package Control is doing behind the scenes, and can help to diagnose
+	why it isn't working properly.
+</p>
+
+<ol>
+	<li>Click the <span class="menu">Preferences</span> menu</li>
+	<li>Select <span class="menu">Package Settings</span></li>
+	<li>Choose <span class="menu">Package Control</span></li>
+	<li>Click <span class="menu">Settings - User</span></li>
+	<li>Add the setting <tt>"debug": true</tt></li>
+	<li>Save the settings file</li>
+</ol>
+
+<p>
+	Now when performing actions with Package Control, debug information will
+	be printed to the Sublime Text console. The console can be opened by
+	pressing <kbd>ctrl<em>+</em>`</kbd> or using the <span class="menu">View
+    <em>&gt;</em> Show Console</span> menu entry.
+</p>
+
+<h2 id="Windows_Errors_12029_and_12057">Windows Errors 12029 and 12057</h2>
 
 <p>
 	On Windows, Package Control utilizes the WinINet C++ API for web requests.
@@ -98,7 +128,7 @@
 	to the server. It could be any number of different things.
 </p>
 
-<h2>Purging Old Versions</h2>
+<h2 id="Purging_Old_Versions">Purging Old Versions</h2>
 
 <p>
 	During the alpha phase of Package Control 2.0, quite a number of users
