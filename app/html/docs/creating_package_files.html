@@ -6,30 +6,68 @@
 <p>
 	If you are developing a package, and plan on doing custom repository
 	hosting instead of using GitHub or BitBucket, Package Control includes
-	two commands to assist in creating <tt>.sublime-package</tt> files from your
-	package directories. These are <em>Create Package</em> and
-	<em>Create Binary Package</em>, both of which can be run via the command
-	palette.
+	the command <em>Create Package</em> to assist in creating
+	<tt>.sublime-package</tt> files from your package directories. This command
+	is run via the command palette, and via the settings, allows you to
+	customize what files are included in the output package file.
 </p>
+
+<h2>Package Profiles</h2>
+
+<p>
+	Before running the <em>Create Package</em> command, take a moment to review
+	the various settings that control the output. Package Control ships with
+	two profiles, <tt>Default</tt> and <tt>Binaries Only</tt>. Here are the
+	settings the control the <tt>Default</tt> profile:
+</p>
+
+<ul>
+	<li><a href="/docs/settings#setting-dirs_to_ignore"><tt>dirs_to_ignore</tt></a></li>
+	<li><a href="/docs/settings#setting-files_to_ignore"><tt>files_to_ignore</tt></a></li>
+	<li><a href="/docs/settings#setting-files_to_include"><tt>files_to_include</tt></a></li>
+	<li><a href="/docs/settings#setting-package_destination"><tt>package_destination</tt></a></li>
+</ul>
+
+<p>
+	The <a href="/docs/settings#setting-package_profiles"><tt>package_profiles</tt></a>
+	setting allows created other named profiles that can override each of the
+	settings listed above. By default, a single custom profile is included:
+	<tt>Binaries Only</tt>. Copy the settings from <span class="menu">Preferences
+	<em>&gt;</em> Package Settings <em>&gt;</em> Package Control <em>&gt;</em>
+	Settings – Default</span> into <span class="menu">Preferences
+	<em>&gt;</em> Package Settings <em>&gt;</em> Package Control <em>&gt;</em>
+	Settings – User</span> and customize to suit your needs.
+</p>
+
+<h2>Running <em>Create Package</em></h2>
+
 <p>
 	Running the <em>Create Package</em> command will prompt you to select a
-	pakage to create the package file for. The packager
-	exlcudes various VCS metadata, Sublime Text cache files and
-	<tt>.pyc</tt> files by default. The list
-	of excluded files can be tweaking through the
-	<a href="/docs/settings#setting-dirs_to_ignore">dirs_to_ignore</a>,
-	<a href="/docs/settings#setting-files_to_ignore">files_to_ignore</a>
-	and <a href="/docs/settings#setting-files_to_include">files_to_include</a>
-	settings.
+	pakage to create the package file for. Next, it will ask you to choose what
+	package profile you would like to use. Package Control will then create
+	a <tt>.sublime-package</tt> file, add the package files to it and place it
+	in the <tt>package_destination</tt>.
 </p>
+
+<h2>.pyc Files</h2>
+
 <p>
-	The command <em>Create Binary Package</em> works the same way as <em>Create
-	Package</em>, however it uses different settings to control what is included
-	and excluded. The default different is that with a binary package, all
-	<tt>.py</tt> files except for <tt>__init__.py</tt> are excluded and all
-	<tt>.pyc</tt> files are included. The list of excluded files can be tweaked
-	through the <a href="/docs/settings#setting-dirs_to_ignore">dirs_to_ignore</a>,
-	<a href="/docs/settings#setting-files_to_ignore_binary">files_to_ignore_binary</a>
-	and <a href="/docs/settings#setting-files_to_include_binary">files_to_include_binary</a>
-	settings.
+	With Sublime Text 2, all python files are compiled into <tt>.pyc</tt> files
+	by default by Sublime Text itself. This allows you to choose if you want to
+	ship a binary only-package. Python 3 in Sublime Text 3 changes how Python
+	scripts are compiled, storing them all in a <tt>__pycache__/</tt> folder,
+	which doesn't work if you are trying to ship a binary only package.
+</p>
+
+<p>
+	Because of this, Package Control explicitly compiles all <tt>.py</tt> files
+	into <tt>.pyc</tt> files, in the same directory, bypassing the
+	<tt>__pycache__/</tt> for Sublime Text 3. So, while normally Python 2 and
+	Python 3 are quite different when it comes to <tt>.pyc</tt> files, Package
+	Control works around the issue. Please note, however, that it will still
+	be required to ship a different version of the package for Sublime Text 2
+	and Sublime Text 3 since they use different <tt>.pyc</tt> formats. This
+	can be accomplished by running <em>Create Package</em> from Sublime Text 2
+	for an ST2-compatible version of the package, and running
+	<em>Create Package</em> from Sublime Text 3 for an ST3-compatible version.
 </p>
