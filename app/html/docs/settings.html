@@ -56,7 +56,7 @@
             repositories. The repositories from these channels are placed in
             order after the repositories from the <em>repositories</em> setting.
             <div class="default">
-                <em>Default</em> <tt>["https://packagecontrol.io/channel.json"]</tt>
+                <em>Default</em> <tt>["https://packagecontrol.io/channel_v3.json"]</tt>
             </div>
         </dd>
         <dt id="setting-repositories">repositories</dt>
@@ -70,11 +70,12 @@
         </dd>
         <dt id="setting-install_prereleases">install_prereleases</dt>
         <dd>
-            Install pre-release versions of packages. If this is false, versions
-            under 1.0.0 will still be installed. Only packages using the SemVer
-            <tt>-prerelease</tt> suffixes will be ignored.
+            A list of packages to install pre-release versions for. Versions
+            under 1.0.0 are not considered pre-release, only those using the
+            SemVer <tt>-prerelease</tt> suffixes will be ignored if the package
+            is not in this list.
             <div class="default">
-                <em>Default</em> <tt>false</tt>
+                <em>Default</em> <tt>[]</tt>
             </div>
         </dd>
         <dt id="setting-package_name_map">package_name_map</dt>
@@ -194,16 +195,17 @@
         <dd>
             The user agent used by the various downloaders.
             <div class="default">
-                <em>Default</em> <tt>"Sublime Package Control v{version.number}"</tt>
+                <em>Default</em> <tt>"Package Control v{version.number}"</tt>
             </div>
         </dd>
         <dt id="setting-git_binary">git_binary</dt>
         <dd>
-            The path to git, when using a git repository to track a package.
-            When an empty string, Package Control will look in default locations
-            for the current OS.
+            Custom path(s) to <tt>git</tt> binary for when it can't be
+            automatically found on the system and a package includes a
+            <tt>.git</tt> metadata directory. Supports more than one path to
+            allow users to sync settings across operating systems.
             <div class="default">
-                <em>Default</em> <tt>""</tt>
+                <em>Default</em> <tt>[]</tt>
             </div>
         </dd>
         <dt id="setting-git_update_command">git_update_command</dt>
@@ -216,11 +218,12 @@
         </dd>
         <dt id="setting-hg_binary">hg_binary</dt>
         <dd>
-            The path to hg, when using an hg repository to track a package.
-            When an empty string, Package Control will look in default locations
-            for the current OS.
+            Custom path(s) to <tt>hg</tt> binary for when it can't be
+            automatically found on the system and a package includes a
+            <tt>.hg</tt> metadata directory. Supports more than one path to
+            allow users to sync settings across operating systems.
             <div class="default">
-                <em>Default</em> <tt>""</tt>
+                <em>Default</em> <tt>[]</tt>
             </div>
         </dd>
         <dt id="setting-hg_update_command">hg_update_command</dt>
@@ -237,14 +240,6 @@
             packages.
             <div class="default">
                 <em>Default</em> <tt>false</tt>
-            </div>
-        </dd>
-        <dt id="setting-openssl_binary">openssl_binary</dt>
-        <dd>
-            Only necessary if <tt>openssl</tt> can not be found and the
-            <em>Grab CA Certs</em> command is run.
-            <div class="default">
-                <em>Default</em> <tt>""</tt>
             </div>
         </dd>
         <dt id="setting-dirs_to_ignore">dirs_to_ignore</dt>
@@ -271,22 +266,6 @@
                 <em>Default</em> <tt>[]</tt>
             </div>
         </dd>
-        <dt id="setting-files_to_ignore_binary">files_to_ignore_binary</dt>
-        <dd>
-            A list of file glob patterns to ignore when creating a <tt>.sublime-package</tt>
-            file by the <em>Create Binary Package</em> command.
-            <div class="default">
-                <em>Default</em> <tt>[".hgignore", ".gitignore", ".bzrignore", "*.py", "*.sublime-project", "*.sublime-workspace", "*.tmTheme.cache"]</tt>
-            </div>
-        </dd>
-        <dt id="setting-files_to_include_binary">files_to_include_binary</dt>
-        <dd>
-            A list of file glob patterns to include when creating a <tt>.sublime-package</tt>
-            file by the <em>Create Binary Package</em> command. This overrides <tt>files_to_ignore_binary</tt>.
-            <div class="default">
-                <em>Default</em> <tt>["__init__.py"]</tt>
-            </div>
-        </dd>
         <dt id="setting-package_destination">package_destination</dt>
         <dd>
             The folder to copy a newly created package to. Default to the user’s
@@ -297,53 +276,52 @@
                 <em>Default</em> <tt>""</tt>
             </div>
         </dd>
-        <dt id="setting-certs">certs</dt>
+        <dt id="setting-package_profiles">package_profiles</dt>
         <dd>
             <p>
-                A list of CA cert information for the purpose of providing a secure
-                way to download packages. A default list is provided with Package
-                Control, but then the default repository channel provides updates
-                to the list. It is also possible to add your own entries for custom
-                download locations, or for supporting your local proxy server.
+                A way to create different packaging profiles for different types of
+                package releases, such as for different platforms or binary-only
+                releases.
             </p>
             <p>
-                To add your own, be sure to copy the JSON object below and then add
-                your custom entries. The key in the JSON object is the domain the
-                cert applies to. The value is an array with two elements, the first
-                being an identifier for the cert, and the second being a location
-                to copy the cert from. The identifier is used to ensure that Package
-                Control has a copy of the latest version of the cert in its
-                <tt>certs/</tt> folder. The location can be either an absolute file
-                path on your local machine, or a URL to download it from.
+                The key of the object will be the profile name and a list of them will
+                be presenting when running the "Create Package File" command. The
+                profile "Default" will use the top-level version on the following
+                settings:
             </p>
+            <ul>
+                <li><tt>"dirs_to_ignore"</tt></li>
+                <li><tt>"files_to_ignore"</tt></li>
+                <li><tt>"files_to_include"</tt></li>
+                <li><tt>"package_destination"</tt></li>
+            </ul>
             <p>
-                To create a CA cert that is ensured to be present no matter what
-                domain is being accessed (such as for a proxy server), set the
-                domain name to <tt>*</tt>, like in the example on the next line:
-            </p>
-            <p>
-                <tt>"*": ["my_proxy_cert", "/file/path/to/proxy/ca_certs"]</tt>
-            </p>
-            <p>
-                This ca cert needs to live somewhere on your machine permanently
-                so that it can be re-added to the <tt>ca-bundle.crt</tt> file that
-                is provided with each Package Control upgrade.
+                If a profile does not include one of those three setting, it will fall
+                back to the top-level settings.
             </p>
             <div class="default">
                 <em>Default</em>
                 <pre>{
-    "api.bitbucket.org": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "api.github.com": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "bitbucket.org": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "codeload.github.com": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "downloads.sourceforge.net": ["221e907bdfff70d71cea42361ae209d5", "https://packagecontrol.io/certs/221e907bdfff70d71cea42361ae209d5"],
-    "github.com": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "nodeload.github.com": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "packagecontrol.io": ["d616352d4213985e717c93c8c387575d", "https://packagecontrol.io/certs/d616352d4213985e717c93c8c387575d"],
-    "raw.github.com": ["7d0986b90061d60c8c02aa3b1cf23850", "https://packagecontrol.io/certs/7d0986b90061d60c8c02aa3b1cf23850"],
-    "sublime.wbond.net": ["221e907bdfff70d71cea42361ae209d5", "https://packagecontrol.io/certs/221e907bdfff70d71cea42361ae209d5"]
-}
-</pre>
+    "Binaries Only": {
+        // Exclude all .py files, but consequently include all .pyc files
+        "files_to_ignore": [
+            "*.py", ".hgignore", ".gitignore", ".bzrignore",
+            "*.sublime-project", "*.sublime-workspace", "*.tmTheme.cache"
+        ],
+
+        // Include __init__.py so Sublime Text will load the package
+        "files_to_include": [
+            "__init__.py"
+        ]
+    }
+}</pre>
+            </div>
+        </dd>
+        <dt id="setting-enable_tests">enable_tests</dt>
+        <dd>
+            Enable the ability to run the tests - this is only for development.
+            <div class="default">
+                <em>Default</em> <tt>false</tt>
             </div>
         </dd>
     </dl>
