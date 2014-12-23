@@ -1,0 +1,199 @@
+@import "partials/fonts";
+@import "partials/colors";
+@import "partials/cross_browser";
+
+
+div.popup-overlay {
+	@include transition(opacity 0.15s ease-in-out);
+
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: +100;
+	opacity: 1;
+
+	background: rgba(0,0,0, 0.8);
+	background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+	background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%, rgba(0,0,0,0.3)), color-stop(100%, rgba(0,0,0,0.8)));
+	background: -webkit-radial-gradient(center, ellipse cover, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+	background: -o-radial-gradient(center, ellipse cover, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+	background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+	background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+	filter: progid:DXImageTransform.Microsoft.Alpha(opacity=30, finishopacity=70, style=2);
+
+	div.popup-scroller {
+		position: absolute;
+		display: table;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+		overflow-y: visible;
+		width: 100%;
+		height: 100%;
+		z-index: 1000;
+		cursor: zoom-out;
+	}
+
+	div.popup-positioner {
+		@include transform(translateY(-25%));
+		@include user-select(none);
+
+		height: 100%;
+		display: table-cell;
+		vertical-align: middle;
+		cursor: zoom-out;
+	}
+
+	a.previous,
+	a.next {
+		@include transform(translateY(-15%));
+		font-weight: bold;
+		text-transform: uppercase;
+
+		display: table-cell;
+		vertical-align: middle;
+		width: 80px;
+		height: 100%;
+		color: $white;
+		opacity: 0.8;
+		font-size: 14px;
+		z-index: 1005;
+		cursor: pointer;
+
+		&:hover {
+			opacity: 1.0;
+		}
+	}
+
+	a.previous {
+		left: 0;
+		padding-left: 10px;
+	}
+
+	a.next {
+		right: 0;
+		padding-right: 10px;
+		text-align: right;
+	}
+
+	a.close {
+		font-weight: bold;
+		text-transform: uppercase;
+
+		position: absolute;
+		top: -25px;
+		right: 0;
+		color: $white;
+		opacity: 0.8;
+		font-size: 14px;
+
+		&:hover {
+			opacity: 1.0;
+		}
+	}
+
+	div.popup-dialog {
+		@include transform(translateY(25%));
+
+		max-width: 1100px;
+		margin: 0 auto;
+		position: relative;
+
+		img {
+			display: block;
+			cursor: pointer;
+		}
+
+		div.title {
+			position: absolute;
+			top: -24px;
+			height: 24px;
+			color: $white;
+			text-shadow: rgba(0, 0, 0, 1) 0 0 8px;
+
+			span.num {
+				font-weight: 700;
+				padding-right: 4px;
+			}
+		}
+
+		iframe {
+			max-width: 1100px;
+			border: none;
+			width: 100%;
+			display: block;
+			background-color: $white;
+		}
+
+		div.popup-content {
+			@include box-sizing(border-box);
+			@include user-select(text);
+
+			max-width: 1100px;
+			background-color: $white;
+			overflow-y: auto;
+			padding: 20px;
+			cursor: default;
+
+			:first-child {
+				margin-top: 0;
+			}
+		}
+	}
+}
+
+div.popup-overlay.filled {
+	div.popup-positioner {
+		@include transform(none);
+	}
+
+	div.popup-dialog {
+		@include transform(none);
+	}
+}
+
+div.popup-overlay.mobile {
+	.popup-positioner {
+		@include transform(none);
+
+		padding: 20px;
+	}
+
+	.popup-dialog {
+		@include transform(none);
+
+		width: auto;
+		max-width: 860px;
+		margin: 0 auto;
+		height: 100%;
+	}
+}
+
+ul.screenshots {
+	float: right;
+	margin-top: 10px;
+
+	li {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+		display: inline-block;
+
+		a {
+			margin-left: 15px;
+
+			img {
+				width: 140px;
+				height: 140px;
+			}
+		}
+	}
+
+	@media (max-width: 950px) {
+		float: none;
+		margin-bottom: 10px;
+	}
+}

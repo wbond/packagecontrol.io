@@ -1,0 +1,129 @@
+<title>Troubleshooting</title>
+
+<a class="context" href="/docs">Docs</a>
+<h1>Troubleshooting</h1>
+
+
+<h2>Windows Errors 12029 and 12057</h2>
+
+<p>
+	On Windows, Package Control utilizes the WinINet C++ API for web requests.
+	This allows Package Control to rely on your OS for auto-configuration of
+	proxies and secure certificate validation.
+</p>
+
+<p>
+	Unfortunately there are a couple of common WinINet errors that users run
+	into, including:
+</p>
+
+<ul>
+	<li>
+		<tt>Connection refused (errno 12029) during HTTP write phase of
+		downloading</tt>
+	</li>
+	<li>
+		<tt>Error checking for server certificate revocation (errno 12057)
+		during HTTP write phase of downloading</tt>
+	</li>
+</ul>
+
+<p>
+	Since WinINet is a system API, it is configured through Internet Explorer.
+</p>
+
+<h3>Errno 12029</h3>
+
+<p>
+	A number of users have reported success in resolving this issue by resetting
+	the Internet Explorer advanced settings to their default values.
+</p>
+
+<ul class="screenshots">
+	<li>
+		<a href="/img/ie_1_internet_options.png">
+			<img src="/img/ie_1_internet_options.png" alt="Open Internet Options">
+		</a>
+	</li>
+	<li>
+		<a href="/img/ie_2_restore_advanced_settings.png">
+			<img src="/img/ie_2_restore_advanced_settings.png" alt="Restore Advanced Settings">
+		</a>
+	</li>
+</ul>
+
+<ol>
+	<li>Open Internet Explorer</li>
+	<li>Click the gear icon</li>
+	<li>Select <em>Internet Options</em></li>
+	<li>Change to the <em>Advanced</em> tab</li>
+	<li>Click the <em>Reset Advanced Settings</em> button</li>
+	<li>Scroll down to the <em>Security</em> section of the options</li>
+	<li>Verify that TLS 1.0, TLS 1.1 and TLS 1.2 are checked</li>
+</ol>
+
+<h3>Errno 12057</h3>
+
+<p>
+	Some users run into issues trying to check for SSL certificate revocation.
+	This may have to do with a proxy server not properly proxying the requests
+	for the certificate revocation list.
+</p>
+
+<ul class="screenshots">
+	<li>
+		<a href="/img/ie_1_internet_options.png">
+			<img src="/img/ie_1_internet_options.png" alt="Open Internet Options">
+		</a>
+	</li>
+	<li>
+		<a href="/img/ie_3_server_certificate_revocation.png">
+			<img src="/img/ie_3_server_certificate_revocation.png" alt="Restore Advanced Settings">
+		</a>
+	</li>
+</ul>
+
+<ol>
+	<li>Open Internet Explorer</li>
+	<li>Click the gear icon</li>
+	<li>Select <em>Internet Options</em></li>
+	<li>Change to the <em>Advanced</em> tab</li>
+	<li>Scroll down to the <em>Security</em> section of the options</li>
+	<li>Uncheck the option <em>Check for server certificate revocation*</em></li>
+	<li>Restart your machine</li>
+</ol>
+
+<p>
+	This error indicates something on your machine is blocking the connection
+	to the server. It could be any number of different things.
+</p>
+
+<h2>Purging Old Versions</h2>
+
+<p>
+	During the alpha phase of Package Control 2.0, quite a number of users
+	installed Package Control via git. However, with version 2.0.0-alpha7 there
+	was a bug that prevented automatically upgrading Package Control itself.
+	Because of this, there are quite a number of users still running old
+	versions of Package Control. These instructions will step through purging
+	the old version of Package Control and upgrading to a stable release.
+</p>
+
+<ol>
+	<li>
+		Select the <em>Preferences &gt; Browse Packages…</em> menu entry
+	</li>
+	<li>
+		Delete the folder named <tt>Package Control</tt>
+	</li>
+	<li>
+		Browse up a folder and then into <tt>Installed Packages</tt>
+	</li>
+	<li>
+		Delete <tt>Package Control.sublime-package</tt> if it exists
+	</li>
+	<li>
+		Reinstall Package Control using the
+		<a href="/installation">installation instructions</a>
+	</li>
+</ol>

@@ -24,7 +24,6 @@ from .news import news_controller
 from .package import package_controller
 from .packages import packages_controller
 from .popular import popular_controller
-from .purging_old_versions import purging_old_versions_controller
 from .refresh_package import refresh_package_controller
 from .renaming_a_package import renaming_a_package_controller
 from .rss import rss_controller
@@ -37,5 +36,6 @@ from .submit import submit_controller
 from .submitting_a_package import submitting_a_package_controller
 from .syncing import syncing_controller
 from .trending import trending_controller
+from .troubleshooting import troubleshooting_controller
 from .updated import updated_controller
 from .usage import usage_controller

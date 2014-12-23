@@ -18261,7 +18261,7 @@ Backbone.addBeforePopState = function(BB) {
       this.submittingAPackage = __bind(this.submittingAPackage, this);
       this.styles = __bind(this.styles, this);
       this.settings = __bind(this.settings, this);
-      this.purgingOldVersions = __bind(this.purgingOldVersions, this);
+      this.troubleshooting = __bind(this.troubleshooting, this);
       this.news = __bind(this.news, this);
       this.messaging = __bind(this.messaging, this);
       this.issues = __bind(this.issues, this);
@@ -18484,10 +18484,10 @@ Backbone.addBeforePopState = function(BB) {
       })(this));
     };
 
-    Router.prototype.purgingOldVersions = function() {
+    Router.prototype.troubleshooting = function() {
       return this.ensureData('html', (function(_this) {
         return function(data) {
-          return App.layout.render('purging_old_versions', data);
+          return App.layout.render('troubleshooting', data);
         };
       })(this));
     };
@@ -19174,6 +19174,224 @@ Backbone.addBeforePopState = function(BB) {
     return Layout;
 
   })(Backbone.View);
+
+}).call(this);
+
+(function() {
+  $(function() {
+    var isMobile, showPopup;
+    showPopup = function(html) {
+      var adjustSize, altEl, calcContentHeight, calcMaxHeight, closePopup, content, contentHeight, dialog, el, htmlEl, iframe, img, numEl, oldMarginRight, oldOverflow, oldOverflowX, oldOverflowY, resizable, scrollbarWidth, swapImage, title;
+      el = $(html);
+      htmlEl = $('html');
+      htmlEl.addClass('popup');
+      oldMarginRight = htmlEl.css('margin-right');
+      oldOverflowY = htmlEl.css('overflow-y');
+      oldOverflowX = htmlEl.css('overflow-x');
+      oldOverflow = htmlEl.css('overflow');
+      scrollbarWidth = window.innerWidth - htmlEl[0].offsetWidth;
+      if (scrollbarWidth > 0) {
+        htmlEl.css({
+          overflow: 'hidden',
+          marginRight: scrollbarWidth + 'px'
+        });
+      }
+      el.css('opacity', '0.0');
+      $('body').append(el);
+      dialog = el.find('div.popup-dialog');
+      iframe = el.find('iframe');
+      content = el.find('div.popup-content');
+      img = el.find('img');
+      title = el.find('div.title');
+      numEl = title.find('span.num');
+      altEl = title.find('span.alt');
+      resizable = null;
+      contentHeight = null;
+      calcContentHeight = function() {
+        if (!contentHeight) {
+          if (iframe.length > 0) {
+            resizable = iframe;
+            contentHeight = iframe[0].contentWindow.document.body.scrollHeight;
+          } else if (content.length > 0) {
+            resizable = content;
+            contentHeight = content[0].offsetHeight;
+          } else {
+            resizable = img;
+            contentHeight = img[0].height;
+          }
+        }
+        return contentHeight;
+      };
+      calcMaxHeight = function() {
+        return window.innerHeight - 100;
+      };
+      adjustSize = function() {
+        var elHeight, maxHeight, newHeight;
+        el.css('opacity', '1.0');
+        maxHeight = calcMaxHeight();
+        elHeight = calcContentHeight();
+        if (elHeight > maxHeight) {
+          newHeight = maxHeight;
+        } else {
+          newHeight = elHeight;
+        }
+        if (img.length > 0) {
+          resizable.css('max-height', newHeight);
+          resizable.css('max-width', window.innerWidth - 300);
+          dialog.css('width', resizable.width());
+          dialog.css('max-width', 'none');
+        } else {
+          resizable.css('height', newHeight);
+        }
+        return el.toggleClass('filled', elHeight > maxHeight - 120);
+      };
+      swapImage = function(num, src, alt) {
+        img.attr('src', src);
+        img.attr('alt', alt);
+        if (altEl.length > 0) {
+          numEl.text(num);
+          altEl.text(alt);
+        } else {
+          title.text(alt);
+        }
+        contentHeight = null;
+        return adjustSize();
+      };
+      closePopup = function() {
+        var cleanUp;
+        if (iframe.length > 0) {
+          iframe.off('load', adjustSize);
+        } else if (img.length > 0) {
+          img.off('load', adjustSize);
+        }
+        $(window).off('resize', adjustSize);
+        el.css('opacity', '0.0');
+        keymaster.unbind('esc,left,right');
+        cleanUp = function() {
+          htmlEl.removeClass('popup');
+          htmlEl.removeAttr('style');
+          return el.remove();
+        };
+        return setTimeout(cleanUp, 150);
+      };
+      if (iframe.length > 0) {
+        iframe.on('load', adjustSize);
+      } else if (img.length > 0) {
+        img.on('load', adjustSize);
+      } else {
+        adjustSize();
+      }
+      $(window).on('resize', adjustSize);
+      keymaster('esc', closePopup);
+      el.on('click', 'a.close, div.popup-scroller, div.popup-positioner', function(e) {
+        var href, target;
+        target = $(e.target);
+        if (target.closest('div.popup-content').length > 0) {
+          if (target.is('a')) {
+            href = target.attr('href');
+            if (href !== '#') {
+              window.open(href);
+              e.preventDefault();
+            }
+          }
+          return e.stopPropagation();
+        }
+        e.preventDefault();
+        return closePopup();
+      });
+      return {
+        el: el,
+        adjustSize: adjustSize,
+        swapImage: swapImage
+      };
+    };
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    window.App.popup = function(selector, delegate) {
+      var handler;
+      if (isMobile) {
+        return;
+      }
+      handler = function(e) {
+        var ext, href, html, target;
+        target = $(e.target);
+        href = target.attr('href');
+        ext = href.toLowerCase().replace(/^.*\.([^.]+)$/, '$1');
+        if (ext === 'gif' || ext === 'jpg' || ext === 'jpeg' || ext === 'png') {
+          html = Handlebars.partials['popup-image']({
+            src: href,
+            alt: target.attr('alt')
+          });
+          showPopup(html);
+          return e.preventDefault();
+        }
+      };
+      if (delegate) {
+        return $(selector).on('click', delegate, handler);
+      } else {
+        return $(selector).on('click', handler);
+      }
+    };
+    return window.App.popupGallery = function(selector, delegate) {
+      var handler;
+      if (isMobile) {
+        return;
+      }
+      handler = function(e) {
+        var el, getChildren, html, img, link, moveNext, movePrevious, num, parent, res, updateImg;
+        e.preventDefault();
+        img = $(e.target);
+        link = img.closest('a');
+        parent = $(e.delegateTarget);
+        num = parent.find(delegate).index(link) + 1;
+        html = Handlebars.partials['popup-gallery']({
+          num: num,
+          src: link.attr('href'),
+          alt: img.attr('alt')
+        });
+        res = showPopup(html);
+        el = res.el;
+        getChildren = function() {
+          var children, current, index;
+          children = parent.find(delegate);
+          current = children.filter('[href="' + el.find('img').attr('src') + '"]');
+          index = children.index(current);
+          return [children, index];
+        };
+        updateImg = function(children, index) {
+          var newEl;
+          newEl = children.eq(index);
+          return res.swapImage(index + 1, newEl.attr('href'), newEl.find('img').attr('alt'));
+        };
+        moveNext = function(e) {
+          var children, index, next, _ref;
+          _ref = getChildren(), children = _ref[0], index = _ref[1];
+          next = index + 1;
+          if (next === children.length) {
+            next = 0;
+          }
+          updateImg(children, next);
+          e.preventDefault();
+          return e.stopPropagation();
+        };
+        movePrevious = function(e) {
+          var children, index, previous, _ref;
+          _ref = getChildren(), children = _ref[0], index = _ref[1];
+          previous = index - 1;
+          if (previous === -1) {
+            previous = children.length - 1;
+          }
+          updateImg(children, previous);
+          e.preventDefault();
+          return e.stopPropagation();
+        };
+        el.on('click', 'a.next, img', moveNext);
+        keymaster('right', moveNext);
+        el.on('click', 'a.previous', movePrevious);
+        return keymaster('left', movePrevious);
+      };
+      return $(selector).on('click', delegate, handler);
+    };
+  });
 
 }).call(this);
 
@@ -20418,25 +20636,6 @@ Backbone.addBeforePopState = function(BB) {
   var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  App.Views.PurgingOldVersions = (function(_super) {
-    __extends(PurgingOldVersions, _super);
-
-    function PurgingOldVersions() {
-      return PurgingOldVersions.__super__.constructor.apply(this, arguments);
-    }
-
-    PurgingOldVersions.prototype.name = 'PurgingOldVersions';
-
-    return PurgingOldVersions;
-
-  })(Snakeskin.StaticView);
-
-}).call(this);
-
-(function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
   App.Views.RenamingAPackage = (function(_super) {
     __extends(RenamingAPackage, _super);
 
@@ -20670,6 +20869,33 @@ Backbone.addBeforePopState = function(BB) {
     return Trending;
 
   })(Snakeskin.View);
+
+}).call(this);
+
+(function() {
+  var __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.Troubleshooting = (function(_super) {
+    __extends(Troubleshooting, _super);
+
+    function Troubleshooting() {
+      return Troubleshooting.__super__.constructor.apply(this, arguments);
+    }
+
+    Troubleshooting.prototype.name = 'Troubleshooting';
+
+    Troubleshooting.prototype.initialize = function(options) {
+      return this.listenTo(this, 'placed', (function(_this) {
+        return function() {
+          return App.popupGallery('ul.screenshots', 'li a');
+        };
+      })(this));
+    };
+
+    return Troubleshooting;
+
+  })(Snakeskin.StaticView);
 
 }).call(this);
 
@@ -21673,6 +21899,36 @@ Backbone.addBeforePopState = function(BB) {
   stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.links : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + " ";
+},"useData":true});
+}).call(this);
+(function() {
+  var template  = Handlebars.template,
+      templates = Handlebars.templates = Handlebars.templates || {};
+  templates['partials/popup-gallery'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return "<div class=\"popup-overlay\"> <div class=\"popup-scroller\"> <a href=\"#\" class=\"previous\">Previous</a> <div class=\"popup-positioner\"> <div class=\"popup-dialog\"> <a href=\"#\" class=\"close\">Close</a> <img src=\""
+    + escapeExpression(((helper = (helper = helpers.src || (depth0 != null ? depth0.src : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"src","hash":{},"data":data}) : helper)))
+    + "\" alt=\""
+    + escapeExpression(((helper = (helper = helpers.alt || (depth0 != null ? depth0.alt : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"alt","hash":{},"data":data}) : helper)))
+    + "\" title=\"Next Image\"> <div class=\"title\"><span class=\"num\">"
+    + escapeExpression(((helper = (helper = helpers.num || (depth0 != null ? depth0.num : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"num","hash":{},"data":data}) : helper)))
+    + "</span> <span class=\"alt\">"
+    + escapeExpression(((helper = (helper = helpers.alt || (depth0 != null ? depth0.alt : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"alt","hash":{},"data":data}) : helper)))
+    + "</span></div> </div> </div> <a href=\"#\" class=\"next\">Next</a> </div> </div> ";
+},"useData":true});
+}).call(this);
+(function() {
+  var template  = Handlebars.template,
+      templates = Handlebars.templates = Handlebars.templates || {};
+  templates['partials/popup-image'] = template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return "<div class=\"popup-overlay\"> <div class=\"popup-scroller\"> <div class=\"popup-positioner\"> <div class=\"popup-dialog\"> <a href=\"#\" class=\"close\">Close</a> <img src=\""
+    + escapeExpression(((helper = (helper = helpers.src || (depth0 != null ? depth0.src : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"src","hash":{},"data":data}) : helper)))
+    + "\" alt=\""
+    + escapeExpression(((helper = (helper = helpers.alt || (depth0 != null ? depth0.alt : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"alt","hash":{},"data":data}) : helper)))
+    + "\"> <div class=\"title\">"
+    + escapeExpression(((helper = (helper = helpers.alt || (depth0 != null ? depth0.alt : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"alt","hash":{},"data":data}) : helper)))
+    + "</div> </div> </div> </div> </div> ";
 },"useData":true});
 }).call(this);
 (function() {

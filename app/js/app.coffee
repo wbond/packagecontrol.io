@@ -12,6 +12,7 @@
 #= require router
 #= require header
 #= require layout
+#= require popup
 #= require_tree views
 #= require_tree ../templates
 #

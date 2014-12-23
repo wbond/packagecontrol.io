@@ -22,3 +22,18 @@
   -webkit-transition: $values;
   transition:         $values;
 }
+
+@mixin transform($values) {
+  transform:         $values;
+  -ms-transform:     $values;
+  -webkit-transform: $values;
+  -o-transform:      $values;
+  -moz-transform:    $values;
+}
+
+@mixin user-select($value) {
+  -webkit-user-select: $value;
+  -moz-user-select: $value;
+  -ms-user-select: $value;
+  user-select: $value;
+}
