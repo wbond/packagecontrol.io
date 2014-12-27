@@ -17679,7 +17679,9 @@ Backbone.addBeforePopState = function(BB) {
         xhr: this._makeXhr,
         success: function(data, status, xhr) {
           var func;
-          _this.checkReloadApp(xhr);
+          if (_this.checkReloadApp(xhr)) {
+            return;
+          }
           _this.finishNavigation();
           func = function() {
             success(data);
@@ -17692,7 +17694,9 @@ Backbone.addBeforePopState = function(BB) {
           if (status === "abort") {
             return;
           }
-          _this.checkReloadApp(xhr);
+          if (_this.checkReloadApp(xhr)) {
+            return;
+          }
           _this.finishNavigation();
           route = String(xhr.status);
           if (xhr.responseText && type === 'json') {
@@ -17710,8 +17714,10 @@ Backbone.addBeforePopState = function(BB) {
 
     Router.prototype.checkReloadApp = function(xhr) {
       if (xhr.getResponseHeader('X-App-Version') !== App.version) {
-        return window.location = this.tempFragment;
+        window.location.assign(this.tempFragment);
+        return true;
       }
+      return false;
     };
 
     Router.prototype.cancelNavigation = function() {
@@ -18242,7 +18248,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.1.0';
+  window.App.version = '1.1.1';
 
 }).call(this);
 

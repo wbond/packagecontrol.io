@@ -120,7 +120,9 @@ class window.Snakeskin.Router extends Backbone.Router
       url: url,
       xhr: @_makeXhr,
       success: (data, status, xhr) ->
-        _this.checkReloadApp(xhr)
+        if _this.checkReloadApp(xhr)
+          return
+
         _this.finishNavigation()
         func = ->
           success(data)
@@ -132,7 +134,9 @@ class window.Snakeskin.Router extends Backbone.Router
         if status == "abort"
           return
 
-        _this.checkReloadApp(xhr)
+        if _this.checkReloadApp(xhr)
+          return
+
         _this.finishNavigation()
         route = String(xhr.status)
         if xhr.responseText and type == 'json'
@@ -148,7 +152,9 @@ class window.Snakeskin.Router extends Backbone.Router
   # Ensures the client-code is running the same version as the server
   checkReloadApp: (xhr) =>
     if xhr.getResponseHeader('X-App-Version') != App.version
-      window.location = @tempFragment
+      window.location.assign(@tempFragment)
+      return true
+    return false
 
   # Cancels any in-progress AJAX requests
   cancelNavigation: =>
