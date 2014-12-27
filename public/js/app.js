@@ -19124,6 +19124,9 @@ Backbone.addBeforePopState = function(BB) {
           model: data,
           exchange: true
         });
+        if (this.view.cleanup) {
+          this.view.cleanup();
+        }
         newView.rerender(this.view.templateName);
         this.$el.addClass(newView.templateName);
         if (removeClass) {
@@ -19132,6 +19135,9 @@ Backbone.addBeforePopState = function(BB) {
         this.view = newView;
       } else {
         this.view.model = data;
+        if (this.view.cleanup) {
+          this.view.cleanup();
+        }
         this.view.rerender(this.view.templateName);
       }
       return this.view.trigger('placed');

@@ -117,6 +117,8 @@ class App.Layout extends Backbone.View
 
       newView = new class_({model: data, exchange: true})
 
+      if @view.cleanup
+        @view.cleanup()
       newView.rerender(@view.templateName)
 
       @$el.addClass(newView.templateName)
@@ -126,6 +128,9 @@ class App.Layout extends Backbone.View
 
     else
       @view.model = data
+
+      if @view.cleanup
+        @view.cleanup()
       @view.rerender(@view.templateName)
 
     @view.trigger('placed')
