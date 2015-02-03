@@ -1,4 +1,4 @@
--- Copyright (C) 2013 Yichun Zhang (agentzh)
+-- Copyright (C) Yichun Zhang (agentzh)
 
 
 -- FIXME: this library is very rough and is currently just for testing
@@ -26,10 +26,17 @@ local type = type
 local debug = ngx.config.debug
 local ngx_log = ngx.log
 local ngx_DEBUG = ngx.DEBUG
+local ssl_support = true
 
+if not ngx.config
+    or not ngx.config.ngx_lua_version
+    or ngx.config.ngx_lua_version < 9011
+then
+    ssl_support = false
+end
 
 local _M = new_tab(0, 13)
-_M._VERSION = '0.01'
+_M._VERSION = '0.05'
 
 
 local mt = { __index = _M }
@@ -66,7 +73,7 @@ function _M.connect(self, uri, opts)
         return nil, "not initialized"
     end
 
-    local m, err = re_match(uri, [[^ws://([^:/]+)(?::(\d+))?(.*)]], "jo")
+    local m, err = re_match(uri, [[^(wss?)://([^:/]+)(?::(\d+))?(.*)]], "jo")
     if not m then
         if err then
             return nil, "failed to match the uri: " .. err
@@ -75,9 +82,10 @@ function _M.connect(self, uri, opts)
         return nil, "bad websocket uri"
     end
 
-    local host = m[1]
-    local port = m[2]
-    local path = m[3]
+    local scheme = m[1]
+    local host = m[2]
+    local port = m[3]
+    local path = m[4]
 
     -- ngx.say("host: ", host)
     -- ngx.say("port: ", port)
@@ -90,28 +98,36 @@ function _M.connect(self, uri, opts)
         path = "/"
     end
 
-    local proto_header, sock_opts
+    local ssl_verify, proto_header, origin_header, sock_opts = false
 
     if opts then
         local protos = opts.protocols
         if protos then
             if type(protos) == "table" then
-                proto_header = "Sec-WebSocket-Protocol: "
-                               .. concat(protos, ",") .. "\r\n"
+                proto_header = "\r\nSec-WebSocket-Protocol: "
+                               .. concat(protos, ",")
 
             else
-                proto_header = "Sec-WebSocket-Protocol: " .. protos .. "\r\n"
+                proto_header = "\r\nSec-WebSocket-Protocol: " .. protos
             end
+        end
+
+        local origin = opts.origin
+        if origin then
+            origin_header = "\r\nOrigin: " .. origin
         end
 
         local pool = opts.pool
         if pool then
             sock_opts = { pool = pool }
         end
-    end
 
-    if not proto_header then
-        proto_header = ""
+        if opts.ssl_verify then
+            if not ssl_support then
+                return nil, "ngx_lua 0.9.11+ required for SSL sockets"
+            end
+            ssl_verify = true
+        end
     end
 
     local ok, err
@@ -122,6 +138,27 @@ function _M.connect(self, uri, opts)
     end
     if not ok then
         return nil, "failed to connect: " .. err
+    end
+
+    if scheme == "wss" then
+        if not ssl_support then
+            return nil, "ngx_lua 0.9.11+ required for SSL sockets"
+        end
+        ok, err = sock:sslhandshake(false, host, ssl_verify)
+        if not ok then
+            return nil, "ssl handshake failed: " .. err
+        end
+    end
+
+    -- check for connections from pool:
+
+    local count,err = sock:getreusedtimes()
+    if not count then
+        return nil, "failed to get reused times: " .. err
+    end
+    if count > 0 then
+        -- being a reused connection (must have done handshake)
+        return 1
     end
 
     -- do the websocket handshake:
@@ -137,8 +174,9 @@ function _M.connect(self, uri, opts)
     local req = "GET " .. path .. " HTTP/1.1\r\nUpgrade: websocket\r\nHost: "
                 .. host .. ":" .. port
                 .. "\r\nSec-WebSocket-Key: " .. key
-                .. proto_header
+                .. (proto_header or "")
                 .. "\r\nSec-WebSocket-Version: 13"
+                .. (origin_header or "")
                 .. "\r\nConnection: Upgrade\r\n\r\n"
 
     local bytes, err = sock:send(req)

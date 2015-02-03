@@ -1,3 +1,6 @@
+-- Copyright (C) Yichun Zhang (agentzh)
+
+
 local bit = require "bit"
 
 
@@ -28,7 +31,7 @@ end
 local _M = new_tab(0, 5)
 
 _M.new_tab = new_tab
-_M._VERSION = '0.01'
+_M._VERSION = '0.05'
 
 
 local types = {
@@ -143,12 +146,14 @@ function _M.recv_frame(sock, max_payload_len, force_masking)
     -- print("rest: ", rest)
 
     local data
-    if true or rest > 0 then
+    if rest > 0 then
         data, err = sock:receive(rest)
         if not data then
             return nil, nil, "failed to read masking-len and payload: "
                              .. (err or "unknown")
         end
+    else
+        data = ""
     end
 
     -- print("received rest")
