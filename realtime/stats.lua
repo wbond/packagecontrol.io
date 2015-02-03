@@ -8,7 +8,7 @@ local wb, err = server:new{
 }
 if not wb then
     ngx.say('Error connecting to stats server')
-    return ngx.exit(500)
+    return ngx.exit(444)
 end
 
 
