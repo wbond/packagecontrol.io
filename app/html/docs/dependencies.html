@@ -15,7 +15,7 @@
 	with Package Control 3.0.</strong> Users who have not upgraded to 3.0 will
 	not automatically download required dependencies. In an effort to solve this
 	issue, the old channel files for Package Control 1.x and 2.0 will only
-	contain Package Control itself as of early January 2015. This will ensure
+	contain Package Control itself as of early February 2015. This will ensure
 	that only Package Control 3.0 users will be installing and upgrading
 	packages, making it possible for package developers to use the dependencies
 	and the <a href="/docs/events">events API</a>.</em>
@@ -41,24 +41,25 @@
 </p>
 
 <p>
-	The generated python file injects looks for predefined subfolder names in
-	the dependency folder, based on the user‘s machine. Each matching subfolder
-	that is found will be added to Python‘s <tt>sys.path</tt> list, which is
-	used to load modules.
+	The generated python file looks for predefined subfolder names in the
+	dependency folder, based on the user‘s machine. Each matching subfolder that
+	is found will be added to Python‘s <tt>sys.path</tt> list, which is used to
+	load modules.
 </p>
 
 <p>
 	The predefined subfolder names are in the formats:
-	<tt>st{st_version}_{os}_{arch}</tt>, <tt>st{st_version}_{os}</tt> and
-	<tt>st{st_version}</tt>. For example, Sublime Text 3 on a 64bit Linux
-	machine, the following subfolders will be checked:
+	<tt>st{st_version}_{os}_{arch}</tt>, <tt>st{st_version}_{os}</tt>,
+	<tt>st{st_version}</tt> and <tt>all</tt>. For example, with Sublime Text 3
+	on a 64bit Linux machine the following subfolders will be checked:
 </p>
 
-<ul>
+<ol>
 	<li><tt>st3_linux_x64</tt></li>
 	<li><tt>st3_linux</tt></li>
 	<li><tt>st3</tt></li>
-</ul>
+	<li><tt>all</tt></li>
+</ol>
 
 <p>
 	The valid list of Sublime Text versions is: <tt>st2</tt> and
@@ -91,6 +92,11 @@
 		<a href="https://github.com/codexns/sublime-cffi">cffi</a> - another
 		standard dependency that makes a shared library available to all
 		platforms and architectures
+	</li>
+	<li>
+		<a href="https://github.com/packagecontrol/requests">requests</a> -
+		a mirror of the requests module on pypi with pure Python code and a
+		single code base
 	</li>
 	<li>
 		<a href="https://github.com/codexns/sublime-ssl-linux">ssl-linux</a> -
