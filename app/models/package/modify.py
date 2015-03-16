@@ -63,7 +63,11 @@ def cleanup_renames():
                     previous_stats = cursor.fetchone()
                     current_stats = cursor.fetchone()
 
-                    def pick_first(val1, val2):
+                    def pick_first(val1, val2, field):
+                        if val1:
+                            val1 = val1[field]
+                        if val2:
+                            val2 = val2[field]
                         if not val2:
                             return val1
                         if not val1:
@@ -72,7 +76,11 @@ def cleanup_renames():
                             return val1
                         return val2
 
-                    def pick_highest(val1, val2):
+                    def pick_highest(val1, val2, field):
+                        if val1:
+                            val1 = val1[field]
+                        if val2:
+                            val2 = val2[field]
                         if not val2:
                             return val1
                         if not val1:
@@ -94,10 +102,10 @@ def cleanup_renames():
                         WHERE
                             package = %s
                     """, [
-                        pick_first(previous_stats['first_seen'], current_stats['first_seen']),
-                        pick_first(previous_stats['installs_rank'], current_stats['installs_rank']),
-                        pick_first(previous_stats['trending_rank'], current_stats['trending_rank']),
-                        pick_highest(previous_stats['z_value'], current_stats['z_value']),
+                        pick_first(previous_stats, current_stats, 'first_seen'),
+                        pick_first(previous_stats, current_stats, 'installs_rank'),
+                        pick_first(previous_stats, current_stats, 'trending_rank'),
+                        pick_highest(previous_stats, current_stats, 'z_value'),
                         name
                     ])
 
