@@ -1,7 +1,7 @@
 cache_length: 600
 debug: true
 timeout: 10
-user_agent: Sublime Package Control Default Channel Server
+user_agent: Package Control Default Channel Server
 http_cache: true
 install_prereleases: true
 query_string_params:
