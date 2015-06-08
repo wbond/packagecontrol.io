@@ -63,7 +63,7 @@ def render(readme_info):
         url_dirname = os.path.dirname(readme_info['url']) + '/'
         output = re.sub('(<img\\s+[^>]*\\bsrc=["\'])(?!http://|https://|/)',
             '\\1' + url_dirname, output, 0, re.I)
-        output = re.sub('(<a\\s+[^>]*\\bhref=["\'])(?!http://|https://|/)',
+        output = re.sub('(<a\\s+[^>]*\\bhref=["\'])(?!http://|https://|/|mailto:|#)',
             '\\1' + url_dirname, output, 0, re.I)
 
     return output
