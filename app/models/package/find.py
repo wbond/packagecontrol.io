@@ -212,7 +212,7 @@ def old():
                 LEFT JOIN package_stats AS ps
                     ON p.name = ps.package
             WHERE
-                p.last_seen < CURRENT_TIMESTAMP - INTERVAL '2 hours' AND
+                p.last_seen < CURRENT_TIMESTAMP - INTERVAL '6 hours' AND
                 ps.removed != TRUE
         """)
 
