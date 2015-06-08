@@ -38,10 +38,6 @@ virtualenv venv
 # Switch "python" to the version from the venv
 source venv/bin/activate
 
-# A number of packages have custom versions to run on Python 3.3
-pip install git+https://github.com/wbond/pymeta
-pip install git+https://github.com/wbond/pybars
-
 pip install -r setup/requirements.txt
 
 pip install sass

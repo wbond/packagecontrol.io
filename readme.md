@@ -17,7 +17,7 @@ The website uses the following server-side libraries:
 
  - bottle
  - psycopg2
- - pybars
+ - pybars3
  - coffeescript
  - SCSS
 

@@ -10,7 +10,7 @@ extras==0.0.3
 lxml==3.2.1
 misaka==1.0.2
 psycopg2==2.5
-pybars==0.0.5
+pybars3==0.9.1
 python-creole==1.2.1
 python-dateutil==2.1
 python-mimeparse==0.1.4
