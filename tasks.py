@@ -43,7 +43,7 @@ for pid, command_line in processes.list_all():
         sys.exit(0)
 
 if env.is_prod():
-    for num in range(10, 0, -1):
+    for num in range(9, 0, -1):
         source_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num - 1))
         dest_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num))
         if os.path.exists(source_file):
