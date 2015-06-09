@@ -28,7 +28,7 @@ def list_all():
                 continue
             try:
                 with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as f:
-                    command_line = f.read().decode('utf-8')
+                    command_line = f.read().replace(b'\x00', b' ').decode('utf-8')
                     yield (int(pid), command_line)
 
             except (IOError, UnicodeDecodeError):
