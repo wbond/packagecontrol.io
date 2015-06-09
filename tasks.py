@@ -5,12 +5,13 @@ import re
 import sys
 import argparse
 import importlib
-from app.lib import processes
-from app import env
-
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(root_dir)
+
+from app.lib import processes
+from app import env
+
 
 logs_root = os.path.join(root_dir, 'task_logs')
 
