@@ -31,8 +31,9 @@ args = parser.parse_args()
 # Make sure we aren't doubling up tasks without using a pid file that can
 # get stuck. This currently only supports OS X and Linux.
 current_pid = os.getpid()
+parent_pid = os.getppid()
 for pid, command_line in processes.list_all():
-    if pid == current_pid:
+    if pid == current_pid or pid == parent_pid:
         continue
     match = re.match('^(.*?[/ ]tasks\\.py)\\s+(\\w+)(\\s+(.*))?$', command_line)
     if not match:
