@@ -19,8 +19,6 @@ def cache(settings, rendered_html):
             filename = os.path.basename(path)
             ext = os.path.splitext(filename)[1].lower()
             sha1 = hashlib.sha1(url.encode('utf-8')).hexdigest()
-            local_filename = sha1 + ext
-            local_path = os.path.join(readme_img_dir, local_filename)
 
             try:
                 data = manager.fetch(url, 'fetching readme image')
@@ -37,6 +35,9 @@ def cache(settings, rendered_html):
                         ext = '.jpg'
                     elif data[0:128].find(b'<svg') != -1:
                         ext = '.svg'
+
+                local_filename = sha1 + ext
+                local_path = os.path.join(readme_img_dir, local_filename)
 
                 with open(local_path, 'wb') as f:
                     f.write(data)
