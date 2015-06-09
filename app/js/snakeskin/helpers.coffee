@@ -51,7 +51,7 @@ class window.Snakeskin.Helpers
   @eq: (val1, val2, values...) ->
     options = values.pop()
 
-    if values
+    if values.length > 0
       values.push(val2)
       val2 = _.clone(values).sort()
       if _.isArray(val1)
@@ -68,7 +68,7 @@ class window.Snakeskin.Helpers
   @ne: (val1, val2, values...) ->
     options = values.pop()
 
-    if values
+    if values.length > 0
       values.push(val2)
       val2 = _.clone(values).sort()
       if _.isArray(val1)

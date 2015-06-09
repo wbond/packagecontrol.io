@@ -74,7 +74,14 @@ class App.Header extends Backbone.View
     if terms
       route = 'search'
 
+    query = ''
+    pairs = queryString.parse(window.location.search)
+    if 'sort' of pairs and pairs.sort != 'relevance'
+      query = '?' + queryString.stringify({'sort': pairs['sort']})
+
     url = App.router.url(route, {terms: terms})
+    if route == 'search'
+      url += query
     App.router.changeUrl(url)
 
   resetSearch: =>

@@ -25,12 +25,22 @@ def search_controller(terms=''):
     # Remove zero-width punctuation
     terms = re.sub('[\u200b-\u200d]', '', terms)
 
+    default_sort = 'relevance'
+    sort = request.query.sort
+    if not sort:
+        sort = default_sort
+
     page = get_page()
     per_page = 25
 
-    results = package.find.search(terms, page, per_page)
+    results = package.find.search(terms, sort, page, per_page)
 
-    data = build_data(results, page, per_page)
+    other_params = {}
+    if sort != default_sort:
+        other_params['sort'] = sort
+
+    data = build_data(results, page, per_page, other_params=other_params)
     data['terms'] = terms
+    data['sort'] = sort
 
     return render('search', data)

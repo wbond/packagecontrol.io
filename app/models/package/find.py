@@ -519,7 +519,7 @@ def updated(details=False, page=1, limit=10):
 
 
 @cache.region.cache_on_arguments()
-def search(terms, page=1, limit=50):
+def search(terms, order_by='relevance', page=1, limit=50):
     """
     Finds all packages that match the entered search terms.
 
@@ -530,13 +530,20 @@ def search(terms, page=1, limit=50):
     :param terms:
         A string containing words to search for
 
+    :param order_by:
+        A unicode string "relevance" or "popularity" that will control in what
+        order the results are returned
+
     :return:
         An array of dicts including the package name, description and
-        search results rank
+        search results relevance
     """
 
     if terms == None or terms == '':
         return {'total': 0, 'packages': []}
+
+    if order_by not in ['relevance', 'popularity']:
+        order_by = 'relevance'
 
     # Allow filtering packages by version compatibility and platform
     where_conditions = []
@@ -597,6 +604,11 @@ def search(terms, page=1, limit=50):
 
         output = {'packages': [], 'total': 0}
 
+        order_by_frag = {
+            'relevance': 'relevance DESC',
+            'popularity': 'ps.installs_rank ASC',
+        }[order_by]
+
         if prefix_query != '':
             # When we indexed the data, we added three spaces in places where spaces originally did not exist
             # so that the indexer would index the words separately, but now that we are displaying data, we
@@ -605,7 +617,7 @@ def search(terms, page=1, limit=50):
             # Additionally, since we index both the split and non-split versions, we have to try to highlight
             # both variants of it, otherwise we may end up with a match that does not have a highlight
 
-            # For the rank, we increase the weight of matches in the name by the inverse of the length of
+            # For the relevance, we increase the weight of matches in the name by the inverse of the length of
             # the name, meaning shorter names are better matches
 
             # We use \002 and \003 for highlighting separators since the data transport is JSON and it doesn't
@@ -651,7 +663,7 @@ def search(terms, page=1, limit=50):
                     + CASE
                         WHEN lower(p.name) = %s THEN 10.0
                         ELSE 0.0
-                    END AS rank
+                    END AS relevance
                 FROM
                     packages AS p LEFT JOIN
                     package_stats AS ps ON p.name = ps.package LEFT JOIN
@@ -666,7 +678,7 @@ def search(terms, page=1, limit=50):
                     """ + where_frag + """
                     AND ps.removed != TRUE
                 ORDER BY
-                    rank DESC
+                    """ + order_by_frag + """
                 LIMIT %s
                 OFFSET %s
             """, [lower_terms, prefix_query, lower_terms, limit, offset])
@@ -731,7 +743,7 @@ def search(terms, page=1, limit=50):
                     + CASE
                         WHEN lower(p.name) = %s THEN 10.0
                         ELSE 0.0
-                    END AS rank
+                    END AS relevance
                 FROM
                     packages AS p LEFT JOIN
                     package_stats AS ps ON p.name = ps.package LEFT JOIN
@@ -745,7 +757,7 @@ def search(terms, page=1, limit=50):
                     """ + where_frag + """
                     AND ps.removed != TRUE
                 ORDER BY
-                    rank DESC
+                    """ + order_by_frag + """
                 LIMIT %s
                 OFFSET %s
             """, [match_regex, regex, lower_terms, regex, lower_terms, limit, offset])

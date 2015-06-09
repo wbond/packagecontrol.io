@@ -23,6 +23,43 @@ body.search {
 			visibility: visible;
 		}
 	}
+
+	div.sort {
+		font-size: 0.9em;
+		padding: 0 0 10px 12px;
+
+		span {
+			text-transform: uppercase;
+			padding-right: 4px;
+			color: $grey;
+		}
+
+		a.relevance,
+		a.popularity {
+			background-color: $greyLightest;
+			white-space: nowrap;
+			display: inline-block;
+			color: $grey;
+
+			&.selected {
+				color: $greyDark;
+			}
+		}
+		
+		a.relevance {
+			@include border-radius(3px 0 0 3px);
+
+			padding: 1px 7px 1px 7px;
+		}
+		a.popularity {
+			@include border-radius(0 3px 3px 0);
+
+			padding: 1px 7px 1px 7px;
+			border-left: 1px solid #e3e3e3;
+		}
+
+		
+	}
 }
 
 div.no.results {

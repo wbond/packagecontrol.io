@@ -5,6 +5,7 @@
 #= require lib/backbone-beforepopstate
 #= require lib/keymaster
 #= require lib/jquery.cookie
+#= require lib/query-string
 #= require snakeskin/init
 #
 #= require init
