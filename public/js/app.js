@@ -17113,6 +17113,73 @@ Backbone.addBeforePopState = function(BB) {
 
 }));
 
+/*!
+	query-string
+	Parse and stringify URL query strings
+	https://github.com/sindresorhus/query-string
+	by Sindre Sorhus
+	MIT License
+*/
+(function () {
+	'use strict';
+	var queryString = {};
+
+	queryString.parse = function (str) {
+		if (typeof str !== 'string') {
+			return {};
+		}
+
+		str = str.trim().replace(/^(\?|#)/, '');
+
+		if (!str) {
+			return {};
+		}
+
+		return str.trim().split('&').reduce(function (ret, param) {
+			var parts = param.replace(/\+/g, ' ').split('=');
+			var key = parts[0];
+			var val = parts[1];
+
+			key = decodeURIComponent(key);
+			// missing `=` should be `null`:
+			// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
+			val = val === undefined ? null : decodeURIComponent(val);
+
+			if (!ret.hasOwnProperty(key)) {
+				ret[key] = val;
+			} else if (Array.isArray(ret[key])) {
+				ret[key].push(val);
+			} else {
+				ret[key] = [ret[key], val];
+			}
+
+			return ret;
+		}, {});
+	};
+
+	queryString.stringify = function (obj) {
+		return obj ? Object.keys(obj).map(function (key) {
+			var val = obj[key];
+
+			if (Array.isArray(val)) {
+				return val.map(function (val2) {
+					return encodeURIComponent(key) + '=' + encodeURIComponent(val2);
+				}).join('&');
+			}
+
+			return encodeURIComponent(key) + '=' + encodeURIComponent(val);
+		}).join('&') : '';
+	};
+
+	if (typeof define === 'function' && define.amd) {
+		define(function() { return queryString; });
+	} else if (typeof module !== 'undefined' && module.exports) {
+		module.exports = queryString;
+	} else {
+		window.queryString = queryString;
+	}
+})();
+
 (function() {
   Backbone.addBeforePopState(Backbone);
 
@@ -17283,7 +17350,7 @@ Backbone.addBeforePopState = function(BB) {
       var isNone, options, val1, val2, values;
       val1 = arguments[0], val2 = arguments[1], values = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
       options = values.pop();
-      if (values) {
+      if (values.length > 0) {
         values.push(val2);
         val2 = _.clone(values).sort();
         if (_.isArray(val1)) {
@@ -17301,7 +17368,7 @@ Backbone.addBeforePopState = function(BB) {
       var isNone, options, val1, val2, values;
       val1 = arguments[0], val2 = arguments[1], values = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
       options = values.pop();
-      if (values) {
+      if (values.length > 0) {
         values.push(val2);
         val2 = _.clone(values).sort();
         if (_.isArray(val1)) {
@@ -18248,7 +18315,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.1.3';
+  window.App.version = '1.2.0';
 
 }).call(this);
 
@@ -18724,14 +18791,24 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype._executeSearch = function(terms) {
-      var route, url;
+      var pairs, query, route, url;
       route = 'index';
       if (terms) {
         route = 'search';
       }
+      query = '';
+      pairs = queryString.parse(window.location.search);
+      if ('sort' in pairs && pairs.sort !== 'relevance') {
+        query = '?' + queryString.stringify({
+          'sort': pairs['sort']
+        });
+      }
       url = App.router.url(route, {
         terms: terms
       });
+      if (route === 'search') {
+        url += query;
+      }
       return App.router.changeUrl(url);
     };
 
@@ -21994,18 +22071,26 @@ Backbone.addBeforePopState = function(BB) {
   stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"if","hash":{},"fn":this.program(2, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = helpers.unless.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"unless","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
+  stack1 = helpers.unless.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"unless","hash":{},"fn":this.program(9, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   buffer += " ";
   stack1 = this.invokePartial(partials.pagination, '', 'pagination', depth0, undefined, helpers, partials, data);
   if (stack1 != null) { buffer += stack1; }
   return buffer + " ";
 },"2":function(depth0,helpers,partials,data) {
-  var stack1, buffer = " <ul class=\"packages results\"> ";
-  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data});
+  var stack1, helperMissing=helpers.helperMissing, buffer = " <div class=\"sort\"> <span>Sort by</span> <a href=\"?\" class=\"relevance";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.sort : depth0), "relevance", {"name":"eq","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += "\">Relevance</a><a href=\"?sort=popularity\" class=\"popularity";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.sort : depth0), "popularity", {"name":"eq","hash":{},"fn":this.program(3, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += "\">Popularity</a> </div> <ul class=\"packages results\"> ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.packages : depth0), {"name":"each","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + " </ul> ";
 },"3":function(depth0,helpers,partials,data) {
+  return " selected";
+  },"5":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = " <li class=\"package\"> <h3><a href=\""
     + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "package", {"name":"url","hash":{
     'name': ((depth0 != null ? depth0.name : depth0))
@@ -22013,7 +22098,7 @@ Backbone.addBeforePopState = function(BB) {
     + "\">"
     + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_name : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</a></h3> <span class=\"author\"><em>by</em> ";
-  stack1 = ((helpers.multi_each || (depth0 && depth0.multi_each) || helperMissing).call(depth0, (depth0 != null ? depth0.authors : depth0), (depth0 != null ? depth0.highlighted_authors : depth0), {"name":"multi_each","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data}));
+  stack1 = ((helpers.multi_each || (depth0 && depth0.multi_each) || helperMissing).call(depth0, (depth0 != null ? depth0.authors : depth0), (depth0 != null ? depth0.highlighted_authors : depth0), {"name":"multi_each","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
   if (stack1 != null) { buffer += stack1; }
   buffer += "</a></span> ";
   stack1 = this.invokePartial(partials.package_compat, '', 'package_compat', depth0, undefined, helpers, partials, data);
@@ -22027,9 +22112,9 @@ Backbone.addBeforePopState = function(BB) {
   return buffer + " </span> <div class=\"description\">"
     + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.highlighted_description : depth0), {"name":"highlight","hash":{},"data":data})))
     + "</div> </li> ";
-},"4":function(depth0,helpers,partials,data) {
+},"6":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, buffer = "";
-  stack1 = helpers['if'].call(depth0, (data && data.index), {"name":"if","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data});
+  stack1 = helpers['if'].call(depth0, (data && data.index), {"name":"if","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + "<a href=\""
     + escapeExpression(((helpers.url || (depth0 && depth0.url) || helperMissing).call(depth0, "author", {"name":"url","hash":{
@@ -22037,15 +22122,15 @@ Backbone.addBeforePopState = function(BB) {
   },"data":data})))
     + "\">"
     + escapeExpression(((helpers.highlight || (depth0 && depth0.highlight) || helperMissing).call(depth0, (depth0 != null ? depth0.value_2 : depth0), {"name":"highlight","hash":{},"data":data})));
-},"5":function(depth0,helpers,partials,data) {
+},"7":function(depth0,helpers,partials,data) {
   return ", ";
-  },"7":function(depth0,helpers,partials,data) {
-  return " <div class=\"no results\"> No packages matched your search terms </div> ";
   },"9":function(depth0,helpers,partials,data) {
+  return " <div class=\"no results\"> No packages matched your search terms </div> ";
+  },"11":function(depth0,helpers,partials,data) {
   return " <div class=\"no results\"> Enter your search terms above </div> ";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, buffer = "<div class=\"results\"> ";
-  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.terms : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(9, data),"data":data});
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.terms : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(11, data),"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + " </div> ";
 },"usePartial":true,"useData":true});
