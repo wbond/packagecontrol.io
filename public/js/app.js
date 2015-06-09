@@ -18248,7 +18248,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.1.1';
+  window.App.version = '1.1.2';
 
 }).call(this);
 
@@ -18741,14 +18741,13 @@ Backbone.addBeforePopState = function(BB) {
         terms = App.router.path().replace(/^\/search\/?([^\/]+)?$/, '$1');
         terms = decodeURIComponent(terms);
         this.$search.focus();
-        this.moveCursor(this.$search[0]);
+        return this.moveCursor(this.$search[0]);
       } else {
         terms = '';
         if (App.router.path() !== '/') {
-          this.$search.blur();
+          return this.$search.blur();
         }
       }
-      return this.$search.val(terms);
     };
 
     Header.prototype.moveCursor = function(elem) {

@@ -87,7 +87,6 @@ class App.Header extends Backbone.View
       terms = ''
       if App.router.path() != '/'
         @$search.blur()
-    @$search.val(terms)
 
   # Focus an input and move the cursor to the last char
   moveCursor: (elem) ->
