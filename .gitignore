@@ -7,3 +7,4 @@ secrets.yml
 assets
 channel
 readmes/img/
+task_logs/*.log
