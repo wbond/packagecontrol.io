@@ -23,9 +23,8 @@ def list_all():
             yield (pid, command_line)
 
     else:
-        current_pid = os.getpid()
         for pid in os.listdir('/proc'):
-            if not pid.isdigit() or int(pid) == current_pid:
+            if not pid.isdigit():
                 continue
             try:
                 with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as f:
