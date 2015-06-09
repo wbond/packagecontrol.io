@@ -6,6 +6,7 @@ import sys
 import argparse
 import importlib
 from app.lib import processes
+from app import env
 
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,14 +40,15 @@ for pid, command_line in processes.list_all():
         print('Another instance of the %s task is currently running' % args.task_name)
         sys.exit(0)
 
-for num in range(10, 0, -1):
-    source_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num - 1))
-    dest_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num))
-    if os.path.exists(source_file):
-        os.rename(source_file, dest_file)
+if env.is_prod():
+    for num in range(10, 0, -1):
+        source_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num - 1))
+        dest_file = os.path.join(logs_root, '%s.%d.log' % (args.task_name, num))
+        if os.path.exists(source_file):
+            os.rename(source_file, dest_file)
 
-log_file = os.path.join(logs_root, '%s.0.log' % args.task_name)
-sys.stdout = open(log_file, 'w', encoding='utf-8')
+    log_file = os.path.join(logs_root, '%s.0.log' % args.task_name)
+    sys.stdout = open(log_file, 'w', encoding='utf-8')
 
 # Put extra params in sys.argv so the tasks can get them
 sys.argv = [args.task_name + '.py']
