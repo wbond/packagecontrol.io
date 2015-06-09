@@ -9,7 +9,6 @@ except (ImportError):
     from urllib.parse import quote
 
 
-
 # A predefined list of readme filenames to look for
 _readme_filenames = [
     'readme',
@@ -183,7 +182,7 @@ class BitBucketClient(JSONApiClient):
             'description': info['description'] or 'No description provided',
             'homepage': info['website'] or url,
             'author': info['owner'],
-            'donate': u'https://gratipay.com/on/bitbucket/%s/' % info['owner'],
+            'donate': None,
             'readme': self._readme_url(user_repo, branch),
             'issues': issues_url if info['has_issues'] else None
         }

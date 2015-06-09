@@ -1,14 +1,17 @@
 try:
     # Python 3
     from http.client import HTTPResponse, IncompleteRead
+    str_cls = str
 except (ImportError):
     # Python 2
     from httplib import HTTPResponse, IncompleteRead
+    str_cls = unicode
 
 from ..console_write import console_write
 
 
 class DebuggableHTTPResponse(HTTPResponse):
+
     """
     A custom HTTPResponse that formats debugging info for Sublime Text
     """
@@ -26,11 +29,9 @@ class DebuggableHTTPResponse(HTTPResponse):
     def begin(self):
         return_value = HTTPResponse.begin(self)
         if self.debuglevel == -1:
-            console_write(u'Urllib %s Debug Read' % self._debug_protocol, True)
-
             # Python 2
             if hasattr(self.msg, 'headers'):
-                headers = self.msg.headers
+                headers = [line.rstrip() for line in self.msg.headers]
             # Python 3
             else:
                 headers = []
@@ -38,14 +39,22 @@ class DebuggableHTTPResponse(HTTPResponse):
                     headers.append("%s: %s" % (header, self.msg[header]))
 
             versions = {
-                9: 'HTTP/0.9',
-                10: 'HTTP/1.0',
-                11: 'HTTP/1.1'
+                9: u'HTTP/0.9',
+                10: u'HTTP/1.0',
+                11: u'HTTP/1.1'
             }
-            status_line = versions[self.version] + ' ' + str(self.status) + ' ' + self.reason
+            status_line = u'%s %s %s' % (versions[self.version], str_cls(self.status), self.reason)
             headers.insert(0, status_line)
-            for line in headers:
-                console_write(u"  %s" % line.rstrip())
+
+            indented_headers = u'\n  '.join(headers)
+            console_write(
+                u'''
+                Urllib %s Debug Read
+                  %s
+                ''',
+                (self._debug_protocol, indented_headers)
+            )
+
         return return_value
 
     def is_keep_alive(self):

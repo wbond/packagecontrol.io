@@ -17,6 +17,7 @@ def semver_compat(v):
     """
 
     if isinstance(v, SemVer):
+        # SemVer only defined __str__, not __unicode__, so we always use str()
         return str(v)
 
     # Allowing passing in a dict containing info about a package
@@ -72,7 +73,7 @@ def version_exclude_prerelease(versions):
 
     output = []
     for version in versions:
-        if SemVer(semver_compat(version)).prerelease != None:
+        if SemVer(semver_compat(version)).prerelease is not None:
             continue
         output.append(version)
     return output
@@ -147,5 +148,10 @@ def version_sort(sortable, *fields, **kwargs):
     try:
         return sorted(sortable, key=_version_sort_key, **kwargs)
     except (ValueError) as e:
-        console_write(u"Error sorting versions - %s" % e, True)
+        console_write(
+            u'''
+            Error sorting versions - %s
+            ''',
+            e
+        )
         return []

@@ -66,9 +66,10 @@ files = [
     'file_not_found_error.py',
     # CUSTOM 'http_cache.py',
     'open_compat.py',
-    '../readme.creole',
+    '../readme.md',
     'semver.py',
     # CUSTOM 'show_error.py',
+    'text.py',
     'unicode.py',
     'versions.py'
 ]

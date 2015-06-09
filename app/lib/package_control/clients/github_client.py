@@ -3,9 +3,11 @@ import re
 try:
     # Python 3
     from urllib.parse import urlencode, quote
+    str_cls = str
 except (ImportError):
     # Python 2
     from urllib import urlencode, quote
+    str_cls = unicode
 
 from ..versions import version_sort, version_process
 from .json_api_client import JSONApiClient
@@ -202,7 +204,7 @@ class GitHubClient(JSONApiClient):
         """
 
         user_match = re.match('https?://github.com/([^/]+)/?$', url)
-        if user_match == None:
+        if user_match is None:
             return None
 
         user = user_match.group(1)
@@ -251,7 +253,7 @@ class GitHubClient(JSONApiClient):
             'homepage': result['homepage'] or result['html_url'],
             'author': result['owner']['login'],
             'issues': issues_url if result['has_issues'] else None,
-            'donate': u'https://gratipay.com/on/github/%s/' % result['owner']['login']
+            'donate': None
         }
 
     def _make_api_url(self, user_repo, suffix=''):
@@ -296,7 +298,7 @@ class GitHubClient(JSONApiClient):
         try:
             return self.fetch_json(readme_url, prefer_cached)
         except (DownloaderException) as e:
-            if str(e).find('HTTP error 404') != -1:
+            if str_cls(e).find('HTTP error 404') != -1:
                 return None
             raise
 
@@ -315,11 +317,11 @@ class GitHubClient(JSONApiClient):
 
         branch = 'master'
         branch_match = re.match('https?://github.com/[^/]+/[^/]+/tree/([^/]+)/?$', url)
-        if branch_match != None:
+        if branch_match is not None:
             branch = branch_match.group(1)
 
         repo_match = re.match('https?://github.com/([^/]+/[^/]+)($|/.*$)', url)
-        if repo_match == None:
+        if repo_match is None:
             return (None, None)
 
         user_repo = repo_match.group(1)

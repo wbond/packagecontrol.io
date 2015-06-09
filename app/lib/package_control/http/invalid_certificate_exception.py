@@ -1,3 +1,5 @@
+import sys
+
 try:
     # Python 3
     from http.client import HTTPException
@@ -9,6 +11,7 @@ except (ImportError):
 
 
 class InvalidCertificateException(HTTPException, URLError):
+
     """
     An exception for when an SSL certification is not valid for the URL
     it was presented for.
@@ -22,5 +25,13 @@ class InvalidCertificateException(HTTPException, URLError):
             (self.host, self.reason, self.cert)).rstrip()
         HTTPException.__init__(self, message)
 
-    def __str__(self):
+    def __unicode__(self):
         return self.args[0]
+
+    def __str__(self):
+        if sys.version_info < (3,):
+            return self.__bytes__()
+        return self.__unicode__()
+
+    def __bytes__(self):
+        return self.__unicode__().encode('utf-8')

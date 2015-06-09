@@ -5,20 +5,21 @@ import re
 try:
     # Python 3
     from urllib.parse import urljoin
+    str_cls = str
 except (ImportError):
     # Python 2
     from urlparse import urljoin
+    str_cls = unicode
 
 from ..console_write import console_write
 from .provider_exception import ProviderException
 from .schema_compat import platforms_to_releases
-from ..downloaders.downloader_exception import DownloaderException
-from ..clients.client_exception import ClientException
 from ..download_manager import downloader, update_url
 from ..versions import version_sort
 
 
 class ChannelProvider():
+
     """
     Retrieves a channel and provides an API into the information
 
@@ -77,7 +78,7 @@ class ChannelProvider():
             DownloaderException: when an error occurs trying to open a URL
         """
 
-        if self.channel_info != None:
+        if self.channel_info is not None:
             return
 
         if re.match('https?://', self.channel, re.I):
@@ -91,7 +92,12 @@ class ChannelProvider():
                 raise ProviderException(u'Error, file %s does not exist' % self.channel)
 
             if self.settings.get('debug'):
-                console_write(u'Loading %s as a channel' % self.channel, True)
+                console_write(
+                    u'''
+                    Loading %s as a channel
+                    ''',
+                    self.channel
+                )
 
             # We open as binary so we get bytes like the DownloadManager
             with open(self.channel, 'rb') as f:
@@ -112,7 +118,7 @@ class ChannelProvider():
             if isinstance(self.schema_version, int):
                 self.schema_version = float(self.schema_version)
             if isinstance(self.schema_version, float):
-                self.schema_version = str(self.schema_version)
+                self.schema_version = str_cls(self.schema_version)
         except (ValueError):
             raise ProviderException(u'%s the "schema_version" is not a valid number.' % schema_error)
 
@@ -123,7 +129,7 @@ class ChannelProvider():
         self.schema_major_version = int(version_parts[0])
 
         # Fix any out-dated repository URLs in the package cache
-        debug =  self.settings.get('debug')
+        debug = self.settings.get('debug')
         packages_key = 'packages_cache' if self.schema_major_version >= 2 else 'packages'
         if packages_key in channel_info:
             original_cache = channel_info[packages_key]
@@ -165,13 +171,14 @@ class ChannelProvider():
 
         if self.schema_major_version >= 2:
             output = {}
-            for repo in self.channel_info['packages_cache']:
-                for package in self.channel_info['packages_cache'][repo]:
-                    previous_names = package.get('previous_names', [])
-                    if not isinstance(previous_names, list):
-                        previous_names = [previous_names]
-                    for previous_name in previous_names:
-                        output[previous_name] = package['name']
+            if 'packages_cache' in self.channel_info:
+                for repo in self.channel_info['packages_cache']:
+                    for package in self.channel_info['packages_cache'][repo]:
+                        previous_names = package.get('previous_names', [])
+                        if not isinstance(previous_names, list):
+                            previous_names = [previous_names]
+                        for previous_name in previous_names:
+                            output[previous_name] = package['name']
             return output
 
         return self.channel_info.get('renamed_packages', {})

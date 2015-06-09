@@ -2,11 +2,17 @@ import tempfile
 import re
 import os
 
+try:
+    # Python 2
+    str_cls = unicode
+except (NameError):
+    # Python 3
+    str_cls = str
+
 from ..console_write import console_write
 from ..open_compat import open_compat, read_compat
 from .cli_downloader import CliDownloader
 from .non_clean_exit_error import NonCleanExitError
-from .rate_limit_exception import RateLimitException
 from .downloader_exception import DownloaderException
 from ..ca_certs import get_ca_bundle_path
 from .limiting_downloader import LimitingDownloader
@@ -15,6 +21,7 @@ from .decoding_downloader import DecodingDownloader
 
 
 class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, CachingDownloader):
+
     """
     A downloader that uses the command line program curl
 
@@ -72,7 +79,7 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
                 return cached
 
         self.tmp_file = tempfile.NamedTemporaryFile().name
-        command = [self.curl, '--connect-timeout', str(int(timeout)), '-sSL',
+        command = [self.curl, '--connect-timeout', str_cls(int(timeout)), '-sSL',
             '--tlsv1',
             # We have to capture the headers to check for rate limit info
             '--dump-header', self.tmp_file]
@@ -92,8 +99,7 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
             command.extend(['--header', "%s: %s" % (name, value)])
 
         secure_url_match = re.match('^https://([^/]+)', url)
-        if secure_url_match != None:
-            secure_domain = secure_url_match.group(1)
+        if secure_url_match is not None:
             bundle_path = get_ca_bundle_path(self.settings)
             command.extend(['--cacert', bundle_path])
 
@@ -107,11 +113,16 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
         proxy_password = self.settings.get('proxy_password')
 
         if debug:
-            console_write(u"Curl Debug Proxy", True)
-            console_write(u"  http_proxy: %s" % http_proxy)
-            console_write(u"  https_proxy: %s" % https_proxy)
-            console_write(u"  proxy_username: %s" % proxy_username)
-            console_write(u"  proxy_password: %s" % proxy_password)
+            console_write(
+                u'''
+                Curl Debug Proxy
+                  http_proxy: %s
+                  https_proxy: %s
+                  proxy_username: %s
+                  proxy_password: %s
+                ''',
+                (http_proxy, https_proxy, proxy_username, proxy_password)
+            )
 
         if http_proxy or https_proxy:
             command.append('--proxy-anyauth')
@@ -180,15 +191,19 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
 
                 self.clean_tmp_file()
 
+                download_error = e.stderr.rstrip()
+
                 if e.returncode == 22:
                     code = re.sub('^.*?(\d+)([\w\s]+)?$', '\\1', e.stderr)
                     if code == '503' and tries != 0:
                         # GitHub and BitBucket seem to rate limit via 503
-                        error_string = u'Downloading %s was rate limited' % url
-                        if tries:
-                            error_string += ', trying again'
-                            if debug:
-                                console_write(error_string, True)
+                        if tries and debug:
+                            console_write(
+                                u'''
+                                Downloading %s was rate limited, trying again
+                                ''',
+                                url
+                            )
                         continue
 
                     download_error = u'HTTP error ' + code
@@ -202,28 +217,29 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
                     ipv6_error = re.search('^\s*connect to ([0-9a-f]+(:+[0-9a-f]+)+) port \d+ failed: Network is unreachable', full_debug, re.I | re.M)
                     if ipv6_error and tries != 0:
                         if debug:
-                            error_string = u'Downloading %s failed because the ipv6 address %s was not reachable, retrying using ipv4' % (url, ipv6_error.group(1))
-                            console_write(error_string, True)
+                            console_write(
+                                u'''
+                                Downloading %s failed because the ipv6 address
+                                %s was not reachable, retrying using ipv4
+                                ''',
+                                (url, ipv6_error.group(1))
+                            )
                         command.insert(1, '-4')
                         continue
-
-                    else:
-                        download_error = e.stderr.rstrip()
 
                 elif e.returncode == 6:
                     download_error = u'URL error host not found'
 
                 elif e.returncode == 28:
                     # GitHub and BitBucket seem to time out a lot
-                    error_string = u'Downloading %s timed out' % url
-                    if tries:
-                        error_string += ', trying again'
-                        if debug:
-                            console_write(error_string, True)
+                    if tries and debug:
+                        console_write(
+                            u'''
+                            Downloading %s timed out, trying again
+                            ''',
+                            url
+                        )
                     continue
-
-                else:
-                    download_error = e.stderr.rstrip()
 
                 error_string = u'%s %s downloading %s.' % (error_message, download_error, url)
 
@@ -241,9 +257,14 @@ class CurlDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
 
         for section in sections:
             type = section['type']
-            contents = section['contents'].replace(u"\n", u"\n  ")
-            console_write(u"Curl HTTP Debug %s" % type, True)
-            console_write(u"  %s" % contents)
+            indented_contents = section['contents'].replace(u"\n", u"\n  ")
+            console_write(
+                u'''
+                Curl HTTP Debug %s
+                  %s
+                ''',
+                (type, indented_contents)
+            )
 
     def supports_ssl(self):
         """
