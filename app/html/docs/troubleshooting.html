@@ -4,18 +4,60 @@
 <h1>Troubleshooting</h1>
 
 <ul>
+	<li><a href="#Purging_and_Reinstalling">Purging and Reinstalling</a></li>
 	<li><a href="#Enabling_the_Debug_Log">Enabling the Debug Log</a></li>
 	<li><a href="#Windows_Errors_12029_and_12057">Windows Errors 12029 and 12057</a></li>
-	<li><a href="#Purging_Old_Versions">Purging Old Versions</a></li>
 </ul>
+
+<h2 id="Purging_and_Reinstalling">Purging and Reinstalling</h2>
+
+<p>
+	Many users run into issues with Package Control because they have an old,
+	broken or pre-release version of Package Control that has become stuck.
+	Since Package Control updates itself, a bug can prevent the automatic
+	upgrade from working, leaving users orphaned on an old version.
+</p>
+<p>
+	The first step in debugging issues with Package Control is to purge
+	any existing copies.
+</p>
+
+<ol>
+	<li>
+		Select the <span class="menu">Preferences <em>&gt;</em> Settings –
+		User</span> menu entry
+	</li>
+	<li>
+		Remove <tt>"Package Control"</tt> from the <tt>"ignored_packages"</tt>
+		setting, if present
+	</li>
+	<li>
+		Select the <span class="menu">Preferences <em>&gt;</em> Browse
+		Packages…</span> menu entry
+	</li>
+	<li>
+		Delete the folder named <tt>Package Control</tt>
+	</li>
+	<li>
+		Browse up a folder and then into <tt>Installed Packages</tt>
+	</li>
+	<li>
+		Delete <tt>Package Control.sublime-package</tt> if it exists
+	</li>
+	<li>
+		Reinstall Package Control using the
+		<a href="/installation">installation instructions</a>
+	</li>
+</ol>
+
 
 <h2 id="Enabling_the_Debug_Log">Enabling the Debug Log</h2>
 
 <p>
-	In order to help diagnose issues with Package Control, it is necessary to
-	have a debug log. The debug logs contains extensive information about
-	what Package Control is doing behind the scenes, and can help to diagnose
-	why it isn't working properly.
+	If purging and reinstalling did not help resolve an issue, the next step
+	is to enable the debug log. The debug log contains extensive information
+	about what Package Control is doing behind the scenes, and can help to
+	diagnose why it isn't working properly.
 </p>
 
 <ol>
@@ -127,33 +169,3 @@
 	This error indicates something on your machine is blocking the connection
 	to the server. It could be any number of different things.
 </p>
-
-<h2 id="Purging_Old_Versions">Purging Old Versions</h2>
-
-<p>
-	During the alpha phase of Package Control 2.0, quite a number of users
-	installed Package Control via git. However, with version 2.0.0-alpha7 there
-	was a bug that prevented automatically upgrading Package Control itself.
-	Because of this, there are quite a number of users still running old
-	versions of Package Control. These instructions will step through purging
-	the old version of Package Control and upgrading to a stable release.
-</p>
-
-<ol>
-	<li>
-		Select the <em>Preferences &gt; Browse Packages…</em> menu entry
-	</li>
-	<li>
-		Delete the folder named <tt>Package Control</tt>
-	</li>
-	<li>
-		Browse up a folder and then into <tt>Installed Packages</tt>
-	</li>
-	<li>
-		Delete <tt>Package Control.sublime-package</tt> if it exists
-	</li>
-	<li>
-		Reinstall Package Control using the
-		<a href="/installation">installation instructions</a>
-	</li>
-</ol>
