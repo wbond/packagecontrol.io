@@ -11,10 +11,7 @@ body.about section.second div.options iframe {
 }
 
 div.options {
-	height: 70px;
-	line-height: 70px;
-	position: relative;
-	max-height: 70px;
+	margin-bottom: 20px;
 }
 
 form.paypal {
@@ -37,8 +34,5 @@ form.paypal {
 }
 
 a.action.coinbase-button {
-	position: relative;
-	margin-right: 20px;
-	margin-top: 22px;
-	vertical-align: top;
+	display: inline-block;
 }

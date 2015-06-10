@@ -7,6 +7,13 @@ class App.Header extends Backbone.View
     'blur #search': 'disableShortcuts'
   }
 
+  affiliates: [
+    {href: 'https://sublimetextbook.com/friend/wbond', src: '/img/book.png'},
+    {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad3&utm_medium=banner&utm_campaign=wbond', src: '/img/book3.png'},
+    {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad4&utm_medium=banner&utm_campaign=wbond', src: '/img/book4.png'},
+    {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad5&utm_medium=banner&utm_campaign=wbond', src: '/img/book5.png'},
+  ]
+
   prevTerms: ''
 
   initialize: (options) ->
@@ -220,95 +227,29 @@ class App.Header extends Backbone.View
     @$loading.css(dimension, percentage + '%')
 
   refreshAd: (showing) =>
-    if $('a[href="/redirect/book"]').length > 0
-      return
+    sponseredBy = $('#spons')
+    existingLink = sponseredBy.find('a.book')
 
-    # Remove and recreate the ad placeholder
-    adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1')
-    adEl = $('#fusionads')
-    previouslyLoaded = adJsEls.length > 0
-    navContainer = $('#nav_container')
+    next = Math.floor(Math.random() * @affiliates.length);
 
-    if not previouslyLoaded
-      container = $('<div id="fusion-container"></div>')
-      navContainer.append(container)
+    href = @affiliates[next].href
+    src = @affiliates[next].src
+
+    if existingLink.length > 0
+      newLink = $('<a href="' + href + '" class="book incoming"><img src="' + src + '"></a>')
+      newLink.css({display: 'none'})
+      sponseredBy.append(newLink)
+      newLink.fadeIn(250)
+      setTimeout(
+        ->
+          existingLink.remove()
+          newLink.removeClass('incoming')
+        300
+      )
+
     else
-      container = $('#fusion-container')
-      serve = $('#bsap_1332').data('serve')
-      adEl.attr('id', 'fusionads-old')
+      link = $('<a href="' + href + '" class="book"><img src="' + src + '"></a>')
+      link.css({display: 'none'})
+      sponseredBy.append(link)
+      link.fadeIn(150)
 
-    adJsEls.remove()
-
-    if previouslyLoaded
-      window._bsaPRO_loaded = false
-      delete window._bsaPRO
-      delete window._bsap_serving_callback
-      delete window._fusion
-      delete window._fusion_zone
-      delete window['bsa_' + serve]
-
-    script = document.createElement('script')
-    script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond'
-    script.id = '_fusionads_js'
-
-    showBookTimeout = null
-    adBook = (e) ->
-      clearTimeout(showBookTimeout)
-      clearInterval(runInterval)
-      clearInterval(fadeInterval)
-      container[0].removeChild(script)
-      container.remove()
-      link = $('<a href="/redirect/book"><img src="/img/book.png"> Save 30 minutes a day by speeding up development and optimizing your workflows.</a>')
-      if e
-        navContainer.append(link)
-      else
-        link.css({display: 'none'})
-        navContainer.append(link)
-        link.fadeIn(150)
-    # On Safari, onerror is never triggered with certain blockers,
-    # so we use a timeout to detect failure
-    showBookTimeout = setTimeout(adBook, 3000)
-
-    # Only run the reload code if it is present
-    runInterval = null
-    counter = 0
-    script.onload = ->
-      clearTimeout(showBookTimeout)
-      runInterval = setInterval((->
-        counter += 1
-
-        # Give up after a while, presuming the JS must have been blocked
-        if counter > 100
-          clearInterval(runInterval)
-
-        if window._bsaPRO
-          clearInterval(runInterval)
-          window._bsaPRO()
-      ), 50)
-
-    script.onerror = adBook
-
-    container[0].appendChild(script)
-
-    # Dynamically add the loaded class as soon as the div is added. This allows
-    # for a cross-fade when replacing an existing ad, so we don't have to have
-    # a set height for the container.
-    fadeIn = ->
-      ad = $('#fusionads')
-      return if ad.length == 0
-      # Stop the transition if the image has not loaded yet so we don't get
-      # a flash of the image loading
-      return if ad.find('img')[0].naturalWidth == 0
-
-      clearInterval(fadeInterval)
-
-      ad.addClass('loaded')
-
-      adEl.addClass('outgoing').removeClass('loaded')
-      if adEl.find('.fusion-text').text() == ad.find('.fusion-text').text()
-        adEl.addClass('same')
-
-      setTimeout((-> adEl.remove()), 200)
-
-    fadeInterval = setInterval(fadeIn, 50)
-    fadeIn()

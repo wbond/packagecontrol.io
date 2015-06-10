@@ -7,7 +7,8 @@ body.about,
 body.browse,
 body.news,
 body.docs,
-body.stats {
+body.stats,
+body.say_thanks {
 	h1 {
 		color: $grey;
 		font-size: 1.4em;
@@ -40,7 +41,8 @@ a.context {
 body.installation section.simple,
 body.usage section.primary,
 body.settings section.first,
-body.about section.first {
+body.about section.first,
+body.say_thanks section.first {
 	@include box-sizing(border-box);
 
 	float: left;
@@ -54,7 +56,8 @@ body.about section.first {
 body.installation section.manual,
 body.usage section.other,
 body.settings section.second,
-body.about section.second {
+body.about section.second,
+body.say_thanks section.second {
 	@include box-sizing(border-box);
 
 	float: right;
@@ -69,7 +72,8 @@ body.about section.second {
 	body.installation section.simple,
 	body.usage section.primary,
 	body.settings section.first,
-	body.about section.first {
+	body.about section.first,
+	body.say_thanks section.first {
 		float: none;
 		width: auto;
 	}
@@ -77,7 +81,8 @@ body.about section.second {
 	body.installation section.manual,
 	body.usage section.other,
 	body.settings section.second,
-	body.about section.second {
+	body.about section.second,
+	body.say_thanks section.second {
 		float: none;
 		width: auto;
 	}
