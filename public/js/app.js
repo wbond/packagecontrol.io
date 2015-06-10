@@ -18315,7 +18315,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.2.0';
+  window.App.version = '1.3.0';
 
 }).call(this);
 
@@ -18346,6 +18346,7 @@ Backbone.addBeforePopState = function(BB) {
       this.creatingPackageFiles = __bind(this.creatingPackageFiles, this);
       this.code = __bind(this.code, this);
       this.channelsAndRepositories = __bind(this.channelsAndRepositories, this);
+      this.sayThanks = __bind(this.sayThanks, this);
       this.about = __bind(this.about, this);
       this.stats = __bind(this.stats, this);
       this.search = __bind(this.search, this);
@@ -18483,6 +18484,14 @@ Backbone.addBeforePopState = function(BB) {
       return this.ensureData('html', (function(_this) {
         return function(data) {
           return App.layout.render('about', data);
+        };
+      })(this));
+    };
+
+    Router.prototype.sayThanks = function() {
+      return this.ensureData('html', (function(_this) {
+        return function(data) {
+          return App.layout.render('say_thanks', data);
         };
       })(this));
     };
@@ -18720,6 +18729,22 @@ Backbone.addBeforePopState = function(BB) {
       'focus #search': 'enableShortcuts',
       'blur #search': 'disableShortcuts'
     };
+
+    Header.prototype.affiliates = [
+      {
+        href: 'https://sublimetextbook.com/friend/wbond',
+        src: '/img/book.png'
+      }, {
+        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad3&utm_medium=banner&utm_campaign=wbond',
+        src: '/img/book3.png'
+      }, {
+        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad4&utm_medium=banner&utm_campaign=wbond',
+        src: '/img/book4.png'
+      }, {
+        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad5&utm_medium=banner&utm_campaign=wbond',
+        src: '/img/book5.png'
+      }
+    ];
 
     Header.prototype.prevTerms = '';
 
@@ -18978,92 +19003,31 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.refreshAd = function(showing) {
-      var adBook, adEl, adJsEls, container, counter, fadeIn, fadeInterval, navContainer, previouslyLoaded, runInterval, script, serve, showBookTimeout;
-      if ($('a[href="/redirect/book"]').length > 0) {
-        return;
-      }
-      adJsEls = $('#_fusionads_js, #bsap_1332, #_fusion_projs, #_bsaPRO_js, #auto_1');
-      adEl = $('#fusionads');
-      previouslyLoaded = adJsEls.length > 0;
-      navContainer = $('#nav_container');
-      if (!previouslyLoaded) {
-        container = $('<div id="fusion-container"></div>');
-        navContainer.append(container);
+      var existingLink, href, link, newLink, next, sponseredBy, src;
+      sponseredBy = $('#spons');
+      existingLink = sponseredBy.find('a.book');
+      next = Math.floor(Math.random() * this.affiliates.length);
+      href = this.affiliates[next].href;
+      src = this.affiliates[next].src;
+      if (existingLink.length > 0) {
+        newLink = $('<a href="' + href + '" class="book incoming"><img src="' + src + '"></a>');
+        newLink.css({
+          display: 'none'
+        });
+        sponseredBy.append(newLink);
+        newLink.fadeIn(250);
+        return setTimeout(function() {
+          existingLink.remove();
+          return newLink.removeClass('incoming');
+        }, 300);
       } else {
-        container = $('#fusion-container');
-        serve = $('#bsap_1332').data('serve');
-        adEl.attr('id', 'fusionads-old');
+        link = $('<a href="' + href + '" class="book"><img src="' + src + '"></a>');
+        link.css({
+          display: 'none'
+        });
+        sponseredBy.append(link);
+        return link.fadeIn(150);
       }
-      adJsEls.remove();
-      if (previouslyLoaded) {
-        window._bsaPRO_loaded = false;
-        delete window._bsaPRO;
-        delete window._bsap_serving_callback;
-        delete window._fusion;
-        delete window._fusion_zone;
-        delete window['bsa_' + serve];
-      }
-      script = document.createElement('script');
-      script.src = '//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=sublimewbond';
-      script.id = '_fusionads_js';
-      showBookTimeout = null;
-      adBook = function(e) {
-        var link;
-        clearTimeout(showBookTimeout);
-        clearInterval(runInterval);
-        clearInterval(fadeInterval);
-        container[0].removeChild(script);
-        container.remove();
-        link = $('<a href="/redirect/book"><img src="/img/book.png"> Save 30 minutes a day by speeding up development and optimizing your workflows.</a>');
-        if (e) {
-          return navContainer.append(link);
-        } else {
-          link.css({
-            display: 'none'
-          });
-          navContainer.append(link);
-          return link.fadeIn(150);
-        }
-      };
-      showBookTimeout = setTimeout(adBook, 3000);
-      runInterval = null;
-      counter = 0;
-      script.onload = function() {
-        clearTimeout(showBookTimeout);
-        return runInterval = setInterval((function() {
-          counter += 1;
-          if (counter > 100) {
-            clearInterval(runInterval);
-          }
-          if (window._bsaPRO) {
-            clearInterval(runInterval);
-            return window._bsaPRO();
-          }
-        }), 50);
-      };
-      script.onerror = adBook;
-      container[0].appendChild(script);
-      fadeIn = function() {
-        var ad;
-        ad = $('#fusionads');
-        if (ad.length === 0) {
-          return;
-        }
-        if (ad.find('img')[0].naturalWidth === 0) {
-          return;
-        }
-        clearInterval(fadeInterval);
-        ad.addClass('loaded');
-        adEl.addClass('outgoing').removeClass('loaded');
-        if (adEl.find('.fusion-text').text() === ad.find('.fusion-text').text()) {
-          adEl.addClass('same');
-        }
-        return setTimeout((function() {
-          return adEl.remove();
-        }), 200);
-      };
-      fadeInterval = setInterval(fadeIn, 50);
-      return fadeIn();
     };
 
     return Header;
@@ -19502,58 +19466,17 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   App.Views.About = (function(_super) {
     __extends(About, _super);
 
     function About() {
-      this.setupJS = __bind(this.setupJS, this);
       return About.__super__.constructor.apply(this, arguments);
     }
 
     About.prototype.name = 'About';
-
-    About.prototype.events = {
-      'click #buy_beer': 'handlePayPal'
-    };
-
-    About.prototype.initialize = function(options) {
-      if (this.$el) {
-        this.prevTerms = this.$('#search').val();
-      }
-      this.search = _.throttle(this._search, 500);
-      return this.listenTo(this, 'placed', this.setupJS);
-    };
-
-    About.prototype.setupJS = function() {
-      var content, gps, paypal;
-      paypal = this.$('form.paypal')[0];
-      content = this.$('div.options')[0];
-      gps = this.scriptTag();
-      gps.src = 'https://grtp.co/v1.js';
-      gps.setAttribute('data-gratipay-username', 'wbond');
-      return content.appendChild(gps);
-    };
-
-    About.prototype.scriptTag = function() {
-      var el;
-      el = document.createElement('script');
-      el.type = 'text/javascript';
-      el.async = true;
-      return el;
-    };
-
-    About.prototype.handlePayPal = function() {
-      var button;
-      button = this.$('#buy_beer');
-      return button.closest('form').click(function() {
-        $(this).submit();
-        return false;
-      });
-    };
 
     return About;
 
@@ -20771,6 +20694,25 @@ Backbone.addBeforePopState = function(BB) {
     RenamingAPackage.prototype.name = 'RenamingAPackage';
 
     return RenamingAPackage;
+
+  })(Snakeskin.StaticView);
+
+}).call(this);
+
+(function() {
+  var __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.SayThanks = (function(_super) {
+    __extends(SayThanks, _super);
+
+    function SayThanks() {
+      return SayThanks.__super__.constructor.apply(this, arguments);
+    }
+
+    SayThanks.prototype.name = 'SayThanks';
+
+    return SayThanks;
 
   })(Snakeskin.StaticView);
 
