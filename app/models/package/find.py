@@ -18,6 +18,7 @@ def all(limit_one_per_package=False):
         A dict in the form:
         {
             'Package Name': {
+                'repository': 'http://example.com/channel.json',
                 'name': 'Package Name',
                 'description': 'Package description',
                 'authors': ['author', 'names'],
@@ -28,7 +29,18 @@ def all(limit_one_per_package=False):
                 'readme': 'http://example.com/readme',
                 'issues': 'http://example.com/issues',
                 'donate': 'http://example.com/donate',
-                'buy': 'http://example.com/buy'
+                'buy': 'http://example.com/buy',
+                'releases': [
+                    {
+                        'platforms': ['*'],
+                        'sublime_text': '*',
+                        'version': '1.0.0',
+                        'url': 'http://example.com/package.zip',
+                        'date': '2015-01-01 10:15:00',
+                        'dependencies': []
+                    },
+                    ...
+                ]
             }
         }
     """
