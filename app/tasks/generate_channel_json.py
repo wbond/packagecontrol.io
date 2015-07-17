@@ -25,7 +25,7 @@ certs_dir = os.path.join(assets_dir, 'certs')
 if not os.path.exists(certs_dir):
     os.mkdir(certs_dir)
 
-ssl_domains = ['api.github.com', 'api.bitbucket.org']
+ssl_domains = []
 
 def add_ssl_domain(url):
     if not re.match('https://', url):
