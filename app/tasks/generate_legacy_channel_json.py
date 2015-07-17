@@ -98,14 +98,18 @@ for domain in ssl_domains:
             "https://sublime.wbond.net/certs/7f4f8622b4fd001c7f648e09aae7edaa"
         ]
     else:
-        cert, cert_hash = find_root_ca_cert({}, domain)
-        if not cert:
-            print('Error fetching cert for %s' % domain)
-            continue
-        output['certs'][domain] = [
-            cert_hash,
-            "https://packagecontrol.io/certs/" + cert_hash
-        ]
+        try:
+            cert, cert_hash = find_root_ca_cert({}, domain)
+            if not cert:
+                print('Error fetching cert for %s' % domain)
+                continue
+            output['certs'][domain] = [
+                cert_hash,
+                "https://packagecontrol.io/certs/" + cert_hash
+            ]
+        except (AttributeError):
+            print('Error fetching certificate for %s' % domain)
+            raise
     with open(os.path.join(certs_dir, cert_hash), 'w', encoding='utf-8') as f:
         f.write(cert)
 
