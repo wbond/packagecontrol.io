@@ -1,3 +1,4 @@
+import sys
 import re
 import json
 import os
@@ -114,7 +115,7 @@ for domain in ssl_domains:
                 "https://packagecontrol.io/certs/" + cert_hash
             ]
         except (AttributeError):
-            print('Error fetching certificate for %s' % domain)
+            print('Error fetching certificate for %s' % domain, file=sys.stderr)
             raise
     with open(os.path.join(certs_dir, cert_hash), 'w', encoding='utf-8') as f:
         f.write(cert)

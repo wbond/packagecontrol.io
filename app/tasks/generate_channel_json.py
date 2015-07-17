@@ -1,3 +1,4 @@
+import sys
 import re
 import json
 import os
@@ -68,16 +69,20 @@ for name, info in package_info.items():
         add_ssl_domain(release['url'])
 
 for domain in ssl_domains:
-    cert, cert_hash = find_root_ca_cert({}, domain)
-    if not cert:
-        print('Error fetching cert for %s' % domain)
-        continue
-    output['certs'][domain] = [
-        cert_hash,
-        "https://packagecontrol.io/certs/" + cert_hash
-    ]
-    with open(os.path.join(certs_dir, cert_hash), 'w', encoding='utf-8') as f:
-        f.write(cert)
+    try:
+        cert, cert_hash = find_root_ca_cert({}, domain)
+        if not cert:
+            print('Error fetching cert for %s' % domain)
+            continue
+        output['certs'][domain] = [
+            cert_hash,
+            "https://packagecontrol.io/certs/" + cert_hash
+        ]
+        with open(os.path.join(certs_dir, cert_hash), 'w', encoding='utf-8') as f:
+            f.write(cert)
+    except (AttributeError):
+        print('Error fetching certificate for %s' % domain, file=sys.stderr)
+        raise
 
 output['repositories'] = sorted(output['repositories'])
 
