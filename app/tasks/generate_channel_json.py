@@ -35,13 +35,7 @@ def add_ssl_domain(url):
     if domain not in ssl_domains:
         ssl_domains.append(domain)
 
-package_control = package.find.by_name('Package Control')
-info = {}
-for key in ['description', 'issues', 'homepage', 'authors', 'readme', 'donate', 'buy', 'releases', 'name', 'previous_names', 'labels']:
-    info[key] = package_control[key]
-package_info = {
-    'Package Control': info
-}
+package_info = package.find.all(limit_one_per_package=True, only_package_control=True)
 
 output = {
     'schema_version': '2.0',

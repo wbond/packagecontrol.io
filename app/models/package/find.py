@@ -10,9 +10,16 @@ from ... import cache
 synonyms = config.read('synonyms')
 
 
-def all(limit_one_per_package=False):
+def all(limit_one_per_package=False, only_package_control=False):
     """
     Fetches info about all packages for the purpose of writing JSON files
+
+    :param limit_one_per_package:
+        A boolean only one release should be returned per package
+
+    :param only_package_control:
+        If on the "Package Control" package should be returned (used for
+        old channel file contents)
 
     :return:
         A dict in the form:
@@ -45,6 +52,10 @@ def all(limit_one_per_package=False):
         }
     """
 
+    where_condition = ""
+    if only_package_control:
+        where_condition = "AND p.name = 'Package Control'"
+
     output = {}
     with connection() as cursor:
         cursor.execute("""
@@ -68,6 +79,7 @@ def all(limit_one_per_package=False):
             WHERE
                 ps.is_missing != TRUE AND
                 ps.removed != TRUE
+                """ + where_condition + """
             ORDER BY
                 repository ASC,
                 LOWER(p.name) ASC
