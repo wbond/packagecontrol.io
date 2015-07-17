@@ -125,6 +125,7 @@ def all(limit_one_per_package=False, only_package_control=False):
             WHERE
                 ps.is_missing != TRUE AND
                 ps.removed != TRUE
+                """ + where_condition + """
             ORDER BY
                 p.sources[1:1] ASC,
                 LOWER(p.name) ASC,
