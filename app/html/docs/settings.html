@@ -242,6 +242,37 @@
                 <em>Default</em> <tt>false</tt>
             </div>
         </dd>
+        <dt id="setting-downloader_precedence">downloader_precedence</dt>
+        <dd>
+            <p>
+                The downloader backends that should be used for HTTP(S)
+                requests, split by operating system to allow for configuration
+                to be shared.
+            </p>
+            <p>
+                Valid options include: <tt>"urllib"</tt>, <tt>"curl"</tt>,
+                <tt>"wget"</tt>, (Windows-only) <tt>"wininet"</tt>.
+            </p>
+            <p>
+                This setting allows Windows users to bypass wininet and use
+                urllib instead if they machine or network presents trouble to
+                wininet. Some OS X and Linux users have also reported better
+                luck with certain proxies using curl or wget instead of urllib.
+            </p>
+            <p>
+                The <tt>"curl"</tt> and <tt>"wget"</tt> options require the
+                command line <tt>curl</tt> or <tt>wget</tt> program installed
+                and present in the <tt>PATH</tt>.
+            </p>
+            <div class="default">
+                <em>Default</em>
+                <pre>{
+    "windows": ["wininet"],
+    "osx": ["urllib"],
+    "linux": ["urllib", "curl", "wget"]
+}</pre>
+            </div>
+        </dd>
         <dt id="setting-dirs_to_ignore">dirs_to_ignore</dt>
         <dd>
             A list of folders to ignore when creating a <tt>.sublime-package</tt>
