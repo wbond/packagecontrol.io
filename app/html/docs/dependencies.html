@@ -10,17 +10,6 @@
 	related packages. Currently no such functionality exists.
 </p>
 
-<p>
-	<em><strong>Please note that this dependencies are only available starting
-	with Package Control 3.0.</strong> Users who have not upgraded to 3.0 will
-	not automatically download required dependencies. In an effort to solve this
-	issue, the old channel files for Package Control 1.x and 2.0 will only
-	contain Package Control itself as of early February 2015. This will ensure
-	that only Package Control 3.0 users will be installing and upgrading
-	packages, making it possible for package developers to use the dependencies
-	and the <a href="/docs/events">events API</a>.</em>
-</p>
-
 <h2>How They Work</h2>
 
 <p>
@@ -70,9 +59,19 @@
 
 <p>
 	If for some reason you need different logic, create a single python file
-	in the root folder of the dependency named <tt>loader.py</tt>. This python
-	file would be fully responsible for making any and all changes necessary
-	to <tt>sys.path</tt>.
+	in the root folder of the dependency named <tt>loader.code</tt>. This file
+	should contain python code and would be fully responsible for making any and
+	all changes necessary to <tt>sys.path</tt>.
+</p>
+
+<p>
+	For ease-of-use during development of packages, a dependency may also have
+	a <tt>.sublime-dependency</tt> file in the root of the package. This file
+	should contain a two digit loader priority for the dependency. This allows
+	for dependencies to control where, relative to each other, they are added
+	to the <tt>sys.path</tt>. If a dependency has no other dependencies, it may
+	use a low priority such as <tt>01</tt>. For dependencies that need others,
+	a higher number would be appropriate.
 </p>
 
 <h2>Examples</h2>
@@ -100,7 +99,7 @@
 	</li>
 	<li>
 		<a href="https://github.com/codexns/sublime-ssl-linux">ssl-linux</a> -
-		a complex example using <tt>loader.py</tt> to determine what version
+		a complex example using <tt>loader.code</tt> to determine what version
 		of OpenSSL a user has installed
 	</li>
 </ul>
