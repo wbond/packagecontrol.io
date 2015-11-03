@@ -61,10 +61,15 @@ def render(readme_info):
 
     if output.find('src=') != -1 or output.find('href=') != -1:
         url_dirname = os.path.dirname(readme_info['url']) + '/'
+        src_dirname = url_dirname
+        href_dirname = url_dirname
+        github_match = re.match('https://raw.githubusercontent.com(/[^/]+/[^/]+/)(.*$)', url_dirname)
+        if github_match is not None:
+            href_dirname = 'https://github.com' + github_match.group(1) + 'blob/' + github_match.group(2)
         output = re.sub('(<img\\s+[^>]*\\bsrc=["\'])(?!http://|https://|/)',
-            '\\1' + url_dirname, output, 0, re.I)
+            '\\1' + src_dirname, output, 0, re.I)
         output = re.sub('(<a\\s+[^>]*\\bhref=["\'])(?!http://|https://|/|mailto:|#)',
-            '\\1' + url_dirname, output, 0, re.I)
+            '\\1' + href_dirname, output, 0, re.I)
 
     return output
 
