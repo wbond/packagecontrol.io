@@ -49,6 +49,7 @@ pip install gears-uglifyjs
 pip install gears-clean-css
 pip install git+https://github.com/wbond/gears-scss
 pip install paramiko
+pip install oscrypto
 ```
 
 Run the server:

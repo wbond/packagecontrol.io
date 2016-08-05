@@ -31,6 +31,10 @@ current list of valid tasks:
  - `generate_legacy_channel_json` - build the `repositories.json` file that
    contains the `1.2` schema version channel info used by Package Control 1.x.
 
+ - `generate_signature` - generate an ECDSA signature of the
+   `Package Control.sublime-package` file. It is written using ASCII armor of
+   `BEGIN PACKAGE CONTROL SIGNATURE`.
+
  - `parse_log_files` - reads through the nginx log files for the previous day
    to extract statistics about the number of requests and bytes served.
 
