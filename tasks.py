@@ -5,6 +5,7 @@ import re
 import sys
 import argparse
 import importlib
+import signal
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(root_dir)
@@ -32,15 +33,19 @@ args = parser.parse_args()
 # get stuck. This currently only supports OS X and Linux.
 current_pid = os.getpid()
 parent_pid = os.getppid()
-for pid, command_line in processes.list_all():
+for pid, age, command_line in processes.list_all():
     if pid == current_pid or pid == parent_pid:
         continue
     match = re.match('^(.*?[/ ]tasks\\.py)\\s+(\\w+)(\\s+(.*))?$', command_line)
     if not match:
         continue
     if match.group(2) == args.task_name:
-        print('Another instance of the %s task is currently running' % args.task_name)
-        sys.exit(0)
+        # Kill processes that have been running for more than an hour
+        if age > 3600:
+            os.kill(pid, signal.SIGKILL)
+        else:
+            print('Another instance of the %s task is currently running' % args.task_name)
+            sys.exit(0)
 
 if env.is_prod():
     for num in range(9, 0, -1):
