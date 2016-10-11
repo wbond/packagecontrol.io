@@ -9,7 +9,47 @@ import subprocess
 def list_all():
 
     if sys.platform == 'win32':
-        raise EnvironmentError('Listing processes is currently not supported on Windows')
+        # /format:value is used because the standard output format and the csv
+        # format have issues with certain process command lines
+        proc = subprocess.Popen(
+            ['wmic', 'path', 'win32_process', 'get', 'CreationDate,ProcessId,CommandLine', '/format:value'],
+            stdout=subprocess.PIPE
+        )
+        stdout, _ = proc.communicate()
+
+        now = time.time()
+
+        command_line = None
+        age = None
+        pid = None
+        for num, line in enumerate(stdout.decode('utf-8', 'replace').strip().splitlines()):
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith('CommandLine='):
+                command_line = line[12:]
+
+            elif line.startswith('CreationDate='):
+                value = line[13:]
+                # We ignore the timezone offset since that is taken care
+                # of by the fact that time.time() is local also
+                minus_pos = value.find('-')
+                plus_pos = value.find('+')
+                if minus_pos != -1 or plus_pos != -1:
+                    sign_pos = minus_pos if minus_pos != -1 else plus_pos
+                    datestring = value[0:sign_pos]
+                else:
+                    datestring = value
+                start = datetime.strptime(datestring, '%Y%m%d%H%M%S.%f')
+                age = now - time.mktime(start.timetuple())
+
+            elif line.startswith('ProcessId='):
+                pid = int(line[10:])
+                yield (pid, age, command_line)
+                pid = None
+                age = None
+                command_line = None
 
     elif sys.platform == 'darwin':
         proc = subprocess.Popen(
