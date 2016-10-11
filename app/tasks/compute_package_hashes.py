@@ -14,6 +14,8 @@ for (root, dirs, files) in os.walk(ssl_dir):
         paths.append(os.path.join(ssl_dir, root, file))
 
 for path in paths:
+    if not os.path.exists(path):
+        continue
     with open(path, 'rb') as f:
         hash_ = hashlib.sha256(f.read()).hexdigest()
         filename = path.replace(assets + '/', '')
