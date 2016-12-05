@@ -29,7 +29,7 @@ bash prod.sh
 ```
 
 This will start up a number of workers on a unix socket at
-`/var/tmp/uwsgi-sublime.wbond.net.socket` using the uwsgi
+`/var/tmp/uwsgi-packagecontrol.io.socket` using the uwsgi
 protocol. You’ll need to run nginx or Apache in front and proxy the
 request to uwsgi.
 
@@ -38,9 +38,9 @@ Nginx includes uwsgi support by default, so proxying is as simple as:
 ```
 server {
     listen 80;
-    server_name sublime.wbond.net;
+    server_name packagecontrol.io;
 
-    root /path/to/sublime.wbond.net;
+    root /path/to/packagecontrol.io;
 
     gzip on;
     gzip_disable "msie6";
@@ -50,7 +50,7 @@ server {
     try_files /public/$uri /app/html/$uri @uwsgi;
 
     location @uwsgi {
-        uwsgi_pass  unix:/var/tmp/uwsgi-sublime.wbond.net.socket;
+        uwsgi_pass  unix:/var/tmp/uwsgi-packagecontrol.io.socket;
         include     uwsgi_params;
     }
 }

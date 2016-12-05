@@ -1,9 +1,9 @@
 PACKAGE_CONTROL_ENV=prod
 
-*/10 * * * *            /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py generate_channel_json > /dev/null
-*/10 * * * *            /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py generate_legacy_channel_json > /dev/null
-*/5 * * * *             /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py crawl > /dev/null
-*/5 * * * *             /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py cleanup_renames
-5 * * * *               /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py refresh_package_stats
-2 0 * * *               /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py parse_log_files > /dev/null
-2 0 * * *               /var/www/sublime.wbond.net/venv/bin/python /var/www/sublime.wbond.net/tasks.py gather_system_stats > /dev/null
+*/10 * * * *            /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py generate_channel_json > /dev/null
+*/10 * * * *            /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py generate_legacy_channel_json > /dev/null
+*/5 * * * *             /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py crawl > /dev/null
+*/5 * * * *             /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py cleanup_renames
+5 * * * *               /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py refresh_package_stats
+2 0 * * *               /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py parse_log_files > /dev/null
+2 0 * * *               /var/www/packagecontrol.io/venv/bin/python /var/www/packagecontrol.io/tasks.py gather_system_stats > /dev/null
