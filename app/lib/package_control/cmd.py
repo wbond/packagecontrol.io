@@ -1,6 +1,12 @@
 import os
 import subprocess
 import re
+import sys
+
+from .console_write import console_write
+from .unicode import unicode_from_os
+from .show_error import show_error
+from . import text
 
 if os.name == 'nt':
     from ctypes import windll, create_unicode_buffer
@@ -11,11 +17,6 @@ try:
     import sublime
 except (ImportError):
     sublime = None
-
-from .console_write import console_write
-from .unicode import unicode_from_os
-from .show_error import show_error
-from . import text
 
 try:
     # Python 2
@@ -48,7 +49,7 @@ def create_cmd(args, basename_binary=False):
     else:
         escaped_args = []
         for arg in args:
-            if re.search('^[a-zA-Z0-9/_^\\-\\.:=]+$', arg) == None:
+            if re.search('^[a-zA-Z0-9/_^\\-\\.:=]+$', arg) is None:
                 arg = u"'" + arg.replace(u"'", u"'\\''") + u"'"
             escaped_args.append(arg)
         return u' '.join(escaped_args)
@@ -70,6 +71,8 @@ class Cli(object):
     binary_paths = {}
 
     cli_name = None
+
+    ok_returncodes = set([0])
 
     def __init__(self, binary_locations, debug):
         self.binary_locations = binary_locations
@@ -95,8 +98,11 @@ class Cli(object):
         :param ignore_errors:
             A regex of errors to ignore
 
-        :return: A string of the executable output
+        :return:
+            A string of the executable output or False on error
         """
+
+        orig_cwd = cwd
 
         startupinfo = None
         if os.name == 'nt':
@@ -105,7 +111,7 @@ class Cli(object):
 
             # Make sure the cwd is ascii
             try:
-                cwd.encode('ascii')
+                cwd.encode('mbcs')
             except UnicodeEncodeError:
                 buf = create_unicode_buffer(512)
                 if windll.kernel32.GetShortPathNameW(cwd, buf, len(buf)):
@@ -120,14 +126,28 @@ class Cli(object):
             )
 
         try:
-            proc = subprocess.Popen(args, stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                startupinfo=startupinfo, cwd=cwd, env=os.environ)
+            if sys.platform == 'win32' and sys.version_info < (3,):
+                cwd = cwd.encode('mbcs')
+            proc = subprocess.Popen(
+                args,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                startupinfo=startupinfo,
+                cwd=cwd,
+                env=os.environ
+            )
 
             if input and isinstance(input, str_cls):
                 input = input.encode(encoding)
 
             stuck = True
+
+            binary_name = os.path.basename(args[0])
+            if re.search('git', binary_name):
+                is_vcs = True
+            elif re.search('hg', binary_name):
+                is_vcs = True
 
             if sublime:
                 def kill_proc():
@@ -135,13 +155,17 @@ class Cli(object):
                         return
                     # This doesn't actually work!
                     proc.kill()
-                    binary_name = os.path.basename(args[0])
-                    if re.search('git', binary_name):
-                        is_vcs = True
-                    elif re.search('hg', binary_name):
-                        is_vcs = True
 
-                    message = u'The process %s seems to have gotten stuck.' % binary_name
+                    message = text.format(
+                        u'''
+                        The process %s seems to have gotten stuck.
+
+                        Command: %s
+
+                        Working directory: %s
+                        ''',
+                        (binary_name, create_cmd(args), orig_cwd)
+                    )
                     if is_vcs:
                         message += text.format(
                             u'''
@@ -166,19 +190,30 @@ class Cli(object):
             output = output.decode(encoding)
             output = output.replace('\r\n', '\n').rstrip(' \n\r')
 
-            if proc.returncode != 0:
+            if proc.returncode not in self.ok_returncodes:
                 if not ignore_errors or re.search(ignore_errors, output) is None:
-                    show_error(
+                    message = text.format(
                         u'''
                         Error executing: %s
 
-                        %s
+                        Working directory: %s
 
-                        VCS-based packages can be ignored with the
-                        "ignore_vcs_packages" setting.
+                        %s
                         ''',
-                        (create_cmd(args), output)
+                        (create_cmd(args), orig_cwd, output)
                     )
+                    if is_vcs:
+                        message += text.format(
+                            '''
+
+                            VCS-based packages can be ignored by changing the
+                            "ignore_vcs_packages" setting to true.
+
+                            Sublime Text will need to be restarted once the
+                            setting is changed.
+                            '''
+                        )
+                    show_error(message)
                     return False
 
             if meaningful_output and self.debug and len(output) > 0:
@@ -228,14 +263,16 @@ class Cli(object):
 
         # Finally look in common locations that may not be in the PATH
         if os.name == 'nt':
-            dirs = ['C:\\Program Files\\Git\\bin',
+            dirs = [
+                'C:\\Program Files\\Git\\bin',
                 'C:\\Program Files (x86)\\Git\\bin',
                 'C:\\Program Files\\TortoiseGit\\bin',
                 'C:\\Program Files\\Mercurial',
                 'C:\\Program Files (x86)\\Mercurial',
                 'C:\\Program Files (x86)\\TortoiseHg',
                 'C:\\Program Files\\TortoiseHg',
-                'C:\\cygwin\\bin']
+                'C:\\cygwin\\bin'
+            ]
         else:
             # ST seems to launch with a minimal set of environmental variables
             # on OS X, so we add some common paths for it

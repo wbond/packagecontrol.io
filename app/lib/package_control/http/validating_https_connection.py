@@ -14,7 +14,7 @@ except (ImportError):
     # Python 2
     from httplib import HTTPS_PORT
     from urllib2 import parse_keqv_list, parse_http_list
-    from . import x509
+    from ..deps.asn1crypto import x509
 
 from ..console_write import console_write
 from .debuggable_https_response import DebuggableHTTPSResponse
@@ -40,8 +40,10 @@ try:
         response_class = DebuggableHTTPSResponse
         _debug_protocol = 'HTTPS'
 
-        def __init__(self, host, port=None, key_file=None, cert_file=None,
-                ca_certs=None, **kwargs):
+        # The ssl.SSLContext() for the connection - Python 3 only
+        ctx = None
+
+        def __init__(self, host, port=None, key_file=None, cert_file=None, ca_certs=None, **kwargs):
             passed_args = {}
             if 'timeout' in kwargs:
                 passed_args['timeout'] = kwargs['timeout']
@@ -195,8 +197,7 @@ try:
 
             if code != 200:
                 self.close()
-                raise socket.error("Tunnel connection failed: %d %s" % (code,
-                    message.strip()))
+                raise socket.error("Tunnel connection failed: %d %s" % (code, message.strip()))
 
         def build_digest_response(self, fields, username, password):
             """
@@ -302,9 +303,38 @@ try:
                     self.ca_certs.decode(sys.getfilesystemencoding())
                 )
 
-            self.sock = ssl.wrap_socket(self.sock, keyfile=self.key_file,
-                certfile=self.cert_file, cert_reqs=self.cert_reqs,
-                ca_certs=self.ca_certs, ssl_version=ssl.PROTOCOL_TLSv1)
+            hostname = self.host.split(':', 0)[0]
+
+            # Python 3 supports SNI when using an SSLContext
+            if sys.version_info >= (3,):
+                self.ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+                self.ctx.verify_mode = self.cert_reqs
+                self.ctx.load_verify_locations(self.ca_certs)
+                # We don't call load_cert_chain() with self.key_file and self.cert_file
+                # since that is for servers, and this code only supports client mode
+                if self.debuglevel == -1:
+                    console_write(
+                        u'''
+                          Using hostname "%s" for TLS SNI extension
+                        ''',
+                        hostname,
+                        indent='  ',
+                        prefix=False
+                    )
+                self.sock = self.ctx.wrap_socket(
+                    self.sock,
+                    server_hostname=hostname
+                )
+
+            else:
+                self.sock = ssl.wrap_socket(
+                    self.sock,
+                    keyfile=self.key_file,
+                    certfile=self.cert_file,
+                    cert_reqs=self.cert_reqs,
+                    ca_certs=self.ca_certs,
+                    ssl_version=ssl.PROTOCOL_TLSv1
+                )
 
             if self.debuglevel == -1:
                 cipher_info = self.sock.cipher()
@@ -325,9 +355,16 @@ try:
                 # we parse the raw DER certificate and grab the info ourself
                 if x509:
                     der_cert = self.sock.getpeercert(True)
-                    parsed_cert = x509.parse(der_cert)
-                    if 'subjectAltName' in parsed_cert:
-                        cert['subjectAltName'] = parsed_cert['subjectAltName']
+                    cert_object = x509.Certificate.load(der_cert)
+                    if cert_object.subject_alt_name_value:
+                        subject_alt_names = []
+                        for general_name in cert_object.subject_alt_name_value:
+                            if general_name.name != 'dns_name':
+                                continue
+                            if 'commonName' not in cert or general_name.native != cert['commonName']:
+                                subject_alt_names.append(('DNS', general_name.native))
+                        if subject_alt_names:
+                            cert['subjectAltName'] = tuple(subject_alt_names)
 
                 if self.debuglevel == -1:
                     subjectMap = {
@@ -368,14 +405,11 @@ try:
                     if 'notAfter' in cert:
                         console_write(u'    expire date: %s', cert['notAfter'], prefix=False)
 
-                hostname = self.host.split(':', 0)[0]
-
                 if not self.validate_cert_host(cert, hostname):
                     if self.debuglevel == -1:
                         console_write(u'  Certificate INVALID', prefix=False)
 
-                    raise InvalidCertificateException(hostname, cert,
-                        'hostname mismatch')
+                    raise InvalidCertificateException(hostname, cert, 'hostname mismatch')
 
                 if self.debuglevel == -1:
                     console_write(u'  Certificate validated for %s', hostname, prefix=False)
