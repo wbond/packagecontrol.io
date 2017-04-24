@@ -19,6 +19,48 @@ files = [
     'clients/json_api_client.py',
     'clients/readme_client.py',
 
+    'deps/__init__.py',
+    'deps/asn1crypto/__init__.py',
+    'deps/asn1crypto/_elliptic_curve.py',
+    'deps/asn1crypto/_errors.py',
+    'deps/asn1crypto/_ffi.py',
+    'deps/asn1crypto/_inet.py',
+    'deps/asn1crypto/_int.py',
+    'deps/asn1crypto/_iri.py',
+    'deps/asn1crypto/_ordereddict.py',
+    'deps/asn1crypto/_teletex_codec.py',
+    'deps/asn1crypto/_types.py',
+    'deps/asn1crypto/algos.py',
+    'deps/asn1crypto/core.py',
+    'deps/asn1crypto/keys.py',
+    'deps/asn1crypto/parser.py',
+    'deps/asn1crypto/pem.py',
+    'deps/asn1crypto/util.py',
+    'deps/asn1crypto/version.py',
+    'deps/asn1crypto/x509.py',
+    'deps/oscrypto/_linux_bsd/__init__.py',
+    'deps/oscrypto/_linux_bsd/trust_list.py',
+    'deps/oscrypto/_osx/__init__.py',
+    'deps/oscrypto/_osx/_core_foundation.py',
+    'deps/oscrypto/_osx/_core_foundation_ctypes.py',
+    'deps/oscrypto/_osx/_security.py',
+    'deps/oscrypto/_osx/_security_ctypes.py',
+    'deps/oscrypto/_osx/trust_list.py',
+    'deps/oscrypto/_win/__init__.py',
+    'deps/oscrypto/_win/_crypt32.py',
+    'deps/oscrypto/_win/_crypt32_ctypes.py',
+    'deps/oscrypto/_win/_decode.py',
+    'deps/oscrypto/_win/_kernel32.py',
+    'deps/oscrypto/_win/_kernel32_ctypes.py',
+    'deps/oscrypto/_win/trust_list.py',
+    'deps/oscrypto/__init__.py',
+    'deps/oscrypto/_errors.py',
+    'deps/oscrypto/_ffi.py',
+    'deps/oscrypto/_types.py',
+    'deps/oscrypto/errors.py',
+    'deps/oscrypto/trust_list.py',
+    'deps/oscrypto/version.py',
+
     'downloaders/__init__.py',
     'downloaders/background_downloader.py',
     'downloaders/binary_not_found_error.py',
@@ -46,7 +88,6 @@ files = [
     'http/persistent_handler.py',
     'http/validating_https_connection.py',
     'http/validating_https_handler.py',
-    'http/x509.py',
 
     'providers/__init__.py',
     'providers/bitbucket_repository_provider.py',
@@ -82,4 +123,6 @@ for file in files:
     source_file_path = os.path.join(source, file)
     dest_file_path = os.path.join(dest, file.replace('../', ''))
     print('  %s' % file)
+    if not os.path.exists(os.path.dirname(dest_file_path)):
+        os.makedirs(os.path.dirname(dest_file_path))
     shutil.copyfile(source_file_path, dest_file_path)
