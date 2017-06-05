@@ -18346,6 +18346,7 @@ Backbone.addBeforePopState = function(BB) {
       this.creatingPackageFiles = __bind(this.creatingPackageFiles, this);
       this.code = __bind(this.code, this);
       this.channelsAndRepositories = __bind(this.channelsAndRepositories, this);
+      this.testRepo = __bind(this.testRepo, this);
       this.sayThanks = __bind(this.sayThanks, this);
       this.about = __bind(this.about, this);
       this.stats = __bind(this.stats, this);
@@ -18492,6 +18493,14 @@ Backbone.addBeforePopState = function(BB) {
       return this.ensureData('html', (function(_this) {
         return function(data) {
           return App.layout.render('say_thanks', data);
+        };
+      })(this));
+    };
+
+    Router.prototype.testRepo = function() {
+      return this.ensureData((function(_this) {
+        return function(data) {
+          return App.layout.render('test_repo', data);
         };
       })(this));
     };
@@ -20921,6 +20930,84 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  App.Views.TestRepo = (function(_super) {
+    __extends(TestRepo, _super);
+
+    function TestRepo() {
+      this.doRerender = __bind(this.doRerender, this);
+      this.testJson = __bind(this.testJson, this);
+      return TestRepo.__super__.constructor.apply(this, arguments);
+    }
+
+    TestRepo.prototype.name = 'TestRepo';
+
+    TestRepo.prototype.events = {
+      'click button': 'testJson'
+    };
+
+    TestRepo.prototype.testJson = function(e) {
+      var er, json, repo_info;
+      e.preventDefault();
+      er = $('div.error');
+      if (er.length > 0) {
+        er.remove();
+      }
+      json = $('textarea#repo_json').val();
+      try {
+        repo_info = $.parseJSON(json);
+        this.doRerender({
+          json_string: json,
+          running: true
+        });
+        return $.ajax({
+          url: '/test_repo.json',
+          method: 'POST',
+          contentType: 'application/json',
+          data: json,
+          dataType: 'json',
+          success: (function(_this) {
+            return function(data, status, xhr) {
+              data.details.num_errors = data.details.errors.length;
+              data.details.num_warnings = data.details.warnings.length;
+              return _this.doRerender({
+                result: data,
+                json_string: json
+              });
+            };
+          })(this),
+          error: (function(_this) {
+            return function(xhr, status, error) {
+              return _this.doRerender({
+                error: error,
+                json_string: json
+              });
+            };
+          })(this)
+        });
+      } catch (_error) {
+        e = _error;
+        return this.doRerender({
+          error: e.message,
+          json_string: json
+        });
+      }
+    };
+
+    TestRepo.prototype.doRerender = function(data) {
+      return this.$el.empty().append(Handlebars.templates['test_repo'](data));
+    };
+
+    return TestRepo;
+
+  })(Snakeskin.View);
+
+}).call(this);
+
+(function() {
   var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -22291,6 +22378,83 @@ Backbone.addBeforePopState = function(BB) {
     + " requests\"> "
     + escapeExpression(((helpers.filesize_abbr || (depth0 && depth0.filesize_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.json_bytes_served : depth0), {"name":"filesize_abbr","hash":{},"data":data})))
     + " </span> <span class=\"stat\">JSON Served</span> </div> </div> </section> ";
+},"useData":true});
+}).call(this);
+(function() {
+  var template  = Handlebars.template,
+      templates = Handlebars.templates = Handlebars.templates || {};
+  templates['test_repo'] = template({"1":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.result : stack1), "success", {"name":"eq","hash":{},"fn":this.program(2, data),"inverse":this.program(4, data),"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"2":function(depth0,helpers,partials,data) {
+  return " <p class=\"success\"> All tests ran successfully! </p> ";
+  },"4":function(depth0,helpers,partials,data) {
+  var stack1, helperMissing=helpers.helperMissing, buffer = " ";
+  stack1 = ((helpers.gt || (depth0 && depth0.gt) || helperMissing).call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_errors : stack1), 0, {"name":"gt","hash":{},"fn":this.program(5, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += " ";
+  stack1 = ((helpers.gt || (depth0 && depth0.gt) || helperMissing).call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_warnings : stack1), 0, {"name":"gt","hash":{},"fn":this.program(11, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"5":function(depth0,helpers,partials,data) {
+  var stack1, lambda=this.lambda, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, buffer = " <div class=\"error\"> <p> "
+    + escapeExpression(lambda(((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_errors : stack1), depth0))
+    + " Error";
+  stack1 = ((helpers.ne || (depth0 && depth0.ne) || helperMissing).call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_errors : stack1), 1, {"name":"ne","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += " </p> <ul> ";
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.errors : stack1), {"name":"each","hash":{},"fn":this.program(8, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> </div> ";
+},"6":function(depth0,helpers,partials,data) {
+  return "s";
+  },"8":function(depth0,helpers,partials,data) {
+  var stack1, lambda=this.lambda, escapeExpression=this.escapeExpression, buffer = " <li> "
+    + escapeExpression(lambda((depth0 != null ? depth0.message : depth0), depth0))
+    + " ";
+  stack1 = helpers.each.call(depth0, (depth0 != null ? depth0.details : depth0), {"name":"each","hash":{},"fn":this.program(9, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </li> ";
+},"9":function(depth0,helpers,partials,data) {
+  var lambda=this.lambda, escapeExpression=this.escapeExpression;
+  return " <br>"
+    + escapeExpression(lambda(depth0, depth0))
+    + " ";
+},"11":function(depth0,helpers,partials,data) {
+  var stack1, lambda=this.lambda, escapeExpression=this.escapeExpression, helperMissing=helpers.helperMissing, buffer = " <div class=\"warning\"> <p> "
+    + escapeExpression(lambda(((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_warnings : stack1), depth0))
+    + " Warning";
+  stack1 = ((helpers.ne || (depth0 && depth0.ne) || helperMissing).call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.num_warnings : stack1), 1, {"name":"ne","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  if (stack1 != null) { buffer += stack1; }
+  buffer += " </p> <ul> ";
+  stack1 = helpers.each.call(depth0, ((stack1 = ((stack1 = (depth0 != null ? depth0.result : depth0)) != null ? stack1.details : stack1)) != null ? stack1.warnings : stack1), {"name":"each","hash":{},"fn":this.program(8, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " </ul> </div> ";
+},"13":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.error : depth0), {"name":"if","hash":{},"fn":this.program(14, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  buffer += " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.running : depth0), {"name":"if","hash":{},"fn":this.program(16, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"14":function(depth0,helpers,partials,data) {
+  var helper, functionType="function", helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression;
+  return " <div class=\"error\"> <p> "
+    + escapeExpression(((helper = (helper = helpers.error || (depth0 != null ? depth0.error : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"error","hash":{},"data":data}) : helper)))
+    + " </p> </div> ";
+},"16":function(depth0,helpers,partials,data) {
+  return " <p class=\"status\"> Running repository tests… </p> ";
+  },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
+  var stack1, helper, helperMissing=helpers.helperMissing, escapeExpression=this.escapeExpression, functionType="function", buffer = escapeExpression(((helpers.title || (depth0 && depth0.title) || helperMissing).call(depth0, "Test Repository JSON", {"name":"title","hash":{},"data":data})))
+    + " <h1>Test Repository JSON</h1> <p> Use the form below to test your repository JSON to ensure Package Control will be able to index your package. </p> ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.result : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(13, data),"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " <form> <label>Repository JSON</label> <textarea id=\"repo_json\" rows=\"20\" cols=\"100\">"
+    + escapeExpression(((helper = (helper = helpers.json_string || (depth0 != null ? depth0.json_string : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"json_string","hash":{},"data":data}) : helper)))
+    + "</textarea> <button>Submit</button> </form> ";
 },"useData":true});
 }).call(this);
 (function() {

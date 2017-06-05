@@ -227,6 +227,13 @@ input {
 textarea {
 	font-family: $font-input;
 	font-size: 1.0em;
+	border: 1px solid #bbb;
+	width: 100%;
+	height: 300px;
+}
+
+button {
+	display: block;
 }
 
 label {

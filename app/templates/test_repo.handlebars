@@ -1,0 +1,69 @@
+{{title "Test Repository JSON"}}
+
+<h1>Test Repository JSON</h1>
+
+<p>
+    Use the form below to test your repository JSON to ensure
+    Package Control will be able to index your package.
+</p>
+
+{{#if result}}
+    {{#eq result.result "success"}}
+        <p class="success">
+            All tests ran successfully!
+        </p>
+    {{else}}
+        {{#gt result.details.num_errors 0}}
+            <div class="error">
+                <p>
+                    {{result.details.num_errors}} Error{{#ne result.details.num_errors 1}}s{{/ne}}
+                </p>
+                <ul>
+                    {{#each result.details.errors}}
+                        <li>
+                            {{this.message}}
+                            {{#each this.details}}
+                                <br>{{this}}
+                            {{/each}}
+                        </li>
+                    {{/each}}
+                </ul>
+            </div>
+        {{/gt}}
+        {{#gt result.details.num_warnings 0}}
+            <div class="warning">
+                <p>
+                    {{result.details.num_warnings}} Warning{{#ne result.details.num_warnings 1}}s{{/ne}}
+                </p>
+                <ul>
+                    {{#each result.details.warnings}}
+                        <li>
+                            {{this.message}}
+                            {{#each this.details}}
+                                <br>{{this}}
+                            {{/each}}
+                        </li>
+                    {{/each}}
+                </ul>
+            </div>
+        {{/gt}}
+    {{/eq}}
+{{else}}
+    {{#if error}}
+        <div class="error">
+            <p>
+                {{error}}
+            </p>
+        </div>
+    {{/if}}
+    {{#if running}}
+        <p class="status">
+            Running repository tests…
+        </p>
+    {{/if}}
+{{/if}}
+<form>
+    <label>Repository JSON</label>
+    <textarea id="repo_json" rows="20" cols="100">{{json_string}}</textarea>
+    <button>Submit</button>
+</form>

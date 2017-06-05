@@ -37,6 +37,7 @@ from .styles import styles_controller
 from .submit import submit_controller
 from .submitting_a_package import submitting_a_package_controller
 from .syncing import syncing_controller
+from .test_repo import test_repo_controller
 from .trending import trending_controller
 from .troubleshooting import troubleshooting_controller
 from .updated import updated_controller

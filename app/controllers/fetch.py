@@ -2,7 +2,7 @@ from bottle import route, request
 
 import json
 
-from ..lib.fetch_package_metadata import fetch_package_metadata
+from ..lib.run_repo_tests import fetch_package_metadata
 from ..render import render_error
 
 
@@ -13,7 +13,11 @@ def fetch_controller():
 
     try:
         data = request.body.read().decode('utf-8')
-        result = fetch_package_metadata(json.loads(data))
+        success, details = fetch_package_metadata(json.loads(data))
+        if success:
+            result = {'result': 'success', 'info': details}
+        else:
+            result = {'result': 'error', 'message': details}
     except UnicodeDecodeError as e:
         result = {'result': 'error', 'message': 'Error decoding JSON'}
     except ValueError as e:
