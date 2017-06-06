@@ -579,12 +579,16 @@ def test_pull_request(pr):
             '',
         ]
         if len(pkg_links):
-            comment.append('Repo link%s:' % ('s' if len(pkg_links) != 1 else ''))
-            comment.append('')
-            for name in sorted(added_pkgs):
-                if name in pkg_links:
-                    comment.append('  - [%s](%s)' % (name, pkg_links[name]))
-            comment.append('')
+            if len(pkg_links) == 1:
+                name = list(pkg_links.keys())[0]
+                comment.append('Repo link: [%s](%s)' % (name, pkg_links[name]))
+            else:
+                comment.append('Repo links:')
+                comment.append('')
+                for name in sorted(added_pkgs):
+                    if name in pkg_links:
+                        comment.append('  - [%s](%s)' % (name, pkg_links[name]))
+                comment.append('')
         if errors or warnings:
             comment.append('[Results help](https://github.com/packagecontrol/st_package_reviewer/wiki/Package-checks)')
             comment.append('')
