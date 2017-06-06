@@ -441,8 +441,8 @@ def test_pull_request(pr):
                         pkg_name = package_name(new_json['packages'][index])
                         added_pkgs.add(pkg_name)
                         added_pkg_data[pkg_name] = new_json['packages'][index]
-                        if 'details' in new_json:
-                            pkg_links[pkg_name] = new_json['details']
+                        if 'details' in added_pkg_data[pkg_name]:
+                            pkg_links[pkg_name] = added_pkg_data[pkg_name]['details']
                 else:
                     for index in deleted_indexes:
                         removed_pkgs.add(package_name(old_json['packages'][index]))
