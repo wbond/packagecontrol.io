@@ -151,6 +151,11 @@ class KeyMapping:
             raise KeyMappingError("'keys' key is empty or not a list")
         norm_chords = []
         for key_chord in chords:
+            if len(key_chord) == 1:
+                # Any single character key is valid (representing a symbol)
+                norm_chords.append(key_chord)
+                continue
+
             chord_parts = []
             while True:
                 key, plus, key_chord = key_chord.partition("+")
