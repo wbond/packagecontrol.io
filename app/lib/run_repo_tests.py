@@ -336,6 +336,8 @@ def test_pull_request(pr):
         added_pkgs = set()
         removed_pkgs = set()
 
+        pkg_links = {}
+
         added_pkg_data = {}
 
         added_repositories = set()
@@ -365,6 +367,8 @@ def test_pull_request(pr):
                         pkg_name = package_name(new_json['packages'][index])
                         added_pkgs.add(pkg_name)
                         added_pkg_data[pkg_name] = new_json['packages'][index]
+                        if 'details' in new_json:
+                            pkg_links[pkg_name] = new_json['details']
                 else:
                     for index in deleted_indexes:
                         removed_pkgs.add(package_name(old_json['packages'][index]))
@@ -500,8 +504,14 @@ def test_pull_request(pr):
 
         comment = [
             '### Automated testing result: %s' % review_status,
-            '```',
+            'Repo link%s:' % ('s' if len(pkg_links) != 1 else ''),
         ]
+        for name in sorted(added_pkgs):
+            if name in pkg_links:
+                comment.append('  - [%s](%s)' % (name, pkg_links[name]))
+        if errors or warnings:
+            comment.append('[Results help](https://github.com/packagecontrol/st_package_reviewer/wiki/Package-checks)')
+        comment.append('```')
         comment += output
         comment.append('```')
         payload = json.dumps({'body': '\n'.join(comment), 'event': event})
