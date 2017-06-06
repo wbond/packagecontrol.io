@@ -509,7 +509,7 @@ def test_pull_request(pr):
         github_pac = config.read_secret('github_personal_access_token')
         comment_url = 'https://api.github.com/repos/wbond/package_control_channel/pulls/%d/reviews' % pr
 
-        auth_string = base64.encodestring(b'wbond:' + github_pac.encode('utf-8'))
+        auth_string = base64.encodestring(b'packagecontrol-bot:' + github_pac.encode('utf-8'))
         auth_header = 'Basic %s' % auth_string.decode('utf-8').strip()
         headers = {
             'Authorization': auth_header,
