@@ -256,12 +256,86 @@ def package_name(data):
         return os.path.basename(data['details'])
 
 
+def github_api_request(settings, url, data=None):
+    """
+    Performs a request to the github api using urllib
+
+    :param settings:
+        A dict containing the key 'user_agent'
+
+    :param url:
+        The URL to request
+
+    :param data:
+        A dict of data to send as a POST - otherwise GET is used
+
+    :return:
+        A urllib.request.Response object
+    """
+
+    github_pac = config.read_secret('github_personal_access_token')
+    auth_string = base64.encodestring(b'packagecontrol-bot:' + github_pac.encode('utf-8'))
+    auth_header = 'Basic %s' % auth_string.decode('utf-8').strip().replace('\n', '')
+    headers = {
+        'Authorization': auth_header,
+        'User-Agent': settings['user_agent'],
+    }
+    method = 'GET'
+    if data is not None:
+        headers['Content-Type'] = 'application/json'
+        data = json.dumps(data).encode('utf-8')
+        method = 'POST'
+    req = Request(
+        url,
+        data=data,
+        headers=headers,
+        method=method
+    )
+    return urlopen(req)
+
+
 def test_pull_request(pr):
     """
     Test a pull request on https://github.com/wbond/package_control_channel
     """
 
     pr = int(pr)
+    settings = downloader_settings()
+
+    pr_url = 'https://api.github.com/repos/wbond/package_control_channel/pulls/%d' % pr
+    try:
+        res = github_api_request(settings, pr_url)
+        pr_details = json.loads(res.read().decode('utf-8'))
+        if 'state' not in pr_details:
+            return {
+                '__status_code__': 500,
+                'result': 'error',
+                'message': 'Unexpected format to PR details'
+            }
+        if pr_details['state'] != 'open':
+            return {
+                '__status_code__': 500,
+                'result': 'error',
+                'message': 'PR has already been closed'
+            }
+    except URLError as e:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error fetching PR details - %s' % str(e)
+        }
+    except UnicodeDecodeError:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error decoding PR details'
+        }
+    except ValueError:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error parsing PR details'
+        }
 
     tmpdir = None
     try:
@@ -376,8 +450,6 @@ def test_pull_request(pr):
         output = []
         errors = False
         warnings = False
-
-        settings = downloader_settings()
 
         if removed_repositories:
             output.append('Repositories removed:')
@@ -514,27 +586,11 @@ def test_pull_request(pr):
         comment.append('```')
         comment += output
         comment.append('```')
-        payload = json.dumps({'body': '\n'.join(comment), 'event': event})
 
-        github_pac = config.read_secret('github_personal_access_token')
         comment_url = 'https://api.github.com/repos/wbond/package_control_channel/pulls/%d/reviews' % pr
 
-        auth_string = base64.encodestring(b'packagecontrol-bot:' + github_pac.encode('utf-8'))
-        auth_header = 'Basic %s' % auth_string.decode('utf-8').strip()
-        headers = {
-            'Authorization': auth_header,
-            'User-Agent': settings['user_agent'],
-            'Content-Type': 'application/json',
-        }
-
         try:
-            req = Request(
-                comment_url,
-                data=payload.encode('utf-8'),
-                headers=headers,
-                method='POST'
-            )
-            res = urlopen(req)
+            res = github_api_request(settings, comment_url, {'body': '\n'.join(comment), 'event': event})
             if res.getcode() != 200:
                 return {
                     '__status_code__': 500,
