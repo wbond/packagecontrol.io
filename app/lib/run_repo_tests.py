@@ -124,6 +124,10 @@ def run_tests(spec):
 
                 if path.find('/') in [len(path) - 1, -1]:
                     root_level_paths.append(path)
+                # Make sure there are no paths that look like security vulnerabilities
+                if path[0] == '/' or '../' in path or '..\\' in path:
+                    errors.append(format_report('The path "%s" appears to be attempting to access other parts of the filesystem' % path))
+                    return build_result(errors, warnings)
 
             if last_path and len(root_level_paths) == 0:
                 root_level_paths.append(last_path[0:last_path.find('/') + 1])
@@ -146,6 +150,12 @@ def run_tests(spec):
 
                 dest = dest.replace('\\', '/')
                 dest = os.path.join(tmp_package_dir, dest)
+
+                dest = os.path.abspath(dest)
+                # Make sure there are no paths that look like security vulnerabilities
+                if not dest.startswith(tmp_package_dir):
+                    errors.append(format_report('The path "%s" appears to be attempting to access other parts of the filesystem' % path))
+                    return build_result(errors, warnings)
 
                 if path.endswith('/'):
                     if not os.path.exists(dest):
