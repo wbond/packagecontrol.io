@@ -14,8 +14,11 @@ from ..lib.paginating_controller import get_page, build_data
 def search_controller(terms=''):
     # This allows users without JS to search
     if request.query.terms:
+        terms = request.query.terms
+        # Strip control chars and newlines
+        terms = re.sub('[\x00-\x1f]', '', terms)
         # Encoding the terms as latin1 for the Location HTTP header
-        terms = request.query.terms.encode('utf-8').decode('latin1')
+        terms = terms.encode('utf-8').decode('latin1')
         destination = url("search", terms=terms)
         return redirect(destination, 303)
 
