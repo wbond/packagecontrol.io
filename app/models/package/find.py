@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from ... import config
 from ...lib.connection import connection
 from ..not_found_error import NotFoundError
+from ..renamed_error import RenamedError
 from ... import cache
 
 
@@ -277,6 +278,17 @@ def by_name(name):
         result = cursor.fetchone()
 
         if not result:
+            cursor.execute("""
+                SELECT
+                    name
+                FROM
+                    packages
+                WHERE
+                    previous_names @> ARRAY[%s]::varchar[]
+            """, [name])
+            result = cursor.fetchone()
+            if result:
+                raise RenamedError(result['name'])
             raise NotFoundError("Unable to find the package “%s”" % name)
 
         # Here we just grab the highest version since right now the package

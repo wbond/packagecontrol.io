@@ -1,0 +1,2 @@
+class RenamedError(Exception):
+    pass

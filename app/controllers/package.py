@@ -1,7 +1,8 @@
-from bottle import route, abort, request
+from bottle import route, abort, request, redirect, url
 
 from ..models import package
 from ..models.not_found_error import NotFoundError
+from ..models.renamed_error import RenamedError
 from ..render import render
 
 
@@ -13,6 +14,9 @@ def package_controller(name):
 
         data = package.find.by_name(name)
         return render('package', data)
+
+    except (RenamedError) as e:
+        return redirect(url("package", name=e.args[0]), 301)
 
     except (NotFoundError) as e:
         abort(404, str(e))
