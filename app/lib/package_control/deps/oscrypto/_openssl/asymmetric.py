@@ -3,9 +3,7 @@ from __future__ import unicode_literals, division, absolute_import, print_functi
 
 import hashlib
 
-from ...asn1crypto import algos
-from ...asn1crypto import keys
-from ...asn1crypto import x509 as asn1x509
+from ...asn1crypto import algos, keys, x509 as asn1x509
 
 from .._errors import pretty_message
 from .._ffi import (
