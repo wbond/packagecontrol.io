@@ -15,6 +15,7 @@ Other type classes are defined that help compose the types listed above.
 
 from __future__ import unicode_literals, division, absolute_import, print_function
 
+from contextlib import contextmanager
 from encodings import idna  # noqa
 import hashlib
 import re
@@ -27,7 +28,7 @@ from ._errors import unwrap
 from ._iri import iri_to_uri, uri_to_iri
 from ._ordereddict import OrderedDict
 from ._types import type_name, str_cls, bytes_to_list
-from .algos import AlgorithmIdentifier, SignedDigestAlgorithm
+from .algos import AlgorithmIdentifier, AnyAlgorithmIdentifier, DigestAlgorithm, SignedDigestAlgorithm
 from .core import (
     Any,
     BitString,
@@ -35,6 +36,7 @@ from .core import (
     Boolean,
     Choice,
     Concat,
+    Enumerated,
     GeneralizedTime,
     GeneralString,
     IA5String,
@@ -183,6 +185,9 @@ class EmailAddress(IA5String):
     # If the value has gone through the .set() method, thus normalizing it
     _normalized = False
 
+    # In the wild we've seen this encoded as a PrintableString
+    _bad_tag = 19
+
     @property
     def contents(self):
         """
@@ -238,13 +243,15 @@ class EmailAddress(IA5String):
             A unicode string
         """
 
+        # We've seen this in the wild as a PrintableString, and since ascii is a
+        # subset of cp1252, we use the later for decoding to be more user friendly
         if self._unicode is None:
             contents = self._merge_chunks()
             if contents.find(b'@') == -1:
-                self._unicode = contents.decode('ascii')
+                self._unicode = contents.decode('cp1252')
             else:
                 mailbox, hostname = contents.rsplit(b'@', 1)
-                self._unicode = mailbox.decode('ascii') + '@' + hostname.decode('idna')
+                self._unicode = mailbox.decode('cp1252') + '@' + hostname.decode('idna')
         return self._unicode
 
     def __ne__(self, other):
@@ -443,14 +450,47 @@ class KeyUsage(BitString):
 
 class PrivateKeyUsagePeriod(Sequence):
     _fields = [
-        ('not_before', GeneralizedTime, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('not_after', GeneralizedTime, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('not_before', GeneralizedTime, {'implicit': 0, 'optional': True}),
+        ('not_after', GeneralizedTime, {'implicit': 1, 'optional': True}),
     ]
+
+
+class NotReallyTeletexString(TeletexString):
+    """
+    OpenSSL (and probably some other libraries) puts ISO-8859-1
+    into TeletexString instead of ITU T.61. We use Windows-1252 when
+    decoding since it is a superset of ISO-8859-1, and less likely to
+    cause encoding issues, but we stay strict with encoding to prevent
+    us from creating bad data.
+    """
+
+    _decoding_encoding = 'cp1252'
+
+    def __unicode__(self):
+        """
+        :return:
+            A unicode string
+        """
+
+        if self.contents is None:
+            return ''
+        if self._unicode is None:
+            self._unicode = self._merge_chunks().decode(self._decoding_encoding)
+        return self._unicode
+
+
+@contextmanager
+def strict_teletex():
+    try:
+        NotReallyTeletexString._decoding_encoding = 'teletex'
+        yield
+    finally:
+        NotReallyTeletexString._decoding_encoding = 'cp1252'
 
 
 class DirectoryString(Choice):
     _alternatives = [
-        ('teletex_string', TeletexString),
+        ('teletex_string', NotReallyTeletexString),
         ('printable_string', PrintableString),
         ('universal_string', UniversalString),
         ('utf8_string', UTF8String),
@@ -483,6 +523,13 @@ class NameType(ObjectIdentifier):
         '2.5.4.46': 'dn_qualifier',
         '2.5.4.65': 'pseudonym',
         '2.5.4.97': 'organization_identifier',
+        # https://www.trustedcomputinggroup.org/wp-content/uploads/Credential_Profile_EK_V2.0_R14_published.pdf
+        '2.23.133.2.1': 'tpm_manufacturer',
+        '2.23.133.2.2': 'tpm_model',
+        '2.23.133.2.3': 'tpm_version',
+        '2.23.133.2.4': 'platform_manufacturer',
+        '2.23.133.2.5': 'platform_model',
+        '2.23.133.2.6': 'platform_version',
         # https://tools.ietf.org/html/rfc2985#page-26
         '1.2.840.113549.1.9.1': 'email_address',
         # Page 10 of https://cabforum.org/wp-content/uploads/EV-V1_5_5.pdf
@@ -525,6 +572,12 @@ class NameType(ObjectIdentifier):
         'domain_component',
         'name_distinguisher',
         'organization_identifier',
+        'tpm_manufacturer',
+        'tpm_model',
+        'tpm_version',
+        'platform_manufacturer',
+        'platform_model',
+        'platform_version',
     ]
 
     @classmethod
@@ -582,6 +635,12 @@ class NameType(ObjectIdentifier):
             'domain_component': 'Domain Component',
             'name_distinguisher': 'Name Distinguisher',
             'organization_identifier': 'Organization Identifier',
+            'tpm_manufacturer': 'TPM Manufacturer',
+            'tpm_model': 'TPM Model',
+            'tpm_version': 'TPM Version',
+            'platform_manufacturer': 'Platform Manufacturer',
+            'platform_model': 'Platform Model',
+            'platform_version': 'Platform Version',
         }.get(self.native, self.native)
 
 
@@ -622,6 +681,12 @@ class NameTypeAndValue(Sequence):
         'domain_component': DNSName,
         'name_distinguisher': DirectoryString,
         'organization_identifier': DirectoryString,
+        'tpm_manufacturer': UTF8String,
+        'tpm_model': UTF8String,
+        'tpm_version': UTF8String,
+        'platform_manufacturer': UTF8String,
+        'platform_model': UTF8String,
+        'platform_version': UTF8String,
     }
 
     _prepped = None
@@ -920,7 +985,7 @@ class Name(Choice):
 
         :param use_printable:
             A bool - if PrintableString should be used for encoding instead of
-            UTF8String. This is for backwards compatiblity with old software.
+            UTF8String. This is for backwards compatibility with old software.
 
         :return:
             An x509.Name object
@@ -1096,7 +1161,7 @@ class Name(Choice):
 class AnotherName(Sequence):
     _fields = [
         ('type_id', ObjectIdentifier),
-        ('value', Any, {'tag_type': 'explicit', 'tag': 0}),
+        ('value', Any, {'explicit': 0}),
     ]
 
 
@@ -1129,19 +1194,19 @@ class PrivateDomainName(Choice):
 
 class PersonalName(Set):
     _fields = [
-        ('surname', PrintableString, {'tag_type': 'implicit', 'tag': 0}),
-        ('given_name', PrintableString, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('initials', PrintableString, {'tag_type': 'implicit', 'tag': 2, 'optional': True}),
-        ('generation_qualifier', PrintableString, {'tag_type': 'implicit', 'tag': 3, 'optional': True}),
+        ('surname', PrintableString, {'implicit': 0}),
+        ('given_name', PrintableString, {'implicit': 1, 'optional': True}),
+        ('initials', PrintableString, {'implicit': 2, 'optional': True}),
+        ('generation_qualifier', PrintableString, {'implicit': 3, 'optional': True}),
     ]
 
 
 class TeletexPersonalName(Set):
     _fields = [
-        ('surname', TeletexString, {'tag_type': 'implicit', 'tag': 0}),
-        ('given_name', TeletexString, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('initials', TeletexString, {'tag_type': 'implicit', 'tag': 2, 'optional': True}),
-        ('generation_qualifier', TeletexString, {'tag_type': 'implicit', 'tag': 3, 'optional': True}),
+        ('surname', TeletexString, {'implicit': 0}),
+        ('given_name', TeletexString, {'implicit': 1, 'optional': True}),
+        ('initials', TeletexString, {'implicit': 2, 'optional': True}),
+        ('generation_qualifier', TeletexString, {'implicit': 3, 'optional': True}),
     ]
 
 
@@ -1157,13 +1222,13 @@ class BuiltInStandardAttributes(Sequence):
     _fields = [
         ('country_name', CountryName, {'optional': True}),
         ('administration_domain_name', AdministrationDomainName, {'optional': True}),
-        ('network_address', NumericString, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('terminal_identifier', PrintableString, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('private_domain_name', PrivateDomainName, {'tag_type': 'explicit', 'tag': 2, 'optional': True}),
-        ('organization_name', PrintableString, {'tag_type': 'implicit', 'tag': 3, 'optional': True}),
-        ('numeric_user_identifier', NumericString, {'tag_type': 'implicit', 'tag': 4, 'optional': True}),
-        ('personal_name', PersonalName, {'tag_type': 'implicit', 'tag': 5, 'optional': True}),
-        ('organizational_unit_names', OrganizationalUnitNames, {'tag_type': 'implicit', 'tag': 6, 'optional': True}),
+        ('network_address', NumericString, {'implicit': 0, 'optional': True}),
+        ('terminal_identifier', PrintableString, {'implicit': 1, 'optional': True}),
+        ('private_domain_name', PrivateDomainName, {'explicit': 2, 'optional': True}),
+        ('organization_name', PrintableString, {'implicit': 3, 'optional': True}),
+        ('numeric_user_identifier', NumericString, {'implicit': 4, 'optional': True}),
+        ('personal_name', PersonalName, {'implicit': 5, 'optional': True}),
+        ('organizational_unit_names', OrganizationalUnitNames, {'implicit': 6, 'optional': True}),
     ]
 
 
@@ -1223,8 +1288,8 @@ class UnformattedPostalAddress(Set):
 
 class E1634Address(Sequence):
     _fields = [
-        ('number', NumericString, {'tag_type': 'implicit', 'tag': 0}),
-        ('sub_address', NumericString, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('number', NumericString, {'implicit': 0}),
+        ('sub_address', NumericString, {'implicit': 1, 'optional': True}),
     ]
 
 
@@ -1234,17 +1299,17 @@ class NAddresses(SetOf):
 
 class PresentationAddress(Sequence):
     _fields = [
-        ('p_selector', OctetString, {'tag_type': 'explicit', 'tag': 0, 'optional': True}),
-        ('s_selector', OctetString, {'tag_type': 'explicit', 'tag': 1, 'optional': True}),
-        ('t_selector', OctetString, {'tag_type': 'explicit', 'tag': 2, 'optional': True}),
-        ('n_addresses', NAddresses, {'tag_type': 'explicit', 'tag': 3}),
+        ('p_selector', OctetString, {'explicit': 0, 'optional': True}),
+        ('s_selector', OctetString, {'explicit': 1, 'optional': True}),
+        ('t_selector', OctetString, {'explicit': 2, 'optional': True}),
+        ('n_addresses', NAddresses, {'explicit': 3}),
     ]
 
 
 class ExtendedNetworkAddress(Choice):
     _alternatives = [
         ('e163_4_address', E1634Address),
-        ('psap_address', PresentationAddress, {'tag_type': 'implicit', 'tag': 0})
+        ('psap_address', PresentationAddress, {'implicit': 0})
     ]
 
 
@@ -1289,8 +1354,8 @@ class ExtensionAttributeType(Integer):
 
 class ExtensionAttribute(Sequence):
     _fields = [
-        ('extension_attribute_type', ExtensionAttributeType, {'tag_type': 'implicit', 'tag': 0}),
-        ('extension_attribute_value', Any, {'tag_type': 'explicit', 'tag': 1}),
+        ('extension_attribute_type', ExtensionAttributeType, {'implicit': 0}),
+        ('extension_attribute_value', Any, {'explicit': 1}),
     ]
 
     _oid_pair = ('extension_attribute_type', 'extension_attribute_value')
@@ -1335,22 +1400,22 @@ class ORAddress(Sequence):
 
 class EDIPartyName(Sequence):
     _fields = [
-        ('name_assigner', DirectoryString, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('party_name', DirectoryString, {'tag_type': 'implicit', 'tag': 1}),
+        ('name_assigner', DirectoryString, {'implicit': 0, 'optional': True}),
+        ('party_name', DirectoryString, {'implicit': 1}),
     ]
 
 
 class GeneralName(Choice):
     _alternatives = [
-        ('other_name', AnotherName, {'tag_type': 'implicit', 'tag': 0}),
-        ('rfc822_name', EmailAddress, {'tag_type': 'implicit', 'tag': 1}),
-        ('dns_name', DNSName, {'tag_type': 'implicit', 'tag': 2}),
-        ('x400_address', ORAddress, {'tag_type': 'implicit', 'tag': 3}),
-        ('directory_name', Name, {'tag_type': 'explicit', 'tag': 4}),
-        ('edi_party_name', EDIPartyName, {'tag_type': 'implicit', 'tag': 5}),
-        ('uniform_resource_identifier', URI, {'tag_type': 'implicit', 'tag': 6}),
-        ('ip_address', IPAddress, {'tag_type': 'implicit', 'tag': 7}),
-        ('registered_id', ObjectIdentifier, {'tag_type': 'implicit', 'tag': 8}),
+        ('other_name', AnotherName, {'implicit': 0}),
+        ('rfc822_name', EmailAddress, {'implicit': 1}),
+        ('dns_name', DNSName, {'implicit': 2}),
+        ('x400_address', ORAddress, {'implicit': 3}),
+        ('directory_name', Name, {'explicit': 4}),
+        ('edi_party_name', EDIPartyName, {'implicit': 5}),
+        ('uniform_resource_identifier', URI, {'implicit': 6}),
+        ('ip_address', IPAddress, {'implicit': 7}),
+        ('registered_id', ObjectIdentifier, {'implicit': 8}),
     ]
 
     def __ne__(self, other):
@@ -1417,16 +1482,16 @@ class BasicConstraints(Sequence):
 
 class AuthorityKeyIdentifier(Sequence):
     _fields = [
-        ('key_identifier', OctetString, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('authority_cert_issuer', GeneralNames, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('authority_cert_serial_number', Integer, {'tag_type': 'implicit', 'tag': 2, 'optional': True}),
+        ('key_identifier', OctetString, {'implicit': 0, 'optional': True}),
+        ('authority_cert_issuer', GeneralNames, {'implicit': 1, 'optional': True}),
+        ('authority_cert_serial_number', Integer, {'implicit': 2, 'optional': True}),
     ]
 
 
 class DistributionPointName(Choice):
     _alternatives = [
-        ('full_name', GeneralNames, {'tag_type': 'implicit', 'tag': 0}),
-        ('name_relative_to_crl_issuer', RelativeDistinguishedName, {'tag_type': 'implicit', 'tag': 1}),
+        ('full_name', GeneralNames, {'implicit': 0}),
+        ('name_relative_to_crl_issuer', RelativeDistinguishedName, {'implicit': 1}),
     ]
 
 
@@ -1447,8 +1512,8 @@ class ReasonFlags(BitString):
 class GeneralSubtree(Sequence):
     _fields = [
         ('base', GeneralName),
-        ('minimum', Integer, {'tag_type': 'implicit', 'tag': 0, 'default': 0}),
-        ('maximum', Integer, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('minimum', Integer, {'implicit': 0, 'default': 0}),
+        ('maximum', Integer, {'implicit': 1, 'optional': True}),
     ]
 
 
@@ -1458,16 +1523,16 @@ class GeneralSubtrees(SequenceOf):
 
 class NameConstraints(Sequence):
     _fields = [
-        ('permitted_subtrees', GeneralSubtrees, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('excluded_subtrees', GeneralSubtrees, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('permitted_subtrees', GeneralSubtrees, {'implicit': 0, 'optional': True}),
+        ('excluded_subtrees', GeneralSubtrees, {'implicit': 1, 'optional': True}),
     ]
 
 
 class DistributionPoint(Sequence):
     _fields = [
-        ('distribution_point', DistributionPointName, {'tag_type': 'explicit', 'tag': 0, 'optional': True}),
-        ('reasons', ReasonFlags, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('crl_issuer', GeneralNames, {'tag_type': 'implicit', 'tag': 2, 'optional': True}),
+        ('distribution_point', DistributionPointName, {'explicit': 0, 'optional': True}),
+        ('reasons', ReasonFlags, {'implicit': 1, 'optional': True}),
+        ('crl_issuer', GeneralNames, {'implicit': 2, 'optional': True}),
     ]
 
     _url = False
@@ -1493,7 +1558,7 @@ class DistributionPoint(Sequence):
             for general_name in name.chosen:
                 if general_name.name == 'uniform_resource_identifier':
                     url = general_name.native
-                    if url[0:7] == 'http://':
+                    if url.lower().startswith(('http://', 'https://', 'ldap://', 'ldaps://')):
                         self._url = url
                         break
 
@@ -1585,8 +1650,8 @@ class PolicyMappings(SequenceOf):
 
 class PolicyConstraints(Sequence):
     _fields = [
-        ('require_explicit_policy', Integer, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
-        ('inhibit_policy_mapping', Integer, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('require_explicit_policy', Integer, {'implicit': 0, 'optional': True}),
+        ('inhibit_policy_mapping', Integer, {'implicit': 1, 'optional': True}),
     ]
 
 
@@ -1650,6 +1715,8 @@ class KeyPurposeId(ObjectIdentifier):
         '1.3.6.1.4.1.311.10.3.12': 'microsoft_document_signing',
         '1.3.6.1.4.1.311.10.3.13': 'microsoft_lifetime_signing',
         '1.3.6.1.4.1.311.10.3.14': 'microsoft_mobile_device_software',
+        # https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography
+        '1.3.6.1.4.1.311.20.2.2': 'microsoft_smart_card_logon',
         # https://opensource.apple.com/source
         #  - /Security/Security-57031.40.6/Security/libsecurity_keychain/lib/SecPolicy.cpp
         #  - /libsecurity_cssm/libsecurity_cssm-36064/lib/oidsalg.c
@@ -1685,6 +1752,16 @@ class KeyPurposeId(ObjectIdentifier):
         '1.2.840.113625.100.1.32': 'apple_test_smp_encryption',
         '1.2.840.113635.100.1.33': 'apple_server_authentication',
         '1.2.840.113635.100.1.34': 'apple_pcs_escrow_service',
+        # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.201-2.pdf
+        '2.16.840.1.101.3.6.8': 'piv_card_authentication',
+        '2.16.840.1.101.3.6.7': 'piv_content_signing',
+        # https://tools.ietf.org/html/rfc4556.html
+        '1.3.6.1.5.2.3.4': 'pkinit_kpclientauth',
+        '1.3.6.1.5.2.3.5': 'pkinit_kpkdc',
+        # https://www.adobe.com/devnet-docs/acrobatetk/tools/DigSig/changes.html
+        '1.2.840.113583.1.1.5': 'adobe_authentic_documents_trust',
+        # https://www.idmanagement.gov/wp-content/uploads/sites/1171/uploads/fpki-pivi-cert-profiles.pdf
+        '2.16.840.1.101.3.8.7': 'fpki_pivi_content_signing'
     }
 
 
@@ -1741,6 +1818,232 @@ class NetscapeCertificateType(BitString):
     }
 
 
+class Version(Integer):
+    _map = {
+        0: 'v1',
+        1: 'v2',
+        2: 'v3',
+    }
+
+
+class TPMSpecification(Sequence):
+    _fields = [
+        ('family', UTF8String),
+        ('level', Integer),
+        ('revision', Integer),
+    ]
+
+
+class SetOfTPMSpecification(SetOf):
+    _child_spec = TPMSpecification
+
+
+class TCGSpecificationVersion(Sequence):
+    _fields = [
+        ('major_version', Integer),
+        ('minor_version', Integer),
+        ('revision', Integer),
+    ]
+
+
+class TCGPlatformSpecification(Sequence):
+    _fields = [
+        ('version', TCGSpecificationVersion),
+        ('platform_class', OctetString),
+    ]
+
+
+class SetOfTCGPlatformSpecification(SetOf):
+    _child_spec = TCGPlatformSpecification
+
+
+class EKGenerationType(Enumerated):
+    _map = {
+        0: 'internal',
+        1: 'injected',
+        2: 'internal_revocable',
+        3: 'injected_revocable',
+    }
+
+
+class EKGenerationLocation(Enumerated):
+    _map = {
+        0: 'tpm_manufacturer',
+        1: 'platform_manufacturer',
+        2: 'ek_cert_signer',
+    }
+
+
+class EKCertificateGenerationLocation(Enumerated):
+    _map = {
+        0: 'tpm_manufacturer',
+        1: 'platform_manufacturer',
+        2: 'ek_cert_signer',
+    }
+
+
+class EvaluationAssuranceLevel(Enumerated):
+    _map = {
+        1: 'level1',
+        2: 'level2',
+        3: 'level3',
+        4: 'level4',
+        5: 'level5',
+        6: 'level6',
+        7: 'level7',
+    }
+
+
+class EvaluationStatus(Enumerated):
+    _map = {
+        0: 'designed_to_meet',
+        1: 'evaluation_in_progress',
+        2: 'evaluation_completed',
+    }
+
+
+class StrengthOfFunction(Enumerated):
+    _map = {
+        0: 'basic',
+        1: 'medium',
+        2: 'high',
+    }
+
+
+class URIReference(Sequence):
+    _fields = [
+        ('uniform_resource_identifier', IA5String),
+        ('hash_algorithm', DigestAlgorithm, {'optional': True}),
+        ('hash_value', BitString, {'optional': True}),
+    ]
+
+
+class CommonCriteriaMeasures(Sequence):
+    _fields = [
+        ('version', IA5String),
+        ('assurance_level', EvaluationAssuranceLevel),
+        ('evaluation_status', EvaluationStatus),
+        ('plus', Boolean, {'default': False}),
+        ('strengh_of_function', StrengthOfFunction, {'implicit': 0, 'optional': True}),
+        ('profile_oid', ObjectIdentifier, {'implicit': 1, 'optional': True}),
+        ('profile_url', URIReference, {'implicit': 2, 'optional': True}),
+        ('target_oid', ObjectIdentifier, {'implicit': 3, 'optional': True}),
+        ('target_uri', URIReference, {'implicit': 4, 'optional': True}),
+    ]
+
+
+class SecurityLevel(Enumerated):
+    _map = {
+        1: 'level1',
+        2: 'level2',
+        3: 'level3',
+        4: 'level4',
+    }
+
+
+class FIPSLevel(Sequence):
+    _fields = [
+        ('version', IA5String),
+        ('level', SecurityLevel),
+        ('plus', Boolean, {'default': False}),
+    ]
+
+
+class TPMSecurityAssertions(Sequence):
+    _fields = [
+        ('version', Version, {'default': 'v1'}),
+        ('field_upgradable', Boolean, {'default': False}),
+        ('ek_generation_type', EKGenerationType, {'implicit': 0, 'optional': True}),
+        ('ek_generation_location', EKGenerationLocation, {'implicit': 1, 'optional': True}),
+        ('ek_certificate_generation_location', EKCertificateGenerationLocation, {'implicit': 2, 'optional': True}),
+        ('cc_info', CommonCriteriaMeasures, {'implicit': 3, 'optional': True}),
+        ('fips_level', FIPSLevel, {'implicit': 4, 'optional': True}),
+        ('iso_9000_certified', Boolean, {'implicit': 5, 'default': False}),
+        ('iso_9000_uri', IA5String, {'optional': True}),
+    ]
+
+
+class SetOfTPMSecurityAssertions(SetOf):
+    _child_spec = TPMSecurityAssertions
+
+
+class SubjectDirectoryAttributeId(ObjectIdentifier):
+    _map = {
+        # https://tools.ietf.org/html/rfc2256#page-11
+        '2.5.4.52': 'supported_algorithms',
+        # https://www.trustedcomputinggroup.org/wp-content/uploads/Credential_Profile_EK_V2.0_R14_published.pdf
+        '2.23.133.2.16': 'tpm_specification',
+        '2.23.133.2.17': 'tcg_platform_specification',
+        '2.23.133.2.18': 'tpm_security_assertions',
+        # https://tools.ietf.org/html/rfc3739#page-18
+        '1.3.6.1.5.5.7.9.1': 'pda_date_of_birth',
+        '1.3.6.1.5.5.7.9.2': 'pda_place_of_birth',
+        '1.3.6.1.5.5.7.9.3': 'pda_gender',
+        '1.3.6.1.5.5.7.9.4': 'pda_country_of_citizenship',
+        '1.3.6.1.5.5.7.9.5': 'pda_country_of_residence',
+        # https://holtstrom.com/michael/tools/asn1decoder.php
+        '1.2.840.113533.7.68.29': 'entrust_user_role',
+    }
+
+
+class SetOfGeneralizedTime(SetOf):
+    _child_spec = GeneralizedTime
+
+
+class SetOfDirectoryString(SetOf):
+    _child_spec = DirectoryString
+
+
+class SetOfPrintableString(SetOf):
+    _child_spec = PrintableString
+
+
+class SupportedAlgorithm(Sequence):
+    _fields = [
+        ('algorithm_identifier', AnyAlgorithmIdentifier),
+        ('intended_usage', KeyUsage, {'explicit': 0, 'optional': True}),
+        ('intended_certificate_policies', CertificatePolicies, {'explicit': 1, 'optional': True}),
+    ]
+
+
+class SetOfSupportedAlgorithm(SetOf):
+    _child_spec = SupportedAlgorithm
+
+
+class SubjectDirectoryAttribute(Sequence):
+    _fields = [
+        ('type', SubjectDirectoryAttributeId),
+        ('values', Any),
+    ]
+
+    _oid_pair = ('type', 'values')
+    _oid_specs = {
+        'supported_algorithms': SetOfSupportedAlgorithm,
+        'tpm_specification': SetOfTPMSpecification,
+        'tcg_platform_specification': SetOfTCGPlatformSpecification,
+        'tpm_security_assertions': SetOfTPMSecurityAssertions,
+        'pda_date_of_birth': SetOfGeneralizedTime,
+        'pda_place_of_birth': SetOfDirectoryString,
+        'pda_gender': SetOfPrintableString,
+        'pda_country_of_citizenship': SetOfPrintableString,
+        'pda_country_of_residence': SetOfPrintableString,
+    }
+
+    def _values_spec(self):
+        type_ = self['type'].native
+        if type_ in self._oid_specs:
+            return self._oid_specs[type_]
+        return SetOf
+
+    _spec_callbacks = {
+        'values': _values_spec
+    }
+
+
+class SubjectDirectoryAttributes(SequenceOf):
+    _child_spec = SubjectDirectoryAttribute
+
+
 class ExtensionId(ObjectIdentifier):
     _map = {
         '2.5.29.9': 'subject_directory_attributes',
@@ -1766,6 +2069,8 @@ class ExtensionId(ObjectIdentifier):
         '1.3.6.1.5.5.7.48.1.5': 'ocsp_no_check',
         '1.2.840.113533.7.65.0': 'entrust_version_extension',
         '2.16.840.1.113730.1.1': 'netscape_certificate_type',
+        # https://tools.ietf.org/html/rfc6962.html#page-14
+        '1.3.6.1.4.1.11129.2.4.2': 'signed_certificate_timestamp_list',
     }
 
 
@@ -1778,7 +2083,7 @@ class Extension(Sequence):
 
     _oid_pair = ('extn_id', 'extn_value')
     _oid_specs = {
-        'subject_directory_attributes': Attributes,
+        'subject_directory_attributes': SubjectDirectoryAttributes,
         'key_identifier': OctetString,
         'key_usage': KeyUsage,
         'private_key_usage_period': PrivateKeyUsagePeriod,
@@ -1800,6 +2105,7 @@ class Extension(Sequence):
         'ocsp_no_check': Null,
         'entrust_version_extension': EntrustVersionInfo,
         'netscape_certificate_type': NetscapeCertificateType,
+        'signed_certificate_timestamp_list': OctetString,
     }
 
 
@@ -1807,26 +2113,18 @@ class Extensions(SequenceOf):
     _child_spec = Extension
 
 
-class Version(Integer):
-    _map = {
-        0: 'v1',
-        1: 'v2',
-        2: 'v3',
-    }
-
-
 class TbsCertificate(Sequence):
     _fields = [
-        ('version', Version, {'tag_type': 'explicit', 'tag': 0, 'default': 'v1'}),
+        ('version', Version, {'explicit': 0, 'default': 'v1'}),
         ('serial_number', Integer),
         ('signature', SignedDigestAlgorithm),
         ('issuer', Name),
         ('validity', Validity),
         ('subject', Name),
         ('subject_public_key_info', PublicKeyInfo),
-        ('issuer_unique_id', OctetBitString, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
-        ('subject_unique_id', OctetBitString, {'tag_type': 'implicit', 'tag': 2, 'optional': True}),
-        ('extensions', Extensions, {'tag_type': 'explicit', 'tag': 3, 'optional': True}),
+        ('issuer_unique_id', OctetBitString, {'implicit': 1, 'optional': True}),
+        ('subject_unique_id', OctetBitString, {'implicit': 2, 'optional': True}),
+        ('extensions', Extensions, {'explicit': 3, 'optional': True}),
     ]
 
 
@@ -1856,6 +2154,7 @@ class Certificate(Sequence):
     _extended_key_usage_value = None
     _authority_information_access_value = None
     _subject_information_access_value = None
+    _private_key_usage_period_value = None
     _tls_feature_value = None
     _ocsp_no_check_value = None
     _issuer_serial = None
@@ -1902,18 +2201,32 @@ class Certificate(Sequence):
         return self._critical_extensions
 
     @property
+    def private_key_usage_period_value(self):
+        """
+        This extension is used to constrain the period over which the subject
+        private key may be used
+
+        :return:
+            None or a PrivateKeyUsagePeriod object
+        """
+
+        if not self._processed_extensions:
+            self._set_extensions()
+        return self._private_key_usage_period_value
+
+    @property
     def subject_directory_attributes_value(self):
         """
         This extension is used to contain additional identification attributes
         about the subject.
 
         :return:
-            None or an Attributes object
+            None or a SubjectDirectoryAttributes object
         """
 
         if not self._processed_extensions:
             self._set_extensions()
-        return self._key_identifier_value
+        return self._subject_directory_attributes
 
     @property
     def key_identifier_value(self):
@@ -2374,7 +2687,7 @@ class Certificate(Sequence):
                 if location.name != 'uniform_resource_identifier':
                     continue
                 url = location.native
-                if url.lower()[0:7] == 'http://':
+                if url.lower().startswith(('http://', 'https://', 'ldap://', 'ldaps://')):
                     output.append(url)
         return output
 
@@ -2466,11 +2779,14 @@ class Certificate(Sequence):
     def self_signed(self):
         """
         :return:
-            A unicode string of "yes", "no" or "maybe". The "maybe" result will
-            be returned if the certificate does not contain a key identifier
-            extension, but is issued by the subject. In this case the
-            certificate signature will need to be verified using the subject
-            public key to determine a "yes" or "no" answer.
+            A unicode string of "no" or "maybe". The "maybe" result will
+            be returned if the certificate issuer and subject are the same.
+            If a key identifier and authority key identifier are present,
+            they will need to match otherwise "no" will be returned.
+
+            To verify is a certificate is truly self-signed, the signature
+            will need to be verified. See the certvalidator package for
+            one possible solution.
         """
 
         if self._self_signed is None:
@@ -2478,9 +2794,9 @@ class Certificate(Sequence):
             if self.self_issued:
                 if self.key_identifier:
                     if not self.authority_key_identifier:
-                        self._self_signed = 'yes'
+                        self._self_signed = 'maybe'
                     elif self.authority_key_identifier == self.key_identifier:
-                        self._self_signed = 'yes'
+                        self._self_signed = 'maybe'
                 else:
                     self._self_signed = 'maybe'
         return self._self_signed
@@ -2517,6 +2833,16 @@ class Certificate(Sequence):
         if self._sha256 is None:
             self._sha256 = hashlib.sha256(self.dump()).digest()
         return self._sha256
+
+    @property
+    def sha256_fingerprint(self):
+        """
+        :return:
+            A unicode string of the SHA-256 hash, formatted using hex encoding
+            with a space between each pair of characters, all uppercase
+        """
+
+        return ' '.join('%02X' % c for c in bytes_to_list(self.sha256))
 
     def is_valid_domain_ip(self, domain_ip):
         """
@@ -2670,10 +2996,10 @@ class SequenceOfAlgorithmIdentifiers(SequenceOf):
 class CertificateAux(Sequence):
     _fields = [
         ('trust', KeyPurposeIdentifiers, {'optional': True}),
-        ('reject', KeyPurposeIdentifiers, {'tag_type': 'implicit', 'tag': 0, 'optional': True}),
+        ('reject', KeyPurposeIdentifiers, {'implicit': 0, 'optional': True}),
         ('alias', UTF8String, {'optional': True}),
         ('keyid', OctetString, {'optional': True}),
-        ('other', SequenceOfAlgorithmIdentifiers, {'tag_type': 'implicit', 'tag': 1, 'optional': True}),
+        ('other', SequenceOfAlgorithmIdentifiers, {'implicit': 1, 'optional': True}),
     ]
 
 

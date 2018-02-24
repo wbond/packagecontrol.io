@@ -5,6 +5,7 @@ ASN.1 type classes for various algorithms using in various aspects of public
 key cryptography. Exports the following items:
 
  - AlgorithmIdentifier()
+ - AnyAlgorithmIdentifier()
  - DigestAlgorithm()
  - DigestInfo()
  - DSASignature()
@@ -182,8 +183,7 @@ class RSASSAPSSParams(Sequence):
             'hash_algorithm',
             DigestAlgorithm,
             {
-                'tag_type': 'explicit',
-                'tag': 0,
+                'explicit': 0,
                 'default': {'algorithm': 'sha1'},
             }
         ),
@@ -191,8 +191,7 @@ class RSASSAPSSParams(Sequence):
             'mask_gen_algorithm',
             MaskGenAlgorithm,
             {
-                'tag_type': 'explicit',
-                'tag': 1,
+                'explicit': 1,
                 'default': {
                     'algorithm': 'mgf1',
                     'parameters': {'algorithm': 'sha1'},
@@ -203,8 +202,7 @@ class RSASSAPSSParams(Sequence):
             'salt_length',
             Integer,
             {
-                'tag_type': 'explicit',
-                'tag': 2,
+                'explicit': 2,
                 'default': 20,
             }
         ),
@@ -212,8 +210,7 @@ class RSASSAPSSParams(Sequence):
             'trailer_field',
             TrailerField,
             {
-                'tag_type': 'explicit',
-                'tag': 3,
+                'explicit': 3,
                 'default': 'trailer_field_bc',
             }
         ),
@@ -457,6 +454,15 @@ class Pbes1Params(Sequence):
     ]
 
 
+class CcmParams(Sequence):
+    # https://tools.ietf.org/html/rfc5084
+    # aes_ICVlen: 4 | 6 | 8 | 10 | 12 | 14 | 16
+    _fields = [
+        ('aes_nonce', OctetString),
+        ('aes_icvlen', Integer),
+    ]
+
+
 class PSourceAlgorithmId(ObjectIdentifier):
     _map = {
         '1.2.840.113549.1.1.9': 'p_specified',
@@ -481,8 +487,7 @@ class RSAESOAEPParams(Sequence):
             'hash_algorithm',
             DigestAlgorithm,
             {
-                'tag_type': 'explicit',
-                'tag': 0,
+                'explicit': 0,
                 'default': {'algorithm': 'sha1'}
             }
         ),
@@ -490,8 +495,7 @@ class RSAESOAEPParams(Sequence):
             'mask_gen_algorithm',
             MaskGenAlgorithm,
             {
-                'tag_type': 'explicit',
-                'tag': 1,
+                'explicit': 1,
                 'default': {
                     'algorithm': 'mgf1',
                     'parameters': {'algorithm': 'sha1'}
@@ -502,8 +506,7 @@ class RSAESOAEPParams(Sequence):
             'p_source_algorithm',
             PSourceAlgorithm,
             {
-                'tag_type': 'explicit',
-                'tag': 2,
+                'explicit': 2,
                 'default': {
                     'algorithm': 'p_specified',
                     'parameters': b''
@@ -634,6 +637,10 @@ class EncryptionAlgorithm(_ForceNullParameters, Sequence):
         'aes128_ofb': OctetString,
         'aes192_ofb': OctetString,
         'aes256_ofb': OctetString,
+        # From RFC5084
+        'aes128_ccm': CcmParams,
+        'aes192_ccm': CcmParams,
+        'aes256_ccm': CcmParams,
         # From PKCS#5
         'pbes1_md2_des': Pbes1Params,
         'pbes1_md5_des': Pbes1Params,
@@ -1120,3 +1127,30 @@ class Pkcs5MacAlgorithm(Sequence):
 
 
 EncryptionAlgorithm._oid_specs['pbes2'] = Pbes2Params
+
+
+class AnyAlgorithmId(ObjectIdentifier):
+    _map = {}
+
+    def _setup(self):
+        _map = self.__class__._map
+        for other_cls in (EncryptionAlgorithmId, SignedDigestAlgorithmId, DigestAlgorithmId):
+            for oid, name in other_cls._map.items():
+                _map[oid] = name
+
+
+class AnyAlgorithmIdentifier(_ForceNullParameters, Sequence):
+    _fields = [
+        ('algorithm', AnyAlgorithmId),
+        ('parameters', Any, {'optional': True}),
+    ]
+
+    _oid_pair = ('algorithm', 'parameters')
+    _oid_specs = {}
+
+    def _setup(self):
+        Sequence._setup(self)
+        specs = self.__class__._oid_specs
+        for other_cls in (EncryptionAlgorithm, SignedDigestAlgorithm):
+            for oid, spec in other_cls._oid_specs.items():
+                specs[oid] = spec

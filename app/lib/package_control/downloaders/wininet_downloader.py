@@ -269,6 +269,9 @@ class WinINetDownloader(DecodingDownloader, LimitingDownloader, CachingDownloade
         if url_info.query:
             path += '?' + url_info.query
 
+        username = url_info.username
+        password = url_info.password
+
         request_headers = {
             'Accept-Encoding': self.supported_encodings()
         }
@@ -352,8 +355,8 @@ class WinINetDownloader(DecodingDownloader, LimitingDownloader, CachingDownloade
                 self.network_connection,
                 hostname,
                 port,
-                None,
-                None,
+                username,
+                password,
                 self.INTERNET_SERVICE_HTTP,
                 tcp_flags,
                 0
@@ -741,6 +744,16 @@ class WinINetDownloader(DecodingDownloader, LimitingDownloader, CachingDownloade
 
         :return:
             If the object supports HTTPS requests
+        """
+
+        return True
+
+    def supports_plaintext(self):
+        """
+        Indicates if the object can handle non-secure HTTP requests
+
+        :return:
+            If the object supports non-secure HTTP requests
         """
 
         return True
