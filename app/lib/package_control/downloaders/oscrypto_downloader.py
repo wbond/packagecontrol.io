@@ -209,16 +209,6 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
 
                     return self.cache_result('get', url, code, resp_headers, data)
 
-            except (OSError) as e:
-                self.close()
-                error_string = text.format(
-                    '''
-                    %s OS error %s downloading %s.
-                    ''',
-                    (error_message, unicode_from_os(e), url)
-                )
-                raise
-
             except (oscrypto_errors.TLSVerificationError) as e:
                 self.close()
                 if debug:
@@ -229,6 +219,18 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     ''',
                     (error_message, str_cls(e), url)
                 )
+
+            except (oscrypto_errors.TLSGracefulDisconnectError) as e:
+                error_string = text.format(
+                    '''
+                    %s TLS was gracefully closed while downloading %s, trying again.
+                    ''',
+                    (error_message, str_cls(e), url)
+                )
+
+                self.close()
+
+                continue
 
             except (oscrypto_errors.TLSError) as e:
                 self.close()
@@ -253,6 +255,16 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 self.close()
 
                 continue
+
+            except (OSError) as e:
+                self.close()
+                error_string = text.format(
+                    '''
+                    %s OS error %s downloading %s.
+                    ''',
+                    (error_message, unicode_from_os(e), url)
+                )
+                raise
 
             break
 
