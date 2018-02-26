@@ -197,7 +197,8 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     else:
                         content_length = self.parse_content_length(resp_headers)
                         if content_length is not None:
-                            data = self.socket.read_exactly(content_length)
+                            if content_length > 0:
+                                data = self.socket.read_exactly(content_length)
                         else:
                             # This should only happen if the server is going to close the connection
                             while self.socket.select_read(timeout=timeout):
@@ -458,17 +459,21 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         string = data.decode('iso-8859-1')
         if self.debug:
             lines = []
-        for i, line in enumerate(string.split('\r\n')):
+        first = True
+        for line in string.split('\r\n'):
             line = line.strip()
-            if self.debug and len(line):
+            if len(line) == 0:
+                continue
+            if self.debug:
                 lines.append(line)
-            if i == 0:
+            if first:
                 match = re.match(r'^HTTP/(1\.[01]) +(\d+) +(.*)$', line)
                 if not match:
                     return None
                 version = tuple(map(int, match.group(1).split('.')))
                 code = int(match.group(2))
                 text = match.group(3)
+                first = False
             else:
                 if not len(line):
                     continue
