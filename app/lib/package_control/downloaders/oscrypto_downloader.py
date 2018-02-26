@@ -225,7 +225,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     '''
                     %s TLS was gracefully closed while downloading %s, trying again.
                     ''',
-                    (error_message, str_cls(e), url)
+                    (error_message, url)
                 )
 
                 self.close()
