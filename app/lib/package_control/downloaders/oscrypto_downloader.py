@@ -152,6 +152,9 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     continue
                 version, code, message, resp_headers = response
 
+                # Read the body to get any remaining data off the socket
+                data = self.read_body(resp_headers, timeout)
+
                 # Handle cached responses
                 if code == 304:
                     return self.cache_result('get', url, code, resp_headers, b'')
@@ -189,38 +192,6 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     )
 
                 else:
-                    data = b''
-                    transfer_encoding = resp_headers.get('transfer-encoding')
-                    if transfer_encoding and transfer_encoding.lower() == 'chunked':
-                        while True:
-                            line = self.socket.read_until(b'\r\n').decode('iso-8859-1').rstrip()
-                            if re.match(r'^[a-fA-F0-9]+$', line):
-                                chunk_length = int(line, 16)
-                                if chunk_length == 0:
-                                    break
-                                data += self.socket.read_exactly(chunk_length)
-                                if self.socket.read_exactly(2) != b'\r\n':
-                                    raise OscryptoDownloaderException('Unable to parse chunk newline')
-                            else:
-                                self.close()
-                                raise OscryptoDownloaderException('Unable to parse chunk length')
-                    else:
-                        content_length = self.parse_content_length(resp_headers)
-                        if content_length is not None:
-                            if content_length > 0:
-                                data = self.socket.read_exactly(content_length)
-                        else:
-                            # This should only happen if the server is going to close the connection
-                            while self.socket.select_read(timeout=timeout):
-                                data += self.socket.read(8192)
-                            self.close()
-
-                    encoding = resp_headers.get('content-encoding')
-                    data = self.decode_response(encoding, data)
-
-                    if resp_headers.get('connection', '').lower() == 'close':
-                        self.close()
-
                     return self.cache_result('get', url, code, resp_headers, data)
 
             except (oscrypto_errors.TLSVerificationError) as e:
@@ -482,6 +453,14 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
             if first:
                 match = re.match(r'^HTTP/(1\.[01]) +(\d+) +(.*)$', line)
                 if not match:
+                    if self.debug:
+                        console_write(
+                            '''
+                            Oscrypto Debug Read
+                              %s
+                            ''',
+                            '\n  '.join(lines)
+                        )
                     return None
                 version = tuple(map(int, match.group(1).split('.')))
                 code = int(match.group(2))
@@ -523,6 +502,52 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         if isinstance(content_length, str_cls) and len(content_length) > 0:
             content_length = int(content_length)
         return content_length
+
+    def read_body(self, resp_headers, timeout):
+        """
+        Reads the plaintext body of the request
+
+        :param resp_headers:
+            A dict of the response headers
+
+        :param timeout:
+            An integer number of seconds to timeout a read
+
+        :return:
+            A byte string of the decompressed plain text body
+        """
+
+        data = b''
+        transfer_encoding = resp_headers.get('transfer-encoding')
+        if transfer_encoding and transfer_encoding.lower() == 'chunked':
+            while True:
+                line = self.socket.read_until(b'\r\n').decode('iso-8859-1').rstrip()
+                if re.match(r'^[a-fA-F0-9]+$', line):
+                    chunk_length = int(line, 16)
+                    if chunk_length == 0:
+                        break
+                    data += self.socket.read_exactly(chunk_length)
+                    if self.socket.read_exactly(2) != b'\r\n':
+                        raise OscryptoDownloaderException('Unable to parse chunk newline')
+                else:
+                    self.close()
+                    raise OscryptoDownloaderException('Unable to parse chunk length')
+        else:
+            content_length = self.parse_content_length(resp_headers)
+            if content_length is not None:
+                if content_length > 0:
+                    data = self.socket.read_exactly(content_length)
+            else:
+                # This should only happen if the server is going to close the connection
+                while self.socket.select_read(timeout=timeout):
+                    data += self.socket.read(8192)
+                self.close()
+
+        if resp_headers.get('connection', '').lower() == 'close':
+            self.close()
+
+        encoding = resp_headers.get('content-encoding')
+        return self.decode_response(encoding, data)
 
     def dump_certificate(self, cert):
         """
