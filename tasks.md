@@ -22,11 +22,16 @@ current list of valid tasks:
    packages that have not been seen in the past hour. Only crawls 200 sources
    per run.
 
+- `deploy` - uses SSH to deploy the latest copy of code on GitHub to the server
+
  - `gather_system_stats` - pulls in updated info about the number of users,
    packages, labels and installs, bytes served, etc for the previous day.
 
  - `generate_channel_json` - builds the `channel.json` file that contains the
    `2.0` schema version channel info used by Package Control 2.x.
+
+ - `generate_channel_v3_json` - builds the `channel_v3.json` file that contains
+   the `3.0.0` schema version channel info used by Package Control 3.x.
 
  - `generate_legacy_channel_json` - build the `repositories.json` file that
    contains the `1.2` schema version channel info used by Package Control 1.x.
@@ -34,6 +39,9 @@ current list of valid tasks:
  - `generate_signature` - generate an ECDSA signature of the
    `Package Control.sublime-package` file. It is written using ASCII armor of
    `BEGIN PACKAGE CONTROL SIGNATURE`.
+
+ - `mark_removed` - looks for packages that haven't been seen in a long time
+   and marks them as removed, so they don't should in search results
 
  - `parse_log_files` - reads through the nginx log files for the previous day
    to extract statistics about the number of requests and bytes served.
@@ -45,3 +53,6 @@ current list of valid tasks:
 
  - `refresh_package_stats` - recaclulates the installs and trending ranks for
    the packages.
+
+ - `update_package_control_lib` - grabs the latest copy of the
+   `package_control` lib from Package Control
