@@ -153,7 +153,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 version, code, message, resp_headers = response
 
                 # Read the body to get any remaining data off the socket
-                data = self.read_body(resp_headers, timeout)
+                data = self.read_body(code, resp_headers, timeout)
 
                 # Handle cached responses
                 if code == 304:
@@ -503,9 +503,12 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
             content_length = int(content_length)
         return content_length
 
-    def read_body(self, resp_headers, timeout):
+    def read_body(self, code, resp_headers, timeout):
         """
         Reads the plaintext body of the request
+
+        :param code:
+            The integer HTTP response code
 
         :param resp_headers:
             A dict of the response headers
@@ -516,6 +519,8 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         :return:
             A byte string of the decompressed plain text body
         """
+
+        # Should adhere to https://tools.ietf.org/html/rfc7230#section-3.3.3
 
         data = b''
         transfer_encoding = resp_headers.get('transfer-encoding')
@@ -537,6 +542,13 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
             if content_length is not None:
                 if content_length > 0:
                     data = self.socket.read_exactly(content_length)
+            elif code == 204 or code == 304 or (code >= 100 and code < 200):
+                # These HTTP codes are defined to not have a body
+                pass
+            elif resp_headers.get('connection', '').lower() == 'keep-alive':
+                # If the connection is kept-alive, and there is no content-length,
+                # and not chunked, than the response has an empty body.
+                pass
             else:
                 # This should only happen if the server is going to close the connection
                 while self.socket.select_read(timeout=timeout):
