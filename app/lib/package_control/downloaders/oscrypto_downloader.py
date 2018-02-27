@@ -13,8 +13,8 @@ if sys.version_info < (3,):
     from urlparse import urlparse
 
     from urllib2 import parse_keqv_list, parse_http_list
-    str_cls = unicode
-    int_types = (int, long)
+    str_cls = unicode  # noqa
+    int_types = (int, long)  # noqa
 else:
     from urllib.parse import urlparse
     from urllib.request import parse_keqv_list, parse_http_list
@@ -132,10 +132,10 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 req_headers = self.add_conditional_headers(url, req_headers)
 
                 request = 'GET '
+                url_info = urlparse(url)
                 if self.using_proxy:
                     request += url + ' HTTP/1.1'
                 else:
-                    url_info = urlparse(url)
                     path = '/' if not url_info.path else url_info.path
                     if url_info.query:
                         path += '?' + url_info.query
@@ -155,6 +155,16 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 # Handle cached responses
                 if code == 304:
                     return self.cache_result('get', url, code, resp_headers, b'')
+
+                if code == 301:
+                    location = resp_headers.get('location')
+                    if not isinstance(location, str_cls):
+                        raise OscryptoDownloaderException('Missing or duplicate Location HTTP header')
+                    if not re.match(r'https?://', location):
+                        if not location.startswith('/'):
+                            location = os.path.dirname(url_info.path) + locaation
+                        location = url_info.scheme + '://' + url_info.netloc + location
+                    return self.download(location, error_message, timeout, tried, prefer_cached)
 
                 # Make sure we obey Github's rate limiting headers
                 self.handle_rate_limit(resp_headers, url)
@@ -207,6 +217,9 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
 
                     encoding = resp_headers.get('content-encoding')
                     data = self.decode_response(encoding, data)
+
+                    if resp_headers.get('connection', '').lower() == 'close':
+                        self.close()
 
                     return self.cache_result('get', url, code, resp_headers, data)
 
@@ -475,8 +488,6 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 text = match.group(3)
                 first = False
             else:
-                if not len(line):
-                    continue
                 parts = line.split(':', 1)
                 if len(parts) == 2:
                     name = parts[0].strip().lower()
