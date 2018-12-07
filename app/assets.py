@@ -7,7 +7,7 @@ from gears.utils import safe_join
 
 from gears.environment import Environment, DEFAULT_PUBLIC_ASSETS
 from gears.finders import FileSystemFinder
-from gears_scss import SCSSCompiler
+from gears_libsass import LibsassCompiler
 from gears_coffeescript import CoffeeScriptCompiler
 from gears_handlebars import HandlebarsCompiler
 from gears_uglifyjs import UglifyJSCompressor
@@ -72,7 +72,7 @@ class Assets(object):
             ['app.handlebars', 'partials/header.handlebars', 'partials/footer.handlebars']
         ))
 
-        self.gears.compilers.register('.scss', SCSSCompiler.as_handler())
+        self.gears.compilers.register('.scss', LibsassCompiler.as_handler())
         self.gears.compilers.register('.coffee', CoffeeScriptCompiler.as_handler())
         self.gears.compilers.register('.handlebars', CustomHandlebarsCompiler.as_handler())
 
