@@ -18739,22 +18739,6 @@ Backbone.addBeforePopState = function(BB) {
       'blur #search': 'disableShortcuts'
     };
 
-    Header.prototype.affiliates = [
-      {
-        href: 'https://sublimetextbook.com/friend/wbond',
-        src: '/img/book.png'
-      }, {
-        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad3&utm_medium=banner&utm_campaign=wbond',
-        src: '/img/book3.png'
-      }, {
-        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad4&utm_medium=banner&utm_campaign=wbond',
-        src: '/img/book4.png'
-      }, {
-        href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad5&utm_medium=banner&utm_campaign=wbond',
-        src: '/img/book5.png'
-      }
-    ];
-
     Header.prototype.prevTerms = '';
 
     Header.prototype.initialize = function(options) {
@@ -19012,31 +18996,9 @@ Backbone.addBeforePopState = function(BB) {
     };
 
     Header.prototype.refreshAd = function(showing) {
-      var existingLink, href, link, newLink, next, sponseredBy, src;
+      var sponseredBy;
       sponseredBy = $('#spons');
-      existingLink = sponseredBy.find('a.book');
-      next = Math.floor(Math.random() * this.affiliates.length);
-      href = this.affiliates[next].href;
-      src = this.affiliates[next].src;
-      if (existingLink.length > 0) {
-        newLink = $('<a href="' + href + '" class="book incoming"><img src="' + src + '"></a>');
-        newLink.css({
-          display: 'none'
-        });
-        sponseredBy.append(newLink);
-        newLink.fadeIn(250);
-        return setTimeout(function() {
-          existingLink.remove();
-          return newLink.removeClass('incoming');
-        }, 300);
-      } else {
-        link = $('<a href="' + href + '" class="book"><img src="' + src + '"></a>');
-        link.css({
-          display: 'none'
-        });
-        sponseredBy.append(link);
-        return link.fadeIn(150);
-      }
+      return sponseredBy.html('<a href="https://www.sublimemerge.com"><img src="/img/merge_logo.svg">Sublime Merge<br>Super-fast git client</a>');
     };
 
     return Header;
