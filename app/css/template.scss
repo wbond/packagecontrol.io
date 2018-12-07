@@ -172,6 +172,7 @@ header {
 
 			a {
 				display: block;
+				color: $grey;
 
 				&.incoming {
 					position: absolute;
@@ -183,6 +184,7 @@ header {
 			img {
 				width: 130px;
 				display: block;
+				margin-bottom: 8px;
 			}
 
 			@media (max-width: 600px) {
