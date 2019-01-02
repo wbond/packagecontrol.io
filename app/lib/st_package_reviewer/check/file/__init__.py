@@ -47,5 +47,6 @@ get_checkers = functools.partial(
     find_all,
     Path(__file__).parent,
     __package__,
-    base_class=FileChecker
+    base_class=FileChecker,
+    exclude='AstChecker',
 )

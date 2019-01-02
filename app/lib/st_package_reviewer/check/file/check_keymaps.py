@@ -145,7 +145,7 @@ class KeyMapping:
 
     @classmethod
     def _verify_and_normalize_chords(cls, chords):
-        modifiers = ("ctrl", "super", "alt", "shift")
+        modifiers = ("ctrl", "super", "alt", "shift", "primary")
 
         if not chords or not isinstance(chords, list):
             raise KeyMappingError("'keys' key is empty or not a list")

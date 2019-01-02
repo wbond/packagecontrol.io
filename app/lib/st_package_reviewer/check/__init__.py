@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import functools
 import importlib
 import logging
+import os
 import sys
 
 from .. import debug_active
@@ -62,18 +63,25 @@ class Checker(metaclass=abc.ABCMeta):
 
 
 @functools.lru_cache()
-def find_all(path, package, base_class=Checker, exclude=[]):
-    """Find and collect all checker subclasses at the specified path."""
+def find_all(path, package, base_class=Checker, exclude=()):
+    """Find and collect all checker subclasses at the specified path.
+
+    Class names that should be excluded from the result
+    can be specified with the `exclude` parameter.
+    """
     all_checkers = set()
 
     l.debug("Collecting checkers from sub-modules of '%s'...", package)
-    for checker_file in path.glob("*.py"):
-        if checker_file.name == "__init__.py":
-            l.debug("Skipping %r", checker_file.name)
+    for checker_file in path.glob("**/*.py"):
+        rel_path = checker_file.relative_to(path)
+        if rel_path.name == "__init__.py":
+            l.debug("Skipping %s", rel_path)
             continue
 
-        l.debug("Loading %r...", checker_file.name)
-        module = importlib.import_module(".{}".format(checker_file.stem), package)
+        l.debug("Loading %s...", rel_path)
+        relative_module_segments = str(rel_path.with_suffix('')).split(os.sep)
+        module_path = "." + ".".join(relative_module_segments)
+        module = importlib.import_module(module_path, package)
 
         for thing in module.__dict__.values():
             if not isinstance(thing, type):  # not a class
@@ -81,7 +89,10 @@ def find_all(path, package, base_class=Checker, exclude=[]):
 
             # l.debug("checking %r", thing)
             if thing is not base_class and issubclass(thing, base_class):
-                l.debug("Found %s subclass: %r", base_class.__class__.__name__, thing)
+                if thing.__name__ in exclude:
+                    l.debug("Skipping %r because it was excluded", thing)
+                    continue
+                l.debug("Found %s subclass: %r", base_class.__name__, thing)
                 all_checkers.add(thing)
 
     l.debug("Loaded %d checkers", len(all_checkers))
