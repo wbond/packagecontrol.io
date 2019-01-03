@@ -79,7 +79,14 @@ def find_all(path, package, base_class=Checker, exclude=()):
             continue
 
         l.debug("Loading %s...", rel_path)
-        relative_module_segments = str(rel_path.with_suffix('')).split(os.sep)
+        # The Python 3.3 shim for pathlib doesn't support: .with_suffix('')
+        if sys.version_info < (3, 4):
+            rel_path_no_suffix = str(rel_path)
+            if rel_path_no_suffix.endswith('.py'):
+                rel_path_no_suffix = rel_path_no_suffix[:-3]
+        else:
+            rel_path_no_suffix = str(rel_path.with_suffix(''))
+        relative_module_segments = rel_path_no_suffix.split(os.sep)
         module_path = "." + ".".join(relative_module_segments)
         module = importlib.import_module(module_path, package)
 
