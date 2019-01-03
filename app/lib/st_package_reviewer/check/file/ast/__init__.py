@@ -1,8 +1,8 @@
 import functools
 import ast
 from pathlib import Path
-from ... import FileChecker
-from .... import find_all
+from st_package_reviewer.check.file import FileChecker
+from st_package_reviewer.check import find_all
 
 __all__ = ('AstChecker', 'get_checkers')
 

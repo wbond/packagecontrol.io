@@ -9,6 +9,7 @@ import json
 from urllib.request import Request, urlopen
 import base64
 from urllib.error import URLError
+import imp
 
 from .package_control.providers import RepositoryProvider
 from .package_control.download_manager import downloader, close_all_connections
@@ -17,6 +18,21 @@ from .. import config
 from .st_package_reviewer.check import file as file_checkers
 from .st_package_reviewer.check.file.check_messages import CheckMessages
 from .st_package_reviewer.check.file.check_resource_files import CheckHasSublimeSyntax
+
+
+# Hacks to get st_package_reviewer.check.file.ast working
+for spr_mod in ('', '.check', '.check.file', '.check.file.ast'):
+    full_spr_mod = 'st_package_reviewer' + spr_mod
+    spr_mod_name = full_spr_mod.split('.')[-1]
+    spr_mod_path = os.path.dirname(__file__)
+    if spr_mod:
+        spr_mod_path = os.path.join(
+            spr_mod_path,
+            *full_spr_mod.split('.')[:-1]
+        )
+    print(full_spr_mod)
+    mod_info = imp.find_module(spr_mod_name, [spr_mod_path])
+    imp.load_module(full_spr_mod, *mod_info)
 
 
 def downloader_settings():
