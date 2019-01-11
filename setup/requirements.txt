@@ -30,5 +30,4 @@ six==1.10.0
 testtools==2.2.0
 textile==2.2.1
 traceback2==1.4.0
-uWSGI==2.0.14
 unittest2==1.1.0
