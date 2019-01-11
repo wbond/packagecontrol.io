@@ -2,7 +2,7 @@ local redis = require 'resty.redis'
 
 local record_stat = function(type)
     local red = redis:new()
-    local ok, err = red:connect('unix:/tmp/redis.sock')
+    local ok, err = red:connect('unix:/var/run/redis/redis.sock')
     if not ok then
         return
     end
