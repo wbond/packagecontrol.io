@@ -30,7 +30,6 @@ for spr_mod in ('', '.check', '.check.file', '.check.file.ast'):
             spr_mod_path,
             *full_spr_mod.split('.')[:-1]
         )
-    print(full_spr_mod)
     mod_info = imp.find_module(spr_mod_name, [spr_mod_path])
     imp.load_module(full_spr_mod, *mod_info)
 
