@@ -12,7 +12,7 @@ dogpile.core==0.4.1
 extras==0.0.3
 fixtures==3.0.0
 linecache2==1.0.0
-lxml==3.2.1
+lxml==3.8.0
 misaka==1.0.2
 pathlib==1.0.1
 pbr==1.10.0
