@@ -61,9 +61,9 @@ def read_secret(name, default=None):
                 'secrets.yml'))
 
         if not os.path.exists(secrets_file):
-            raise Exception('The secrets file, "%s", does not exists. It ' + \
-                'can be overridden by the environmental variable ' + \
-                'PACKAGE_CONTROL_SECRETS.')
+            raise Exception(('The secrets file, "%s", does not exists. It ' +
+                'can be overridden by the environmental variable ' +
+                'PACKAGE_CONTROL_SECRETS.') % secrets_file)
 
         with open(secrets_file, 'r') as f:
             try:
