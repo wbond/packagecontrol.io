@@ -1,5 +1,6 @@
 import glob
 import gzip
+import bz2
 import os
 import re
 import time
@@ -39,7 +40,14 @@ for filename in filenames:
 
     date = None
     date_str = None
-    with gzip.open(path, 'r') as log_file:
+
+    opener = None
+    if filename.endswith('.bz2'):
+        opener = bz2.BZ2File
+    else:
+        opener = gzip.GzipFile
+
+    with opener(path, 'rb') as log_file:
         for line in log_file:
             line = line.decode('utf-8')
 
