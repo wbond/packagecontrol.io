@@ -1,4 +1,4 @@
-location: '/home/backups/logs'
+location: '/root/nginx_logs'
 patterns:
-  - 'sublime.wbond.net.log.*.gz'
-  - 'packagecontrol.io.log.*.gz'
+  - 'sublime.wbond.net.access.log-*.bz2'
+  - 'packagecontrol.io.access.log-*.bz2'
