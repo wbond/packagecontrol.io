@@ -16,7 +16,8 @@ lxml==3.8.0
 misaka==1.0.2
 pathlib==1.0.1
 pbr==1.10.0
-psycopg2==2.7.6.1
+psycopg2==2.7.6.1; sys_platform == 'darwin'
+psycopg2==2.7.6.1 --no-binary=psycopg2; sys_platform != 'darwin'
 pybars3==0.9.1
 python-creole==1.2.2
 python-dateutil==2.1
