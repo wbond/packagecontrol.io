@@ -1,4 +1,4 @@
-# OS X System Setup
+# macOS System Setup
 
 These instructions assume you have homebrew installed on your machine and that
 you have the XCode command line tools installed.
