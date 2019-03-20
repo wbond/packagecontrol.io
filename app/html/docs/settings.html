@@ -71,7 +71,7 @@
         <dt id="setting-install_prereleases">install_prereleases</dt>
         <dd>
             A list of packages to install pre-release versions for. Versions
-            under 1.0.0 are not considered pre-release, only those using the
+            under 1.0.0 are not considered pre-release; only those using the
             SemVer <tt>-prerelease</tt> suffixes will be ignored if the package
             is not in this list.
             <div class="default">
@@ -80,7 +80,7 @@
         </dd>
         <dt id="setting-package_name_map">package_name_map</dt>
         <dd>
-            This helps solve naming issues where a repository it not named the
+            This helps solve naming issues where a repository is not named the
             same as the package should be. This is primarily only useful for
             GitHub and BitBucket repositories. This mapping will override the
             mapping that is retrieved from the repository channels.
@@ -200,7 +200,7 @@
         </dd>
         <dt id="setting-git_binary">git_binary</dt>
         <dd>
-            Custom path(s) to <tt>git</tt> binary for when it can't be
+            Custom path(s) to <tt>git</tt> binary for when it can’t be
             automatically found on the system and a package includes a
             <tt>.git</tt> metadata directory. Supports more than one path to
             allow users to sync settings across operating systems.
@@ -218,7 +218,7 @@
         </dd>
         <dt id="setting-hg_binary">hg_binary</dt>
         <dd>
-            Custom path(s) to <tt>hg</tt> binary for when it can't be
+            Custom path(s) to <tt>hg</tt> binary for when it can’t be
             automatically found on the system and a package includes a
             <tt>.hg</tt> metadata directory. Supports more than one path to
             allow users to sync settings across operating systems.
@@ -255,7 +255,7 @@
             </p>
             <p>
                 This setting allows Windows users to bypass wininet and use
-                urllib instead if they machine or network presents trouble to
+                urllib instead if their machine or network presents trouble to
                 wininet. Some OS X and Linux users have also reported better
                 luck with certain proxies using curl or wget instead of urllib.
             </p>
@@ -327,7 +327,7 @@
                 <li><tt>"package_destination"</tt></li>
             </ul>
             <p>
-                If a profile does not include one of those three setting, it will fall
+                If a profile does not include one of those three settings, it will fall
                 back to the top-level settings.
             </p>
             <div class="default">
@@ -350,7 +350,7 @@
         </dd>
         <dt id="setting-enable_tests">enable_tests</dt>
         <dd>
-            Enable the ability to run the tests - this is only for development.
+            Enable the ability to run the tests – this is only for development.
             <div class="default">
                 <em>Default</em> <tt>false</tt>
             </div>
