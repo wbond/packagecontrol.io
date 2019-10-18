@@ -21,6 +21,9 @@ def reload():
 reload()
 
 
+root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+
 def is_dev():
     return name == 'dev'
 
