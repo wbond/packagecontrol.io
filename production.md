@@ -1,17 +1,24 @@
 # Production Environment
 
-The production mode uses uwsgi, which means it does not run on Windows.
-Additionally, it uses redis for database result caching, which also does not
-run on Windows. The development environment caches results in memory, so
-redis is not required.
+This site is primarily developed on a Mac and deployed on Linux. There are
+likely some things that won't work on Windows.
 
-The required python packages can be installed following the directions from
-[development.md](development.md).
+## Virtualenv Setup
+
+```bash
+python -m venv venv
+. venv/bin/active
+pip install -r setup/requirements.txt
+```
+
+## Secrets
 
 In production mode, the app will try to read `./secrets.yml` to load in the
 GitHub application keys and the Rollbar account information for error tracking.
 The [secrets-example.yml](secrets-example.yml) file has the format and links
 to sign up for the free accounts necessary.
+
+## Assets
 
 To compile the JS and CSS for production usage, run the following:
 
@@ -22,18 +29,23 @@ python compile.py prod
 This will create the necessary minified JS and CSS files in the `public/`
 folder.
 
+## Running
+
 To start the app in production mode, run:
 
 ```
 bash prod.sh
 ```
 
+## Deployment
+
 This will start up a number of workers on a unix socket at
 `/var/tmp/uwsgi-packagecontrol.io.socket` using the uwsgi
 protocol. You’ll need to run nginx or Apache in front and proxy the
 request to uwsgi.
 
-Nginx includes uwsgi support by default, so proxying is as simple as:
+Nginx includes uwsgi support by default, so basic proxying will be something
+along the lines of:
 
 ```
 server {
@@ -55,3 +67,6 @@ server {
     }
 }
 ```
+
+The full production environment does more in regards to using lua to graph
+activity, etc.

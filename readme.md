@@ -8,10 +8,10 @@ packages.
 
 The Package Control website runs on an architecture of:
 
- - Python 3.3
- - PostgreSQL 9.2
+ - Python 3.6.8
+ - PostgreSQL 11
  - nginx
- - redis (production only)
+ - redis
 
 The website uses the following server-side libraries:
 
