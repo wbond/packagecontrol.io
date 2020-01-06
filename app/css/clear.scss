@@ -1,6 +1,7 @@
 .group:after,
 header section:after,
-div#installs dl:after {
+div#installs dl:after,
+body.installation div.simple:after {
 	clear: both;
 	content: ".";
 	display: block;
