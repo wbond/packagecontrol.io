@@ -39,11 +39,6 @@ if [[ $TASK == "start" ]]; then
         echo " done"
     fi
 
-    echo -n "Fetching latest dev.packagecontrol.io x509 certificate ..."
-    REAL_IP=$(dig packagecontrol.io A +short @8.8.8.8)
-    rsync -aLq root@$REAL_IP:/etc/letsencrypt/live/dev.packagecontrol.io/ $PROJ_DIR/data/ssl/
-    echo " done"
-
     HAS_DB=1
     if [[ ! -e "$PROJ_DIR/data/pgsql/PG_VERSION" ]]; then
         HAS_DB=0
@@ -92,6 +87,12 @@ if [[ $TASK == "start" ]]; then
         default_type  text/html;
         access_log $PROJ_DIR/data/logs/nginx.log;
 
+        lua_package_path "$PROJ_DIR/realtime/?.lua;;";
+        lua_shared_dict locks 100k;
+        lua_shared_dict file_upload 1m;
+        lua_max_pending_timers 64;
+        init_worker_by_lua_file "$PROJ_DIR/realtime/worker_job.lua";
+
         server {
             listen       443 ssl http2;
             server_name  dev.packagecontrol.io;
@@ -109,14 +110,54 @@ if [[ $TASK == "start" ]]; then
 			ssl_trusted_certificate  $PROJ_DIR/data/ssl/fullchain.pem;
 
             root  $PROJ_DIR/public;
-            try_files \$uri @site;
 
-            location /assets/ {
-                root  $PROJ_DIR/assets;
-                try_files  \$uri @site;
+            try_files  /assets/\$uri  /public/\$uri  @site;
+
+            location /submit {
+                try_files  /assets/\$uri @site;
+                access_by_lua_file  "$PROJ_DIR/realtime/record_usage.lua";
+            }
+
+            location /channel_v3.json {
+                if (\$http_accept_encoding ~ bzip2) {
+                    rewrite  ^(/channel_v3.json)$  \$1.bz2  last;
+                }
+                try_files  /assets/\$uri /public/\$uri @site;
+                access_by_lua_file  "$PROJ_DIR/realtime/record_channel.lua";
+            }
+
+            location /channel_v3.json.bz2 {
+                try_files  /assets/\$uri /public/\$uri @site;
+                access_by_lua_file  "$PROJ_DIR/realtime/record_channel.lua";
+                header_filter_by_lua '
+                    ngx.header["Content-Type"] = "application/json"
+                    ngx.header["Content-Encoding"] = "bzip2"
+                    ngx.header["Vary"] = "Accept-Encoding"
+                ';
+            }
+
+            location /realtime {
+                lua_socket_log_errors  off;
+                content_by_lua_file  "$PROJ_DIR/realtime/stats.lua";
+            }
+
+            location ~ ^/.*\.html$ {
+                try_files  /app/html/\$uri  @site;
+                access_by_lua_file  "$PROJ_DIR/realtime/record_web.lua";
+                header_filter_by_lua  '
+                    if not app_version then
+                        app_version = io.open("$PROJ_DIR/version.yml", "r"):read()
+                    end
+                    ngx.header["X-App-Version"] = app_version
+                ';
+            }
+
+            location ~ ^/readmes/img/ {
+                try_files  \$uri  @site;
             }
 
             location @site {
+                access_by_lua_file  "$PROJ_DIR/realtime/record_web.lua";
                 proxy_pass http://localhost:9000;
                 proxy_set_header X-Forwarded-Proto https;
                 proxy_set_header X-Forwarded-Host  dev.packagecontrol.io;
