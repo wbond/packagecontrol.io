@@ -7,13 +7,6 @@ class App.Header extends Backbone.View
     'blur #search': 'disableShortcuts'
   }
 
-  # affiliates: [
-  #   {href: 'https://sublimetextbook.com/friend/wbond', src: '/img/book.png'},
-  #   {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad3&utm_medium=banner&utm_campaign=wbond', src: '/img/book3.png'},
-  #   {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad4&utm_medium=banner&utm_campaign=wbond', src: '/img/book4.png'},
-  #   {href: 'https://sublimetextbook.com/friend/wbond?utm_source=ad5&utm_medium=banner&utm_campaign=wbond', src: '/img/book5.png'},
-  # ]
-
   prevTerms: ''
 
   initialize: (options) ->
@@ -39,8 +32,6 @@ class App.Header extends Backbone.View
     if window.navigator.platform.indexOf('Mac') != -1
       keys = @$('span.keys')
       keys.text(keys.text().replace('ctrl', 'cmd'))
-
-    @refreshAd()
 
   cleanup: =>
     @disableShortcuts()
@@ -225,34 +216,3 @@ class App.Header extends Backbone.View
       @$loading.data('css-transition', true)
 
     @$loading.css(dimension, percentage + '%')
-
-  refreshAd: (showing) =>
-    sponseredBy = $('#spons')
-
-    sponseredBy.html('<a href="https://www.sublimemerge.com"><img src="/img/merge_logo.svg">Sublime Merge<br>Super-fast git client</a>')
-
-    # existingLink = sponseredBy.find('a.book')
-
-    # next = Math.floor(Math.random() * @affiliates.length);
-
-    # href = @affiliates[next].href
-    # src = @affiliates[next].src
-
-    # if existingLink.length > 0
-    #   newLink = $('<a href="' + href + '" class="book incoming"><img src="' + src + '"></a>')
-    #   newLink.css({display: 'none'})
-    #   sponseredBy.append(newLink)
-    #   newLink.fadeIn(250)
-    #   setTimeout(
-    #     ->
-    #       existingLink.remove()
-    #       newLink.removeClass('incoming')
-    #     300
-    #   )
-
-    # else
-    #   link = $('<a href="' + href + '" class="book"><img src="' + src + '"></a>')
-    #   link.css({display: 'none'})
-    #   sponseredBy.append(link)
-    #   link.fadeIn(150)
-

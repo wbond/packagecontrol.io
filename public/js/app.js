@@ -18718,7 +18718,6 @@ Backbone.addBeforePopState = function(BB) {
     __extends(Header, _super);
 
     function Header() {
-      this.refreshAd = __bind(this.refreshAd, this);
       this.animateLoadingBar = __bind(this.animateLoadingBar, this);
       this.highlightNav = __bind(this.highlightNav, this);
       this.setupShortcuts = __bind(this.setupShortcuts, this);
@@ -18774,9 +18773,8 @@ Backbone.addBeforePopState = function(BB) {
       $(window).on('pushstate', this.resetSearch);
       if (window.navigator.platform.indexOf('Mac') !== -1) {
         keys = this.$('span.keys');
-        keys.text(keys.text().replace('ctrl', 'cmd'));
+        return keys.text(keys.text().replace('ctrl', 'cmd'));
       }
-      return this.refreshAd();
     };
 
     Header.prototype.cleanup = function() {
@@ -18993,12 +18991,6 @@ Backbone.addBeforePopState = function(BB) {
         this.$loading.data('css-transition', true);
       }
       return this.$loading.css(dimension, percentage + '%');
-    };
-
-    Header.prototype.refreshAd = function(showing) {
-      var sponseredBy;
-      sponseredBy = $('#spons');
-      return sponseredBy.html('<a href="https://www.sublimemerge.com"><img src="/img/merge_logo.svg">Sublime Merge<br>Super-fast git client</a>');
     };
 
     return Header;
