@@ -267,6 +267,14 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION array_unique(arr anyarray) RETURNS anyarray LANGUAGE sql AS $$
+    SELECT array_agg(DISTINCT a)
+    FROM (
+        SELECT unnest(arr) a 
+        ORDER BY a
+    ) sq
+$$;
+
 CREATE TRIGGER search_vector_update AFTER INSERT OR UPDATE
     ON packages FOR EACH ROW EXECUTE PROCEDURE package_search_trigger();
 

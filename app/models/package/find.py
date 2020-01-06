@@ -356,7 +356,7 @@ def by_name(name):
                             -- Since you can't just join two arrays via aggregate function,
                             -- we use this construct to accomplish that
                             STRING_TO_ARRAY(STRING_AGG(DISTINCT ARRAY_TO_STRING(platforms, ','), ','), ',') platforms,
-                            STRING_TO_ARRAY(STRING_AGG(DISTINCT ARRAY_TO_STRING(
+                            array_unique(array_agg(
                                 CASE
                                     WHEN sublime_text = '<4000'
                                     THEN ARRAY[2, 3]::int[]
@@ -388,10 +388,8 @@ def by_name(name):
                                     THEN ARRAY[2]::int[]
                                     ELSE
                                     ARRAY[2, 3, 4]::int[]
-                                END,
-                                ','),
-                            ','),
-                            ',')::int[] AS st_versions
+                                END
+                            )) AS st_versions
                         FROM
                             releases
                         WHERE
@@ -535,8 +533,6 @@ def by_name(name):
             iter_date -= timedelta(days=1)
         row_date = last_month
         fill_dates()
-
-    print(result['versions'])
 
     return result
 
