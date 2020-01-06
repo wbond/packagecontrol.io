@@ -1,8 +1,11 @@
 {{#omits platforms "osx" "linux" "windows"}}
     {{!-- There are no releases, most likely due to a crawling issue --}}
 {{else}}
-    {{#omits st_versions 2}}<span class="versions only" title="Only works with Sublime Text 3">3</span>{{/omits}}
-    {{#omits st_versions 3}}<span class="versions only" title="Only works with Sublime Text 2">2</span>{{/omits}}
+    {{#eq st_versions 4}}<span class="versions only" title="Only works with Sublime Text 4">4</span>{{/eq}}
+    {{#eq st_versions 3}}<span class="versions only" title="Only works with Sublime Text 3">3</span>{{/eq}}
+    {{#eq st_versions 2}}<span class="versions only" title="Only works with Sublime Text 2">2</span>{{/eq}}
+    {{#eq st_versions 3 4}}<span class="versions only" title="Works with Sublime Text 3+">3</span>{{/eq}}
+    {{#eq st_versions 2 3}}<span class="versions only" title="Works with Sublime Text 2 and 3">2/3</span>{{/eq}}
 
     {{#omits platforms "osx" "linux"}}<span class="platforms windows" title="Only available on Windows">W</span>{{/omits}}
     {{#omits platforms "windows" "linux"}}<span class="platforms osx" title="Only available on Mac">M</span>{{/omits}}

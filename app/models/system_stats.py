@@ -249,6 +249,22 @@ def gather_for(interval='1 day'):
                 value
             )
             SELECT
+                'st*_packages',
+                CURRENT_DATE - INTERVAL %s,
+                COUNT(*)
+            FROM
+                packages
+            WHERE
+                st_versions = ARRAY[2, 3, 4]
+        """, [interval])
+
+        cursor.execute("""
+            INSERT INTO system_stats (
+                name,
+                date,
+                value
+            )
+            SELECT
                 'st2_st3_packages',
                 CURRENT_DATE - INTERVAL %s,
                 COUNT(*)
@@ -288,6 +304,22 @@ def gather_for(interval='1 day'):
                 packages
             WHERE
                 st_versions = ARRAY[3]
+        """, [interval])
+
+        cursor.execute("""
+            INSERT INTO system_stats (
+                name,
+                date,
+                value
+            )
+            SELECT
+                'st4_packages',
+                CURRENT_DATE - INTERVAL %s,
+                COUNT(*)
+            FROM
+                packages
+            WHERE
+                st_versions = ARRAY[4]
         """, [interval])
 
         cursor.execute("""

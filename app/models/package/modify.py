@@ -361,6 +361,32 @@ def mark_removed(package):
         """, [package])
 
 
+def _normalize_st_version(st):
+    """
+    Normalizes some semver selectors of Sublime Text build numbers for simper
+    matching rules
+
+    :param st:
+        A unicode string of a semver selector
+
+    :return:
+        The (potentially) normalized semver selector
+    """
+
+    fixes = {
+        # Consistency
+        '>2999':  '>=3000',
+        '<=2999': '<3000',
+        # Semantic mistakes
+        '>3000':  '>=3000',
+        '<=3000': '<3000'
+    }
+
+    if st in fixes:
+        return fixes[st]
+    return st
+
+
 def store(values):
     """
     Stores package info in the database
@@ -458,18 +484,44 @@ def store(values):
                     if platform not in platforms:
                         platforms.append(platform)
 
-            st = release['sublime_text']
-            if st == '>2999' or st[0:2] == '>3' or st[0:3] == '>=3':
-                if 3 not in st_versions:
-                    st_versions.append(3)
-            elif st == '<3000' or st[0:2] == '<2' or st[0:3] == '<=2':
-                if 2 not in st_versions:
-                    st_versions.append(2)
+            st = _normalize_st_version(release['sublime_text'])
+
+            # This logic is also contained in SQL in models/package/find.py
+            if st == '<4000':
+                st_versions.extend([2, 3])
+            elif st == '<3000':
+                st_versions.extend([2])
+            elif st.startswith('>2') or st.startswith('>=2'):
+                st_versions.extend([2, 3, 4]);
+            elif st.startswith('>3') or st.startswith('>=3'):
+                st_versions.extend([3, 4]);
+            elif st.startswith('>4') or st.startswith('>=4'):
+                st_versions.extend([4]);
+            elif st.startswith('<2') or st.startswith('<=2'):
+                st_versions.extend([2]);
+            elif st.startswith('<3') or st.startswith('<=3'):
+                st_versions.extend([2, 3]);
+            elif st.startswith('<4') or st.startswith('<=4'):
+                st_versions.extend([2, 3, 4]);
+            elif re.match(r'2\d+ - 4\d+', st):
+                st_versions.extend([2, 3, 4])
+            elif re.match(r'3\d+ - 4\d+', st):
+                st_versions.extend([3, 4])
+            elif re.match(r'2\d+ - 3\d+', st):
+                st_versions.extend([2, 3])
+            elif re.match(r'4\d+ - 4\d+', st):
+                st_versions.extend([4])
+            elif re.match(r'3\d+ - 3\d+', st):
+                st_versions.extend([3])
+            elif re.match(r'2\d+ - 2\d+', st):
+                st_versions.extend([2])
             else:
-                st_versions = [2,3]
+                st_versions.extend([2, 3, 4])
+
+        st_versions = sorted(list(set(st_versions)))
 
         if not isinstance(values['author'], list):
-            authors = re.split('\s*,\s*', values['author'])
+            authors = re.split(r'\s*,\s*', values['author'])
         else:
             authors = values['author']
 
@@ -513,24 +565,10 @@ def store(values):
                 )
             """
 
-            # Do some consistency fixes for the sake of simplifying some SQL
-            # later on when selecting unique version info
-            sublime_text = release['sublime_text']
-            fixes = {
-                # Consistency
-                '>2999':  '>=3000',
-                '<=2999': '<3000',
-                # Semantic mistakes
-                '>3000':  '>=3000',
-                '<=3000': '<3000'
-            }
-            if sublime_text in fixes:
-                sublime_text = fixes[sublime_text]
-
             cursor.execute(sql, [
                 name,
                 release['platforms'],
-                sublime_text,
+                _normalize_st_version(release['sublime_text']),
                 release['version'],
                 release['url'],
                 release['date'],

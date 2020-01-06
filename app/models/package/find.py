@@ -293,20 +293,11 @@ def by_name(name):
 
         # Here we just grab the highest version since right now the package
         # detail page only shows the highest version number
-        cursor.execute("""
+        cursor.execute(r"""
             WITH version_info AS (
                 SELECT
                     version,
-                    -- Normalize what ST versions each version is for
-                    CASE
-                        WHEN sublime_text @> ARRAY['<3000', '>=3000']::varchar[]
-                        THEN ARRAY[2, 3]
-                        WHEN sublime_text = ARRAY['<3000']::varchar[]
-                        THEN ARRAY[2]
-                        WHEN sublime_text = ARRAY['>=3000']::varchar[]
-                        THEN ARRAY[3]
-                        ELSE ARRAY[2, 3]
-                    END AS st_versions,
+                    st_versions,
                     platforms,
                     ROW_NUMBER() OVER (
                         ORDER BY
@@ -317,7 +308,7 @@ def by_name(name):
                     -- Rank each version based on semantic version
                     ROW_NUMBER() OVER (
                         PARTITION BY
-                            sublime_text,
+                            st_versions,
                             platforms
                         ORDER BY
                             string_to_array(semver_without_suffix, '.')::int[] DESC,
@@ -327,7 +318,7 @@ def by_name(name):
                     -- Rank each version based on semantic version grouped by prerelease/stable
                     ROW_NUMBER() OVER (
                         PARTITION BY
-                            sublime_text,
+                            st_versions,
                             platforms,
                             prerelease
                         ORDER BY
@@ -342,30 +333,65 @@ def by_name(name):
                             version,
                             -- Perform the version munging that PC does for date-based versions
                             CASE
-                                WHEN version ~ E'^\\\\d{4}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{2}$'
+                                WHEN version ~ E'^\\d{4}\\.\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{2}$'
                                     THEN '0.' || version
                                 ELSE version
                             END AS normalized_version,
                             -- The semver without a suffix
-                            REGEXP_REPLACE(version, E'^(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)[^\\\\d].*$', E'\\\\1') AS semver_without_suffix,
+                            REGEXP_REPLACE(version, E'^(\\d+\\.\\d+\\.\\d+)[^\\d].*$', E'\\1') AS semver_without_suffix,
                             -- If the version is a build, bare or prerelease
                             CASE
-                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                                WHEN version ~ E'^\\d+\\.\\d+\\.\\d+-'
                                     THEN -1
-                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+'
+                                WHEN version ~ E'^\\d+\\.\\d+\\.\\d+\\+'
                                     THEN 1
                                 ELSE 0
                             END AS semver_suffix_type,
                             -- If the release is a pre-release
                             CASE
-                                WHEN version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
+                                WHEN version ~ E'^\\d+\\.\\d+\\.\\d+-'
                                     THEN 1
                                 ELSE 0
                             END AS prerelease,
                             -- Since you can't just join two arrays via aggregate function,
                             -- we use this construct to accomplish that
                             STRING_TO_ARRAY(STRING_AGG(DISTINCT ARRAY_TO_STRING(platforms, ','), ','), ',') platforms,
-                            ARRAY_AGG(DISTINCT sublime_text) sublime_text
+                            STRING_TO_ARRAY(STRING_AGG(DISTINCT ARRAY_TO_STRING(
+                                CASE
+                                    WHEN sublime_text = '<4000'
+                                    THEN ARRAY[2, 3]::int[]
+                                    WHEN sublime_text = '<3000'
+                                    THEN ARRAY[2]::int[]
+                                    WHEN sublime_text LIKE '>2%%' OR sublime_text LIKE '>=2%%'
+                                    THEN ARRAY[2, 3, 4]::int[]
+                                    WHEN sublime_text LIKE '>3%%' OR sublime_text LIKE '>=3%%'
+                                    THEN ARRAY[3, 4]::int[]
+                                    WHEN sublime_text LIKE '>4%%' OR sublime_text LIKE '>=4%%'
+                                    THEN ARRAY[4]::int[]
+                                    WHEN sublime_text LIKE '<2%%' OR sublime_text LIKE '<=2%%'
+                                    THEN ARRAY[2]::int[]
+                                    WHEN sublime_text LIKE '<3%%' OR sublime_text LIKE '<=3%%'
+                                    THEN ARRAY[2, 3]::int[]
+                                    WHEN sublime_text LIKE '<4%%' OR sublime_text LIKE '<=4%%'
+                                    THEN ARRAY[2, 3, 4]::int[]
+                                    WHEN sublime_text LIKE '2%% - 4%%'
+                                    THEN ARRAY[2, 3, 4]::int[]
+                                    WHEN sublime_text LIKE '3%% - 4%%'
+                                    THEN ARRAY[3, 4]::int[]
+                                    WHEN sublime_text LIKE '2%% - 3%%'
+                                    THEN ARRAY[2, 3]::int[]
+                                    WHEN sublime_text LIKE '4%% - 4%%'
+                                    THEN ARRAY[4]::int[]
+                                    WHEN sublime_text LIKE '3%% - 3%%'
+                                    THEN ARRAY[3]::int[]
+                                    WHEN sublime_text LIKE '2%% - 2%%'
+                                    THEN ARRAY[2]::int[]
+                                    ELSE
+                                    ARRAY[2, 3, 4]::int[]
+                                END,
+                                ','),
+                            ','),
+                            ',')::int[] AS st_versions
                         FROM
                             releases
                         WHERE
@@ -510,6 +536,8 @@ def by_name(name):
         row_date = last_month
         fill_dates()
 
+    print(result['versions'])
+
     return result
 
 
@@ -591,6 +619,10 @@ def search(terms, order_by='relevance', page=1, limit=50):
     if terms.find(':st3') != -1:
         terms = terms.replace(':st3', '')
         where_conditions.append(" AND st_versions @> ARRAY[3]")
+
+    if terms.find(':st4') != -1:
+        terms = terms.replace(':st4', '')
+        where_conditions.append(" AND st_versions @> ARRAY[4]")
 
     if terms.find(':win') != -1:
         terms = terms.replace(':win', '')
