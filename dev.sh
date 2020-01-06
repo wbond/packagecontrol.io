@@ -8,6 +8,7 @@ if [[ $? != 0 ]]; then
     tmux split-window -v -t packagecontrol
     tmux split-window -h -t packagecontrol
 
+    tmux set -g mouse on
     tmux select-layout -t packagecontrol tiled
 
     sleep 0.6
