@@ -18315,7 +18315,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.4.1';
+  window.App.version = '1.5.0';
 
 }).call(this);
 
