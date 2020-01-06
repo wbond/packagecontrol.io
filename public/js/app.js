@@ -18315,7 +18315,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.4.0';
+  window.App.version = '1.4.1';
 
 }).call(this);
 
@@ -19916,7 +19916,7 @@ Backbone.addBeforePopState = function(BB) {
       var ws, _socketConfig;
       _socketConfig = this.socketConfig;
       _socketConfig.generation += 1;
-      ws = new WebSocket('wss://packagecontrol.io/realtime');
+      ws = new WebSocket('wss://' + window.location.hostname + '/realtime');
       ws.onopen = _socketConfig.onopen;
       ws.onerror = _socketConfig.onerror;
       ws.onmessage = _socketConfig.onmessage;
