@@ -24,7 +24,7 @@ python-mimeparse==0.1.4
 pytz==2013b
 redis==2.7.6
 regex==2016.11.21
-requests==2.20.0
+requests==2.22.0
 rollbar==0.8.1
 six==1.10.0
 testtools==2.2.0
