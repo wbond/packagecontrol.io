@@ -8,15 +8,15 @@ bottle==0.11.6
 docutils==0.10
 dogpile.cache==0.5.0
 dogpile.core==0.4.1
-extras==0.0.3
+extras==1.0.0
 fixtures==3.0.0
 linecache2==1.0.0
 lxml==3.8.0
 misaka==1.0.2
 pathlib==1.0.1
 pbr==1.10.0
-psycopg2-binary==2.7.6.1; sys_platform == 'darwin'
-psycopg2==2.7.6.1 --no-binary=psycopg2; sys_platform != 'darwin'
+psycopg2-binary==2.7.6.1; sys_platform == 'darwin' --no-binary=psycopg2
+psycopg2==2.7.6.1 ; sys_platform != 'darwin' --no-binary=psycopg2
 pybars3==0.9.1
 python-creole==1.2.2
 python-dateutil==2.1
