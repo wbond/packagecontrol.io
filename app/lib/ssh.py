@@ -3,6 +3,8 @@ import socket
 
 import paramiko
 
+from .output import puts
+
 
 class SSH:
     """
@@ -35,8 +37,11 @@ class SSH:
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         client.connect(host, username=username, allow_agent=True)
-
         client.save_host_keys(known_hosts)
+
+        transport = client.get_transport()
+        agent_channel = transport.open_session()
+        agent_handler = paramiko.agent.AgentRequestHandler(agent_channel)
 
         shell = client.invoke_shell()
         shell.settimeout(0.1)
@@ -103,7 +108,13 @@ class SSH:
         # Wrap the input at 80 chars, which is the shell width
         width = 80
         wrapped_parts = [command_input[i:i+width] for i in range(0, len(command_input), width)]
-        wrapped_command = ' \r'.join(wrapped_parts)
+        wrapped_command = ''
+        for i, part in enumerate(wrapped_parts):
+            # At the wrap point, the char that would be present is included
+            # then a carriage return
+            if i > 0:
+                wrapped_command += part[0:1] + '\r'
+            wrapped_command += part
         wrapped_command_minus_prompt = wrapped_command[len(prompt):]
 
         try:
@@ -120,3 +131,13 @@ class SSH:
 
 def _escape_byte(byte):
     return byte.encode('unicode_escape').decode('utf-8')
+
+
+def try_exec(conn, command):
+    puts('> %s' % command)
+    code, output = conn.execute(command)
+    if code != 0:
+        raise Exception(output)
+    output = '  ' + output.replace('\n', '\n  ')
+    if len(output.strip()):
+        puts(output)

@@ -3,7 +3,7 @@ local redis = require 'resty.redis'
 local fetch_stats = function(only_since)
     -- Connect to redis
     local red = redis:new()
-    local ok, err = red:connect('unix:/var/run/redis/redis.sock')
+    local ok, err = red:connect('127.0.0.1', 6379)
     if not ok then
         ngx.log(ngx.ERR, 'Error connecting to redis: ', err)
         return

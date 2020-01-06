@@ -5,10 +5,10 @@
     {{#omits st_versions 3}}<span class="versions only" title="Only works with Sublime Text 2">ST2</span>{{/omits}}
 
     {{#omits platforms "osx" "linux"}}<span class="platforms windows" title="Only available on Windows">Win</span>{{/omits}}
-    {{#omits platforms "windows" "linux"}}<span class="platforms osx" title="Only available on OS X">OS X</span>{{/omits}}
+    {{#omits platforms "windows" "linux"}}<span class="platforms osx" title="Only available on Mac">Mac</span>{{/omits}}
     {{#omits platforms "osx" "windows"}}<span class="platforms linux" title="Only available on Linux">Linux</span>{{/omits}}
 
-    {{#eq platforms "osx" "linux"}}<span class="platforms osx also-before" title="Only available on OS X and Linux">OS X</span><span class="platforms linux also-after" title="Only available on OS X and Linux">Linux</span>{{/eq}}
+    {{#eq platforms "osx" "linux"}}<span class="platforms osx also-before" title="Only available on Mac and Linux">Mac</span><span class="platforms linux also-after" title="Only available on Mac and Linux">Linux</span>{{/eq}}
     {{#eq platforms "windows" "linux"}}<span class="platforms windows also-before" title="Only available on Windows and Linux">Win</span><span class="platforms linux also-after" title="Only available on Windows and Linux">Linux</span>{{/eq}}
-    {{#eq platforms "windows" "osx"}}<span class="platforms windows also-before" title="Only available on Windows and OS X">Win</span><span class="platforms osx also-after" title="Only available on Windows and OS X">OS X</span>{{/eq}}
+    {{#eq platforms "windows" "osx"}}<span class="platforms windows also-before" title="Only available on Windows and Mac">Win</span><span class="platforms osx also-after" title="Only available on Windows and Mac">Mac</span>{{/eq}}
 {{/omits}}

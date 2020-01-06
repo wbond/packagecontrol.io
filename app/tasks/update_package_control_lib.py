@@ -6,7 +6,7 @@ import sys
 root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 pc_path = os.path.join(root, 'app', 'lib', 'package_control')
 
-src_path = os.path.expanduser('~/Library/Application Support/Sublime Text 3/Packages/Package Control/package_control')
+src_path = os.path.expanduser('~/dev/Packages/Package Control/package_control')
 if not os.path.exists(src_path):
     src_path = None
 

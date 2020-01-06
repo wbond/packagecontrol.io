@@ -236,7 +236,7 @@ class App.Views.Index extends Snakeskin.View
     _socketConfig = @socketConfig
     _socketConfig.generation += 1
 
-    ws = new WebSocket('wss://packagecontrol.io/realtime')
+    ws = new WebSocket('wss://' + window.location.hostname + '/realtime')
     ws.onopen = _socketConfig.onopen
     ws.onerror = _socketConfig.onerror
     ws.onmessage = _socketConfig.onmessage

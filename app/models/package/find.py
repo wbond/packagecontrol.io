@@ -427,7 +427,7 @@ def by_name(name):
         if 'windows' in result['platforms']:
             result['platforms_display'].append('Windows')
         if 'osx' in result['platforms']:
-            result['platforms_display'].append('OS X')
+            result['platforms_display'].append('Mac')
         if 'linux' in result['platforms']:
             result['platforms_display'].append('Linux')
 
@@ -444,7 +444,7 @@ def by_name(name):
                         "totals": []
                     },
                     {
-                        "platform": "OS X",
+                        "platform": "Mac",
                         "totals": []
                     },
                     {

@@ -15,6 +15,9 @@ __all__ = [
     '__version__',
     '__version_info__',
     'backend',
+    'ffi',
+    'load_order',
+    'use_ctypes',
     'use_openssl',
     'use_winlegacy',
 ]
@@ -23,14 +26,15 @@ __all__ = [
 _backend_lock = threading.Lock()
 _module_values = {
     'backend': None,
-    'backend_config': None
+    'backend_config': None,
+    'ffi': None
 }
 
 
 def backend():
     """
     :return:
-        A unicode string of the backend being used: "openssl", "osx", "win",
+        A unicode string of the backend being used: "openssl", "mac", "win",
         "winlegacy"
     """
 
@@ -48,7 +52,7 @@ def backend():
             else:
                 _module_values['backend'] = 'win'
         elif sys.platform == 'darwin':
-            _module_values['backend'] = 'osx'
+            _module_values['backend'] = 'mac'
         else:
             _module_values['backend'] = 'openssl'
 
@@ -165,3 +169,137 @@ def use_winlegacy():
                 'Another part of oscrypto has already been imported, unable to force use of Windows legacy CryptoAPI'
             )
         _module_values['backend'] = 'winlegacy'
+
+
+def use_ctypes():
+    """
+    Forces use of ctypes instead of cffi for the FFI layer
+
+    :raises:
+        RuntimeError - when this function is called after another part of oscrypto has been imported
+    """
+
+    with _backend_lock:
+        if _module_values['backend'] is not None:
+            raise RuntimeError(
+                'Another part of oscrypto has already been imported, unable to force use of ctypes'
+            )
+        _module_values['ffi'] = 'ctypes'
+
+
+def ffi():
+    """
+    Returns the FFI module being used
+
+    :return:
+        A unicode string of "cffi" or "ctypes"
+    """
+
+    if _module_values['ffi'] is not None:
+        return _module_values['ffi']
+
+    with _backend_lock:
+        try:
+            import cffi  # noqa: F401
+            _module_values['ffi'] = 'cffi'
+        except (ImportError):
+            _module_values['ffi'] = 'ctypes'
+
+        return _module_values['ffi']
+
+
+def _record_ffi(module):
+    """
+    Record which FFI module is being used
+
+    :param module:
+        A unicode string of the ffi module - "cffi" or "ctypes"
+    """
+
+    with _backend_lock:
+        if _module_values['ffi'] is not None:
+            return
+        _module_values['ffi'] = module
+
+
+def load_order():
+    """
+    Returns a list of the module and sub-module names for oscrypto in
+    dependency load order, for the sake of live reloading code
+
+    :return:
+        A list of unicode strings of module names, as they would appear in
+        sys.modules, ordered by which module should be reloaded first
+    """
+
+    return [
+        'oscrypto._asn1',
+        'oscrypto._cipher_suites',
+        'oscrypto._errors',
+        'oscrypto._int',
+        'oscrypto._types',
+        'oscrypto.errors',
+        'oscrypto.version',
+        'oscrypto',
+        'oscrypto._ffi',
+        'oscrypto._pkcs12',
+        'oscrypto._pkcs5',
+        'oscrypto._rand',
+        'oscrypto._tls',
+        'oscrypto._linux_bsd.trust_list',
+        'oscrypto._mac._common_crypto_cffi',
+        'oscrypto._mac._common_crypto_ctypes',
+        'oscrypto._mac._common_crypto',
+        'oscrypto._mac._core_foundation_cffi',
+        'oscrypto._mac._core_foundation_ctypes',
+        'oscrypto._mac._core_foundation',
+        'oscrypto._mac._security_cffi',
+        'oscrypto._mac._security_ctypes',
+        'oscrypto._mac._security',
+        'oscrypto._mac.trust_list',
+        'oscrypto._mac.util',
+        'oscrypto._openssl._libcrypto_cffi',
+        'oscrypto._openssl._libcrypto_ctypes',
+        'oscrypto._openssl._libcrypto',
+        'oscrypto._openssl._libssl_cffi',
+        'oscrypto._openssl._libssl_ctypes',
+        'oscrypto._openssl._libssl',
+        'oscrypto._openssl.util',
+        'oscrypto._win._cng_cffi',
+        'oscrypto._win._cng_ctypes',
+        'oscrypto._win._cng',
+        'oscrypto._win._decode',
+        'oscrypto._win._advapi32_cffi',
+        'oscrypto._win._advapi32_ctypes',
+        'oscrypto._win._advapi32',
+        'oscrypto._win._kernel32_cffi',
+        'oscrypto._win._kernel32_ctypes',
+        'oscrypto._win._kernel32',
+        'oscrypto._win._secur32_cffi',
+        'oscrypto._win._secur32_ctypes',
+        'oscrypto._win._secur32',
+        'oscrypto._win._crypt32_cffi',
+        'oscrypto._win._crypt32_ctypes',
+        'oscrypto._win._crypt32',
+        'oscrypto._win.trust_list',
+        'oscrypto._win.util',
+        'oscrypto.trust_list',
+        'oscrypto.util',
+        'oscrypto.kdf',
+        'oscrypto._mac.symmetric',
+        'oscrypto._openssl.symmetric',
+        'oscrypto._win.symmetric',
+        'oscrypto.symmetric',
+        'oscrypto._asymmetric',
+        'oscrypto._ecdsa',
+        'oscrypto._pkcs1',
+        'oscrypto._mac.asymmetric',
+        'oscrypto._openssl.asymmetric',
+        'oscrypto._win.asymmetric',
+        'oscrypto.asymmetric',
+        'oscrypto.keys',
+        'oscrypto._mac.tls',
+        'oscrypto._openssl.tls',
+        'oscrypto._win.tls',
+        'oscrypto.tls',
+    ]

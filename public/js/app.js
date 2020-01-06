@@ -18315,7 +18315,7 @@ Backbone.addBeforePopState = function(BB) {
 }).call(this);
 
 (function() {
-  window.App.version = '1.4.0';
+  window.App.version = '1.5.0';
 
 }).call(this);
 
@@ -18718,7 +18718,6 @@ Backbone.addBeforePopState = function(BB) {
     __extends(Header, _super);
 
     function Header() {
-      this.refreshAd = __bind(this.refreshAd, this);
       this.animateLoadingBar = __bind(this.animateLoadingBar, this);
       this.highlightNav = __bind(this.highlightNav, this);
       this.setupShortcuts = __bind(this.setupShortcuts, this);
@@ -18774,9 +18773,8 @@ Backbone.addBeforePopState = function(BB) {
       $(window).on('pushstate', this.resetSearch);
       if (window.navigator.platform.indexOf('Mac') !== -1) {
         keys = this.$('span.keys');
-        keys.text(keys.text().replace('ctrl', 'cmd'));
+        return keys.text(keys.text().replace('ctrl', 'cmd'));
       }
-      return this.refreshAd();
     };
 
     Header.prototype.cleanup = function() {
@@ -18993,12 +18991,6 @@ Backbone.addBeforePopState = function(BB) {
         this.$loading.data('css-transition', true);
       }
       return this.$loading.css(dimension, percentage + '%');
-    };
-
-    Header.prototype.refreshAd = function(showing) {
-      var sponseredBy;
-      sponseredBy = $('#spons');
-      return sponseredBy.html('<a href="https://www.sublimemerge.com"><img src="/img/merge_logo.svg">Sublime Merge<br>Super-fast git client</a>');
     };
 
     return Header;
@@ -19916,7 +19908,7 @@ Backbone.addBeforePopState = function(BB) {
       var ws, _socketConfig;
       _socketConfig = this.socketConfig;
       _socketConfig.generation += 1;
-      ws = new WebSocket('wss://packagecontrol.io/realtime');
+      ws = new WebSocket('wss://' + window.location.hostname + '/realtime');
       ws.onopen = _socketConfig.onopen;
       ws.onerror = _socketConfig.onerror;
       ws.onmessage = _socketConfig.onmessage;
@@ -21576,7 +21568,7 @@ Backbone.addBeforePopState = function(BB) {
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.windows : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"windows installs\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.windows : stack1), {"name":"num_abbr","hash":{},"data":data})))
-    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">OS X</span> <span title=\""
+    + " <span class=\"key\"></span></span> </li> <li> <span class=\"platform\">Mac</span> <span title=\""
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.osx : stack1), {"name":"num_format","hash":{},"data":data})))
     + "\" class=\"osx installs\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, ((stack1 = (depth0 != null ? depth0.installs : depth0)) != null ? stack1.osx : stack1), {"name":"num_abbr","hash":{},"data":data})))
@@ -21738,15 +21730,15 @@ Backbone.addBeforePopState = function(BB) {
   },"8":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Only available on Windows\">W</span>";
   },"10":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx\" title=\"Only available on OS X\">O</span>";
+  return "<span class=\"platforms osx\" title=\"Only available on Mac\">M</span>";
   },"12":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Only available on Linux\">L</span>";
   },"14":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx also-before\" title=\"Only available on OS X and Linux\">O</span><span class=\"platforms linux also-after\" title=\"Only available on OS X and Linux\">L</span>";
+  return "<span class=\"platforms osx also-before\" title=\"Only available on Mac and Linux\">M</span><span class=\"platforms linux also-after\" title=\"Only available on Mac and Linux\">L</span>";
   },"16":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Linux\">W</span><span class=\"platforms linux also-after\" title=\"Only available on Windows and Linux\">L</span>";
   },"18":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">O</span>";
+  return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Mac\">W</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and Mac\">M</span>";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, buffer = "";
   stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", "windows", {"name":"omits","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data}));
@@ -21882,15 +21874,15 @@ Backbone.addBeforePopState = function(BB) {
   },"8":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Only available on Windows\">Win</span>";
   },"10":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx\" title=\"Only available on OS X\">OS X</span>";
+  return "<span class=\"platforms osx\" title=\"Only available on Mac\">Mac</span>";
   },"12":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Only available on Linux\">Linux</span>";
   },"14":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx also-before\" title=\"Only available on OS X and Linux\">OS X</span><span class=\"platforms linux also-after\" title=\"Only available on OS X and Linux\">Linux</span>";
+  return "<span class=\"platforms osx also-before\" title=\"Only available on Mac and Linux\">Mac</span><span class=\"platforms linux also-after\" title=\"Only available on Mac and Linux\">Linux</span>";
   },"16":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Linux\">Win</span><span class=\"platforms linux also-after\" title=\"Only available on Windows and Linux\">Linux</span>";
   },"18":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and OS X\">Win</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and OS X\">OS X</span>";
+  return "<span class=\"platforms windows also-before\" title=\"Only available on Windows and Mac\">Win</span><span class=\"platforms osx also-after\" title=\"Only available on Windows and Mac\">Mac</span>";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, buffer = "";
   stack1 = ((helpers.omits || (depth0 && depth0.omits) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "osx", "linux", "windows", {"name":"omits","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data}));
@@ -22134,7 +22126,7 @@ Backbone.addBeforePopState = function(BB) {
   },"3":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Windows\">W</span>";
   },"5":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx\" title=\"OS X\">O</span>";
+  return "<span class=\"platforms osx\" title=\"Mac\">M</span>";
   },"7":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms linux\" title=\"Linux x32\">L32</span>";
   },"9":function(depth0,helpers,partials,data) {
@@ -22144,11 +22136,11 @@ Backbone.addBeforePopState = function(BB) {
   },"13":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows\" title=\"Windows x64\">W64</span>";
   },"15":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms osx also-before\" title=\"OS X and Linux\">O</span><span class=\"platforms linux also-after\" title=\"OS X and Linux\">L</span>";
+  return "<span class=\"platforms osx also-before\" title=\"Mac and Linux\">M</span><span class=\"platforms linux also-after\" title=\"Mac and Linux\">L</span>";
   },"17":function(depth0,helpers,partials,data) {
   return "<span class=\"platforms windows also-before\" title=\"Windows and Linux\">W</span><span class=\"platforms linux also-after\" title=\"Windows and Linux\">L</span>";
   },"19":function(depth0,helpers,partials,data) {
-  return "<span class=\"platforms windows also-before\" title=\"Windows and OS X\">W</span><span class=\"platforms osx also-after\" title=\"Windows and OS X\">O</span>";
+  return "<span class=\"platforms windows also-before\" title=\"Windows and Mac\">W</span><span class=\"platforms osx also-after\" title=\"Windows and Mac\">M</span>";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, buffer = "";
   stack1 = ((helpers.eq || (depth0 && depth0.eq) || helperMissing).call(depth0, (depth0 != null ? depth0.platforms : depth0), "linux", {"name":"eq","hash":{},"fn":this.program(1, data),"inverse":this.noop,"data":data}));
@@ -22297,7 +22289,7 @@ Backbone.addBeforePopState = function(BB) {
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_packages : depth0), {"name":"num_format","hash":{},"data":data})))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
+    + "</span> Mac </span> <span class=\"platform linux\"> <span class=\"number\">"
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_packages : depth0), {"name":"num_format","hash":{},"data":data})))
     + "</span> Linux </span> </div> </div> <div class=\"json\"> <div class=\"main\"> <span class=\"number\"> "
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.total_labels : depth0), {"name":"num_format","hash":{},"data":data})))
@@ -22315,7 +22307,7 @@ Backbone.addBeforePopState = function(BB) {
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\" title=\""
+    + "</span> Mac </span> <span class=\"platform linux\"> <span class=\"number\" title=\""
     + escapeExpression(((helpers.num_format || (depth0 && depth0.num_format) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_users : depth0), {"name":"num_format","hash":{},"data":data})))
     + "\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_users : depth0), {"name":"num_abbr","hash":{},"data":data})))
@@ -22329,7 +22321,7 @@ Backbone.addBeforePopState = function(BB) {
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.windows_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Win </span> <span class=\"platform osx\"> <span class=\"number\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.osx_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
-    + "</span> OS X </span> <span class=\"platform linux\"> <span class=\"number\">"
+    + "</span> Mac </span> <span class=\"platform linux\"> <span class=\"number\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.linux_installs : depth0), {"name":"num_abbr","hash":{},"data":data})))
     + "</span> Linux </span> </div> </div> <div class=\"actions\"> <div class=\"main\"> <span class=\"number\">"
     + escapeExpression(((helpers.num_abbr || (depth0 && depth0.num_abbr) || helperMissing).call(depth0, (depth0 != null ? depth0.submissions : depth0), {"name":"num_abbr","hash":{},"data":data})))

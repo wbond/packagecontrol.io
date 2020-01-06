@@ -14,7 +14,7 @@
 
 <p>
 	Similar to packages, dependencies are distributed through a repository.
-	Dependencies are always fully extracted to the user‘s <tt>Packages/</tt>
+	Dependencies are always fully extracted to the user’s <tt>Packages/</tt>
 	folder, using their name. Thus, dependency and package names exist in a
 	single namespace. This means you can not have a dependency with the same
 	name as a package.
@@ -31,8 +31,8 @@
 
 <p>
 	The generated python file looks for predefined subfolder names in the
-	dependency folder, based on the user‘s machine. Each matching subfolder that
-	is found will be added to Python‘s <tt>sys.path</tt> list, which is used to
+	dependency folder, based on the user’s machine. Each matching subfolder that
+	is found will be added to Python’s <tt>sys.path</tt> list, which is used to
 	load modules.
 </p>
 
@@ -40,7 +40,7 @@
 	The predefined subfolder names are in the formats:
 	<tt>st{st_version}_{os}_{arch}</tt>, <tt>st{st_version}_{os}</tt>,
 	<tt>st{st_version}</tt> and <tt>all</tt>. For example, with Sublime Text 3
-	on a 64bit Linux machine the following subfolders will be checked:
+	on a 64-bit Linux machine the following subfolders will be checked:
 </p>
 
 <ol>

@@ -21,7 +21,7 @@ end
 
 local update_stats = function()
     local red = redis:new()
-    local ok, err = red:connect('unix:/var/run/redis/redis.sock')
+    local ok, err = red:connect('127.0.0.1', 6379)
     if not ok then
         ngx.log(ngx.ERR, 'Error connecting to redis: ', err)
         return

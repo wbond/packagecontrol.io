@@ -1,12 +1,12 @@
 {{#eq platforms "linux"}}<span class="platforms linux" title="Linux">L</span>{{/eq}}
 {{#eq platforms "windows"}}<span class="platforms windows" title="Windows">W</span>{{/eq}}
-{{#eq platforms "osx"}}<span class="platforms osx" title="OS X">O</span>{{/eq}}
+{{#eq platforms "osx"}}<span class="platforms osx" title="Mac">M</span>{{/eq}}
 
 {{#eq platforms "linux-x32"}}<span class="platforms linux" title="Linux x32">L32</span>{{/eq}}
 {{#eq platforms "linux-x64"}}<span class="platforms linux" title="Linux x64">L64</span>{{/eq}}
 {{#eq platforms "windows-x32"}}<span class="platforms windows" title="Windows x32">W32</span>{{/eq}}
 {{#eq platforms "windows-x64"}}<span class="platforms windows" title="Windows x64">W64</span>{{/eq}}
 
-{{#eq platforms "osx" "linux"}}<span class="platforms osx also-before" title="OS X and Linux">O</span><span class="platforms linux also-after" title="OS X and Linux">L</span>{{/eq}}
+{{#eq platforms "osx" "linux"}}<span class="platforms osx also-before" title="Mac and Linux">M</span><span class="platforms linux also-after" title="Mac and Linux">L</span>{{/eq}}
 {{#eq platforms "windows" "linux"}}<span class="platforms windows also-before" title="Windows and Linux">W</span><span class="platforms linux also-after" title="Windows and Linux">L</span>{{/eq}}
-{{#eq platforms "windows" "osx"}}<span class="platforms windows also-before" title="Windows and OS X">W</span><span class="platforms osx also-after" title="Windows and OS X">O</span>{{/eq}}
+{{#eq platforms "windows" "osx"}}<span class="platforms windows also-before" title="Windows and Mac">W</span><span class="platforms osx also-after" title="Windows and Mac">M</span>{{/eq}}
