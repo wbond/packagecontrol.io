@@ -7,9 +7,6 @@ import bottle
 import app.env
 app.env.name = 'dev'
 
-from app.lib.package_control.deps.oscrypto import use_ctypes
-use_ctypes()
-
 import app.controllers
 from app.lib.json_api_middleware import JsonApiMiddleware
 from app.lib.trailing_slash_filter import remove_trailing_slash
