@@ -92,3 +92,26 @@ def invalid_sources(valid_sources):
         all_sources = [row['source'] for row in cursor]
 
     return [source for source in all_sources if source not in valid_sources]
+
+
+def sources_for(package):
+    """
+    Fetches a list of sources needed to refresh a package
+
+    :param package:
+        A unicode string of the package name to refresh
+
+    :return:
+        A list of sources (URLs) for the package
+    """
+
+    with connection() as cursor:
+        cursor.execute("""
+            SELECT
+                DISTINCT unnest(sources) AS source
+            FROM
+                packages
+            WHERE
+                name = %s
+        """, [package])
+        return [row['source'] for row in cursor]
