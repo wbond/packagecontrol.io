@@ -243,11 +243,18 @@ class DownloadManager(object):
             raise DownloaderException(error_string)
 
         # Make sure we have a downloader, and it supports SSL if we need it
-        if not self.downloader or ((is_ssl and not self.downloader.supports_ssl())
+        if not self.downloader or (
+                (is_ssl and not self.downloader.supports_ssl())
                 or (not is_ssl and not self.downloader.supports_plaintext())):
             for downloader_name in downloader_list:
 
                 if downloader_name not in DOWNLOADERS:
+                    # We ignore oscrypto not being present on Linux since it
+                    # can't be used with on Linux with Sublime Text 3
+                    if sys.version_info[:2] == (3, 3) and \
+                            sys.platform == 'linux' and \
+                            downloader_name == 'oscrypto':
+                        continue
                     error_string = text.format(
                         u'''
                         The downloader "%s" from the "downloader_precedence"
@@ -302,16 +309,16 @@ class DownloadManager(object):
                     ipv6 = ipv6_info[0][4][0]
                 else:
                     ipv6 = None
-            except (socket.gaierror) as e:
+            except (socket.gaierror):
                 ipv6 = None
-            except (TypeError) as e:
+            except (TypeError):
                 ipv6 = None
 
             try:
                 ip = socket.gethostbyname(hostname)
             except (socket.gaierror) as e:
                 ip = unicode_from_os(e)
-            except (TypeError) as e:
+            except (TypeError):
                 ip = None
 
             console_write(

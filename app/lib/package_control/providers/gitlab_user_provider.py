@@ -1,30 +1,26 @@
 import re
 
-from ..clients.github_client import GitHubClient
-from ..downloaders.downloader_exception import DownloaderException
 from ..clients.client_exception import ClientException
+from ..clients.gitlab_client import GitLabClient
+from ..downloaders.downloader_exception import DownloaderException
 from .provider_exception import ProviderException
 
 
-class GitHubRepositoryProvider():
-
+class GitLabUserProvider:
     """
-    Allows using a public GitHub repository as the source for a single package.
-    For legacy purposes, this can also be treated as the source for a Package
-    Control "repository".
+    Allows using a GitLab user/organization as the source for multiple packages,
+    or in Package Control terminology, a 'repository'.
 
     :param repo:
-        The public web URL to the GitHub repository. Should be in the format
-        `https://github.com/user/package` for the master branch, or
-        `https://github.com/user/package/tree/{branch_name}` for any other
-        branch.
+        The public web URL to the GitHub user/org. Should be in the format
+        `https://gitlab.com/user`.
 
     :param settings:
         A dict containing at least the following fields:
           `cache_length`,
           `debug`,
           `timeout`,
-          `user_agent`
+          `user_agent`,
         Optional fields:
           `http_proxy`,
           `https_proxy`,
@@ -35,26 +31,21 @@ class GitHubRepositoryProvider():
 
     def __init__(self, repo, settings):
         self.cache = {}
-        # Clean off the trailing .git to be more forgiving
-        self.repo = re.sub(r'\.git$', '', repo)
+        self.repo = repo
         self.settings = settings
         self.failed_sources = {}
 
     @classmethod
     def match_url(cls, repo):
-        """Indicates if this provider can handle the provided repo"""
+        """
+        Indicates if this provider can handle the provided repo
+        """
 
-        master = re.search('^https?://github.com/[^/]+/[^/]+/?$', repo)
-        branch = re.search('^https?://github.com/[^/]+/[^/]+/tree/[^/]+/?$', repo)
-        return master is not None or branch is not None
+        return re.search('^https?://gitlab.com/[^/]+/?$', repo) is not None
 
     def prefetch(self):
         """
         Go out and perform HTTP operations, caching the result
-
-        :raises:
-            DownloaderException: when there is an issue download package info
-            ClientException: when there is an issue parsing package info
         """
 
         [name for name, info in self.get_packages()]
@@ -63,8 +54,12 @@ class GitHubRepositoryProvider():
         """
         List of any URLs that could not be accessed while accessing this repository
 
+        :raises:
+            DownloaderException: when there is an issue download package info
+            ClientException: when there is an issue parsing package info
+
         :return:
-            A generator of ("https://github.com/user/repo", Exception()) tuples
+            A generator of ('https://gitlab.com/user/repo', Exception()) tuples
         """
 
         return self.failed_sources.items()
@@ -84,13 +79,13 @@ class GitHubRepositoryProvider():
         return {}.items()
 
     def get_dependencies(self, ):
-        "For API-compatibility with RepositoryProvider"
+        '''For API-compatibility with RepositoryProvider'''
 
         return {}.items()
 
     def get_packages(self, invalid_sources=None):
         """
-        Uses the GitHub API to construct necessary info for a package
+        Uses the lab API to construct necessary info for all packages
 
         :param invalid_sources:
             A list of URLs that should be ignored
@@ -120,7 +115,7 @@ class GitHubRepositoryProvider():
                     ],
                     'previous_names': [],
                     'labels': [],
-                    'sources': [the repo URL],
+                    'sources': [the user URL],
                     'readme': url,
                     'issues': url,
                     'donate': url,
@@ -135,43 +130,54 @@ class GitHubRepositoryProvider():
                 yield (key, value)
             return
 
-        client = GitHubClient(self.settings)
+        client = GitLabClient(self.settings)
 
         if invalid_sources is not None and self.repo in invalid_sources:
             raise StopIteration()
 
         try:
-            repo_info = client.repo_info(self.repo)
-
-            releases = []
-            for download in client.download_info(self.repo):
-                download['sublime_text'] = '*'
-                download['platforms'] = ['*']
-                releases.append(download)
-
-            name = repo_info['name']
-            details = {
-                'name': name,
-                'description': repo_info['description'],
-                'homepage': repo_info['homepage'],
-                'author': repo_info['author'],
-                'last_modified': releases[0].get('date'),
-                'releases': releases,
-                'previous_names': [],
-                'labels': [],
-                'sources': [self.repo],
-                'readme': repo_info['readme'],
-                'issues': repo_info['issues'],
-                'donate': repo_info['donate'],
-                'buy': None
-            }
-            self.cache['get_packages'] = {name: details}
-            yield (name, details)
-
+            user_repos = client.user_info(self.repo)
         except (DownloaderException, ClientException, ProviderException) as e:
-            self.failed_sources[self.repo] = e
-            self.cache['get_packages'] = {}
-            raise StopIteration()
+            self.failed_sources = [self.repo]
+            self.cache['get_packages'] = e
+            raise e
+
+        output = {}
+        for repo_info in user_repos:
+            try:
+                name = repo_info['name']
+                repo_url = 'https://gitlab.com/%s/%s' % (repo_info['author'],
+                                                         name)
+
+                releases = []
+                for download in client.download_info(repo_url):
+                    download['sublime_text'] = '*'
+                    download['platforms'] = ['*']
+                    releases.append(download)
+
+                details = {
+                    'name': name,
+                    'description': repo_info['description'],
+                    'homepage': repo_info['homepage'],
+                    'author': repo_info['author'],
+                    'last_modified': releases[0].get('date'),
+                    'releases': releases,
+                    'previous_names': [],
+                    'labels': [],
+                    'sources': [self.repo],
+                    'readme': repo_info['readme'],
+                    'issues': repo_info['issues'],
+                    'donate': repo_info['donate'],
+                    'buy': None,
+                }
+                output[name] = details
+                yield (name, details)
+
+            except (DownloaderException, ClientException,
+                    ProviderException) as e:
+                self.failed_sources[repo_url] = e
+
+        self.cache['get_packages'] = output
 
     def get_sources(self):
         """

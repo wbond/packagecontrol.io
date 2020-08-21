@@ -99,17 +99,15 @@ class BitBucketClient(JSONApiClient):
         output = []
         if tags_match:
             user_repo = tags_match.group(1)
-            
+
             tags_list = {}
             tags_url = self._make_api_url(user_repo, '/refs/tags?pagelen=100')
             while tags_url:
                 tags_json = self.fetch_json(tags_url)
-                tags_list.update({
-                    tag['name']: tag['target']['date'][0:19].replace('T', ' ')
-                    for tag in tags_json['values']
-                })
+                for tag in tags_json['values']:
+                    tags_list[tag['name']] = tag['target']['date'][0:19].replace('T', ' ')
                 tags_url = tags_json['next'] if 'next' in tags_json else None
-            
+
             tag_info = version_process(tags_list.keys(), tag_prefix)
             tag_info = version_sort(tag_info, reverse=True)
             if not tag_info:
@@ -252,7 +250,7 @@ class BitBucketClient(JSONApiClient):
         """
 
         listing_url = self._make_api_url(user_repo, '/src/%s/?pagelen=100' % branch)
-        
+
         while listing_url:
             root_dir_info = self.fetch_json(listing_url, prefer_cached)
 

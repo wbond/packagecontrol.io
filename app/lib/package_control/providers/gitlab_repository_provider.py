@@ -1,22 +1,21 @@
 import re
 
-from ..clients.github_client import GitHubClient
+from ..clients.gitlab_client import GitLabClient
 from ..downloaders.downloader_exception import DownloaderException
 from ..clients.client_exception import ClientException
 from .provider_exception import ProviderException
 
 
-class GitHubRepositoryProvider():
-
+class GitLabRepositoryProvider():
     """
-    Allows using a public GitHub repository as the source for a single package.
+    Allows using a public GitLab repository as the source for a single package.
     For legacy purposes, this can also be treated as the source for a Package
     Control "repository".
 
     :param repo:
-        The public web URL to the GitHub repository. Should be in the format
-        `https://github.com/user/package` for the master branch, or
-        `https://github.com/user/package/tree/{branch_name}` for any other
+        The public web URL to the GitLab repository. Should be in the format
+        `https://gitlab.com/user/package` for the master branch, or
+        `https://gitlab.com/user/package/-/tree/{branch_name}` for any other
         branch.
 
     :param settings:
@@ -44,8 +43,8 @@ class GitHubRepositoryProvider():
     def match_url(cls, repo):
         """Indicates if this provider can handle the provided repo"""
 
-        master = re.search('^https?://github.com/[^/]+/[^/]+/?$', repo)
-        branch = re.search('^https?://github.com/[^/]+/[^/]+/tree/[^/]+/?$', repo)
+        master = re.search('^https?://gitlab.com/[^/]+/[^/]+/?$', repo)
+        branch = re.search('^https?://gitlab.com/[^/]+/[^/]+/-/tree/[^/]+/?$', repo)
         return master is not None or branch is not None
 
     def prefetch(self):
@@ -64,7 +63,7 @@ class GitHubRepositoryProvider():
         List of any URLs that could not be accessed while accessing this repository
 
         :return:
-            A generator of ("https://github.com/user/repo", Exception()) tuples
+            A generator of ("https://gitlab.com/user/repo", Exception()) tuples
         """
 
         return self.failed_sources.items()
@@ -84,13 +83,13 @@ class GitHubRepositoryProvider():
         return {}.items()
 
     def get_dependencies(self, ):
-        "For API-compatibility with RepositoryProvider"
+        """For API-compatibility with RepositoryProvider"""
 
         return {}.items()
 
     def get_packages(self, invalid_sources=None):
         """
-        Uses the GitHub API to construct necessary info for a package
+        Uses the GitLab API to construct necessary info for a package
 
         :param invalid_sources:
             A list of URLs that should be ignored
@@ -135,7 +134,7 @@ class GitHubRepositoryProvider():
                 yield (key, value)
             return
 
-        client = GitHubClient(self.settings)
+        client = GitLabClient(self.settings)
 
         if invalid_sources is not None and self.repo in invalid_sources:
             raise StopIteration()
