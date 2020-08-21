@@ -40,7 +40,8 @@ REQUIRED_PATHS = [
 PRESERVE_PATHS = [
     'http_cache.py',
     'readme.md',
-    'show_error.py'
+    'show_error.py',
+    'sys_path.py'
 ]
 
 def ignore_dsstore_pyc(dir, items):
