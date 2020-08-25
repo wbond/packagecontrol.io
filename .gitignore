@@ -8,5 +8,6 @@ assets
 channel
 readmes/img/
 task_logs/*.log
+test_logs/*.log
 data
 setup/ssl/secrets
