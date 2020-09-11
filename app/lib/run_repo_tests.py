@@ -10,13 +10,11 @@ from urllib.request import Request, urlopen
 import base64
 from urllib.error import URLError
 import imp
-import sys
 
 from .package_control.providers import RepositoryProvider
 from .package_control.download_manager import downloader, close_all_connections
 from .package_control.downloaders.downloader_exception import DownloaderException
 from .. import config
-from .. import env
 from .st_package_reviewer.check import file as file_checkers
 from .st_package_reviewer.check.file.check_messages import CheckMessages
 from .st_package_reviewer.check.file.check_resource_files import CheckHasSublimeSyntax
@@ -44,7 +42,7 @@ def downloader_settings():
             config.read_secret('github_client_id')
         settings['query_string_params']['api.github.com']['client_secret'] = \
             config.read_secret('github_client_secret')
-    settings['debug'] = True
+    settings['debug'] = False
     return settings
 
 
@@ -319,49 +317,43 @@ def test_pull_request(pr):
     pr = int(pr)
     settings = downloader_settings()
 
-    tmpdir = None
-    log_file = None
-    orig_stdout = None
+    pr_url = 'https://api.github.com/repos/wbond/package_control_channel/pulls/%d' % pr
     try:
-        pr_url = 'https://api.github.com/repos/wbond/package_control_channel/pulls/%d' % pr
-        try:
-            res = github_api_request(settings, pr_url)
-            pr_details = json.loads(res.read().decode('utf-8'))
-            if 'state' not in pr_details:
-                return {
-                    '__status_code__': 500,
-                    'result': 'error',
-                    'message': 'Unexpected format to PR details'
-                }
-            if pr_details['state'] != 'open':
-                return {
-                    '__status_code__': 500,
-                    'result': 'error',
-                    'message': 'PR has already been closed'
-                }
-        except URLError as e:
+        res = github_api_request(settings, pr_url)
+        pr_details = json.loads(res.read().decode('utf-8'))
+        if 'state' not in pr_details:
             return {
                 '__status_code__': 500,
                 'result': 'error',
-                'message': 'Error fetching PR details - %s' % str(e)
+                'message': 'Unexpected format to PR details'
             }
-        except UnicodeDecodeError:
+        if pr_details['state'] != 'open':
             return {
                 '__status_code__': 500,
                 'result': 'error',
-                'message': 'Error decoding PR details'
+                'message': 'PR has already been closed'
             }
-        except ValueError:
-            return {
-                '__status_code__': 500,
-                'result': 'error',
-                'message': 'Error parsing PR details'
-            }
+    except URLError as e:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error fetching PR details - %s' % str(e)
+        }
+    except UnicodeDecodeError:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error decoding PR details'
+        }
+    except ValueError:
+        return {
+            '__status_code__': 500,
+            'result': 'error',
+            'message': 'Error parsing PR details'
+        }
 
-        log_file = os.path.join(env.root, 'test_logs', 'test_pr-%d.log' % pr)
-        orig_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
+    tmpdir = None
+    try:
         tmpdir = tempfile.mkdtemp()
         if not tmpdir:
             raise EnvironmentError('Unable to create tmpdir')
@@ -639,7 +631,5 @@ def test_pull_request(pr):
         return {'result': 'completed', 'message': 'Checks ran successfully'}
 
     finally:
-        if orig_stdout:
-            sys.stdout = orig_stdout
         if tmpdir and os.path.exists(tmpdir):
             shutil.rmtree(tmpdir)
