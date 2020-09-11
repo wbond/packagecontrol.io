@@ -1,6 +1,5 @@
 # Not shared with Package Control
 
-from bottle import request
 import rollbar
 
 from ... import env
