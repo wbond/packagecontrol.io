@@ -30,7 +30,7 @@ The client-side libraries are:
 The various libraries are woven together to create a site with the following
 properties:
 
- - Shared HTML templating on the server and client with pybars and Handlebars
+ - Shared HTML templating on the server and client with pybars and Handlebars.
  - Initial page loads deliver fully-rendered HTML. Subsequent requests (for
    all supported browsers but IE 9) use HTML 5 pushState and pull in JSON that
    is rendered with Handlebars.
@@ -46,7 +46,7 @@ properties:
 
 Supported browsers:
 
- - Firefox, Chrome, Safari, Opera, IE 9+
+ - Firefox, Chrome, Safari, Opera, IE 9+.
 
 IE 8 and older are not supported because they do not support SVG, which is used
 for all of the graphics and charting on the site.
