@@ -4,6 +4,7 @@
 <Description>The Sublime Text package manager that makes it exceedingly simple to find, install and keep packages up-to-date</Description>
 <Url type="text/html" method="GET" template="https://packagecontrol.io/search/{searchTerms}" />
 <Url type="application/opensearchdescription+xml" rel="self" template="https://packagecontrol.io/opensearch.xml" />
+<Url type="application/x-suggestions+json" method="get" template="https://packagecontrol.io/opensearch_suggestions/{searchTerms}.json" />
 <Language>en-US</Language>
 <moz:SearchForm>https://packagecontrol.io/search</moz:SearchForm>
 </OpenSearchDescription>
