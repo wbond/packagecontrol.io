@@ -94,7 +94,8 @@ CREATE TABLE dependencies (
     sources                  varchar[]     NOT NULL,
     is_missing               boolean       NOT NULL DEFAULT FALSE,
     missing_error            varchar       NOT NULL DEFAULT '',
-    removed                  boolean       NOT NULL DEFAULT FALSE
+    removed                  boolean       NOT NULL DEFAULT FALSE,
+    needs_review             boolean       NOT NULL DEFAULT FALSE
 );
 
 
@@ -140,7 +141,8 @@ CREATE TABLE package_stats (
     removed                  boolean       NOT NULL DEFAULT FALSE,
     installs_rank            integer,
     trending_rank            integer,
-    z_value                  float
+    z_value                  float,
+    needs_review             boolean       NOT NULL DEFAULT FALSE
 );
 
 

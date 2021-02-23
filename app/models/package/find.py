@@ -80,6 +80,7 @@ def all(limit_one_per_package=False, only_package_control=False):
             WHERE
                 ps.is_missing != TRUE AND
                 ps.removed != TRUE
+                ps.needs_review != TRUE
                 """ + where_condition + """
             ORDER BY
                 repository ASC,
@@ -126,6 +127,7 @@ def all(limit_one_per_package=False, only_package_control=False):
             WHERE
                 ps.is_missing != TRUE AND
                 ps.removed != TRUE
+                ps.needs_review != TRUE
                 """ + where_condition + """
             ORDER BY
                 p.sources[1:1] ASC,
@@ -239,7 +241,8 @@ def old():
                     ON p.name = ps.package
             WHERE
                 p.last_seen < CURRENT_TIMESTAMP - INTERVAL '24 hours' AND
-                ps.removed != TRUE
+                ps.removed != TRUE AND
+                ps.needs_review != TRUE
         """)
 
         return cursor.fetchall()
@@ -262,6 +265,7 @@ def by_name(name):
                 p.*,
                 ps.is_missing,
                 ps.missing_error,
+                ps.needs_review,
                 ps.removed,
                 ps.trending_rank,
                 ps.installs_rank,
@@ -632,6 +636,18 @@ def search(terms, order_by='relevance', page=1, limit=50):
         terms = terms.replace(':linux', '')
         where_conditions.append(" AND platforms @> ARRAY['linux']::varchar[]")
 
+    if terms.find(':missing') != -1:
+        terms = terms.replace(':missing', '')
+        where_conditions.append(" AND ps.is_missing = TRUE")
+
+    if terms.find(':needs_review') != -1:
+        terms = terms.replace(':needs_review', '')
+        where_conditions.append(
+            " AND ps.needs_review = TRUE"
+            " AND ps.is_missing != TRUE"
+            " AND ps.removed != TRUE"
+        )
+
     where_frag = ''.join(where_conditions)
 
     # Clean up the search terms
@@ -709,6 +725,7 @@ def search(terms, order_by='relevance', page=1, limit=50):
                     ps.first_seen,
                     ps.is_missing,
                     ps.missing_error,
+                    ps.needs_review,
                     ps.trending_rank,
                     ps.installs_rank,
                     coalesce(ic.unique_installs, 0) unique_installs,
@@ -795,6 +812,7 @@ def search(terms, order_by='relevance', page=1, limit=50):
                     ps.first_seen,
                     ps.is_missing,
                     ps.missing_error,
+                    ps.needs_review,
                     ps.trending_rank,
                     ps.installs_rank,
                     coalesce(ic.unique_installs, 0) unique_installs,
@@ -955,7 +973,8 @@ def _common_sql(details, where, order_by, page, limit):
                 'p.last_modified',
                 'ps.first_seen',
                 'ps.is_missing',
-                'ps.missing_error'
+                'ps.missing_error',
+                'ps.needs_review'
             ])
 
         columns_frag = ", ".join(columns)
@@ -969,7 +988,8 @@ def _common_sql(details, where, order_by, page, limit):
                 install_counts AS ic ON p.name = ic.package
             WHERE
                 ps.is_missing != TRUE AND
-                ps.removed != TRUE
+                ps.removed != TRUE AND
+                ps.needs_review != TRUE
                 """ + where + """
             ORDER BY
                 """ + order_by + """
@@ -989,7 +1009,8 @@ def _common_sql(details, where, order_by, page, limit):
                     install_counts AS ic ON p.name = ic.package
                 WHERE
                     ps.is_missing != TRUE AND
-                    ps.removed != TRUE
+                    ps.removed != TRUE AND
+                    ps.needs_review != TRUE
                     """ + where)
             output = {
                 'packages': output,

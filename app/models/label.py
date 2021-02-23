@@ -106,6 +106,7 @@ def load(name):
                 p.last_seen,
                 ps.is_missing,
                 ps.trending_rank,
+                ps.needs_review,
                 ps.installs_rank,
                 ps.first_seen,
                 ps.z_value,

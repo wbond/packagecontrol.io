@@ -95,6 +95,7 @@ def load(author):
                 p.last_modified,
                 p.last_seen,
                 ps.is_missing,
+                ps.needs_review,
                 ps.trending_rank,
                 ps.installs_rank,
                 ps.first_seen,

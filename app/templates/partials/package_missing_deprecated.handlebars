@@ -3,6 +3,10 @@
 {{else}}
     {{#if is_missing}}
         <span class="missing" title="Package info was unavailable last time crawler ran. {{missing_error}}"><i class="icon-question-sign"></i> Missing</span>
+    {{else}}
+        {{#if needs_review}}
+            <span class="missing" title="Package was previously missing and needs manual review to re-enable"><i class="icon-question-sign"></i> Needs Review</span>
+        {{/if}}
     {{/if}}
 {{/if}}
 {{#contains labels "deprecated"}}

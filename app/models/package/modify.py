@@ -311,7 +311,8 @@ def mark_missing(source, error):
                 package_stats
             SET
                 is_missing = TRUE,
-                missing_error = %s
+                missing_error = %s,
+                needs_review = TRUE
             FROM
                 packages AS p
             WHERE
@@ -334,7 +335,8 @@ def mark_missing_by_name(package, error):
                 package_stats
             SET
                 is_missing = TRUE,
-                missing_error = %s
+                missing_error = %s,
+                needs_review = TRUE
             WHERE
                 package = %s
         """, [error, package])
@@ -355,7 +357,8 @@ def mark_removed(package):
             SET
                 removed = TRUE,
                 is_missing = FALSE,
-                missing_error = ''
+                missing_error = '',
+                needs_review = TRUE
             WHERE
                 package = %s
         """, [package])

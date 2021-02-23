@@ -43,7 +43,8 @@ def all(limit_one_per_dependency=False):
                 dependencies
             WHERE
                 is_missing != TRUE AND
-                removed != TRUE
+                removed != TRUE AND
+                needs_review = TRUE
             ORDER BY
                 repository ASC,
                 LOWER(name) ASC
@@ -79,7 +80,8 @@ def all(limit_one_per_dependency=False):
                 dependencies AS d ON dr.dependency = d.name
             WHERE
                 d.is_missing != TRUE AND
-                d.removed != TRUE
+                d.removed != TRUE AND
+                d.needs_review != TRUE
             ORDER BY
                 d.sources[1:1] ASC,
                 LOWER(d.name) ASC,
@@ -232,7 +234,8 @@ def old():
                 dependencies
             WHERE
                 last_seen < CURRENT_TIMESTAMP - INTERVAL '2 hours' AND
-                removed != TRUE
+                removed != TRUE AND
+                needs_review != TRUE
         """)
 
         return cursor.fetchall()
@@ -273,7 +276,8 @@ def mark_missing(source, error):
                 dependencies
             SET
                 is_missing = TRUE,
-                missing_error = %s
+                missing_error = %s,
+                needs_review = TRUE
             WHERE
                 sources @> ARRAY[%s]::varchar[]
         """, [error, source])
@@ -293,7 +297,8 @@ def mark_missing_by_name(dependency, error):
                 dependencies
             SET
                 is_missing = TRUE,
-                missing_error = %s
+                missing_error = %s,
+                needs_review = TRUE
             WHERE
                 name = %s
         """, [error, dependency])
@@ -314,7 +319,8 @@ def mark_removed(dependency):
             SET
                 removed = TRUE,
                 is_missing = FALSE,
-                missing_error = ''
+                missing_error = '',
+                needs_review = TRUE
             WHERE
                 name = %s
         """, [dependency])

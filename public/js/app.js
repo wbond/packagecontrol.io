@@ -21955,7 +21955,7 @@ Backbone.addBeforePopState = function(BB) {
   return " <span class=\"removed\" title=\"Package was removed and is no longer available.\"><i class=\"icon-ban-circle\"></i> Removed</span> ";
   },"3":function(depth0,helpers,partials,data) {
   var stack1, buffer = " ";
-  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.is_missing : depth0), {"name":"if","hash":{},"fn":this.program(4, data),"inverse":this.noop,"data":data});
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.is_missing : depth0), {"name":"if","hash":{},"fn":this.program(4, data),"inverse":this.program(6, data),"data":data});
   if (stack1 != null) { buffer += stack1; }
   return buffer + " ";
 },"4":function(depth0,helpers,partials,data) {
@@ -21964,13 +21964,20 @@ Backbone.addBeforePopState = function(BB) {
     + escapeExpression(((helper = (helper = helpers.missing_error || (depth0 != null ? depth0.missing_error : depth0)) != null ? helper : helperMissing),(typeof helper === functionType ? helper.call(depth0, {"name":"missing_error","hash":{},"data":data}) : helper)))
     + "\"><i class=\"icon-question-sign\"></i> Missing</span> ";
 },"6":function(depth0,helpers,partials,data) {
+  var stack1, buffer = " ";
+  stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.needs_review : depth0), {"name":"if","hash":{},"fn":this.program(7, data),"inverse":this.noop,"data":data});
+  if (stack1 != null) { buffer += stack1; }
+  return buffer + " ";
+},"7":function(depth0,helpers,partials,data) {
+  return " <span class=\"missing\" title=\"Package was previously missing and needs manual review to re-enable\"><i class=\"icon-question-sign\"></i> Needs Review</span> ";
+  },"9":function(depth0,helpers,partials,data) {
   return " <span class=\"deprecated\" title=\"Package has been marked as deprecated, see readme\"><i class=\"icon-remove-sign\"></i> Deprecated</span> ";
   },"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
   var stack1, helperMissing=helpers.helperMissing, buffer = "";
   stack1 = helpers['if'].call(depth0, (depth0 != null ? depth0.removed : depth0), {"name":"if","hash":{},"fn":this.program(1, data),"inverse":this.program(3, data),"data":data});
   if (stack1 != null) { buffer += stack1; }
   buffer += " ";
-  stack1 = ((helpers.contains || (depth0 && depth0.contains) || helperMissing).call(depth0, (depth0 != null ? depth0.labels : depth0), "deprecated", {"name":"contains","hash":{},"fn":this.program(6, data),"inverse":this.noop,"data":data}));
+  stack1 = ((helpers.contains || (depth0 && depth0.contains) || helperMissing).call(depth0, (depth0 != null ? depth0.labels : depth0), "deprecated", {"name":"contains","hash":{},"fn":this.program(9, data),"inverse":this.noop,"data":data}));
   if (stack1 != null) { buffer += stack1; }
   return buffer + " ";
 },"useData":true});
