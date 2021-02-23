@@ -241,8 +241,7 @@ def old():
                     ON p.name = ps.package
             WHERE
                 p.last_seen < CURRENT_TIMESTAMP - INTERVAL '24 hours' AND
-                ps.removed != TRUE AND
-                ps.needs_review != TRUE
+                ps.removed != TRUE
         """)
 
         return cursor.fetchall()
