@@ -2,6 +2,49 @@
 <h1>News</h1>
 
 <section>
+    <h2 id="2021-02-24-Package_Takeover_Vulnerability_Notification">Package Takeover Vulnerability Notification</h2>
+    <p class="meta">
+        by <span class="by">wbond</span>
+        at <span class="time">11:00am</span>
+        on <span class="date">Wednesday, February 24rd, 2021</span>
+    </p>
+
+    <p>
+        At 9:56AM EST February 23nd, 2021, Package Control was notified of a package takeover vulnerability in the default channel package crawler workflow. The issue was reported by Sven Blumenstein of Apple Information Security.
+    </p>
+
+    <p>
+        At 10:28AM EST February 23nd, 2021, Package Control confirmed the receipt and nature of the takeover vulnerability. At 11:32AM EST February 23nd, 2021, a mitigation was deployed to the default channel server, fixing the vulnerability.
+    </p>
+
+    <p>
+        The process to exploit the vulnerability was as follows:
+    </p>
+
+    <ul>
+        <li>An author of a package in the default channel would need to delete their GitHub or BitBucket account</li>
+        <li>A new user account (new author) must be created with the same name as the deleted account</li>
+        <li>The new author must create a repository with the same name as the package repository</li>
+        <li>The new author must create a new release of the package with a higher version number</li>
+        <li>New and existing installs of the package would install the version of the package from the new author</li>
+    </ul>
+
+    <p>
+        The vulnerability existed due to the fact that the crawler for the default channel would allow a hosting service to go offline and come back online. Unfortunately this robust behavior, in the case of a hosting provider going offline, unintentionally allowed for user names (or domain names) to transfer ownership without review.
+    </p>
+
+    <p>
+        A review of the package database was conducted after fixing the vulnerability. At the time of reporting, there were 31 GitHub user accounts and 1 BitBucket user account that were vulnerable to takeover. 14 GitHub accounts had transfered ownership, but had not retained previous package repositories. There wasn't any evidence of malicious takeovers, however the default channel crawler does not maintain logs of every change to every package.
+    </p>
+
+    <p>
+        Moving forward, all packages that go offline will have to be manually reviewed before they will be available for installation.
+    </p>
+
+    <p>
+        If you have any questions about the incident, please contact me via <a href="mailto:will@wbond.net">will@wbond.net</a> or open an issue on the <a href="https://github.com/wbond/packagecontrol.io/issues">website issue tracker</a>.
+    </p>
+
     <h2 id="2014-12-23-Package_Control_30_Released">Package Control 3.0 Released!</h2>
     <p class="meta">
         by <span class="by">wbond</span>
