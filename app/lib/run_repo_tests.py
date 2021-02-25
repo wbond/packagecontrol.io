@@ -116,6 +116,9 @@ def run_tests(spec):
         settings = downloader_settings()
         name = info['name']
 
+        if not isinstance(url, str) or not url.startswith('https://'):
+            return build_result([format_report('Primary release URL does not begin with https://')], [])
+
         tmpdir = tempfile.mkdtemp()
         if not tmpdir:
             return build_result([format_report('Could not create temp dir')], [])
