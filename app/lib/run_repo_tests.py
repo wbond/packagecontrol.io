@@ -81,6 +81,10 @@ def run_tests(spec):
     if not res:
         return build_result([format_report(info)], [])
 
+    name = info.get('name')
+    if not isinstance(name, str) or '/' in name or '\\' in name:
+        return build_result([format_report('Invalid package name')], [])
+
     tmpdir = None
     try:
 
@@ -134,13 +138,14 @@ def run_tests(spec):
             for path in package_zip.namelist():
                 if not isinstance(path, str):
                     path = path.decode('utf-8', 'strict')
+                path = path.replace('\\', '/')
 
                 last_path = path
 
                 if path.find('/') in [len(path) - 1, -1]:
                     root_level_paths.append(path)
                 # Make sure there are no paths that look like security vulnerabilities
-                if path[0] == '/' or '../' in path or '..\\' in path:
+                if path[0] == '/' or '../' in path:
                     errors.append(format_report('The path "%s" appears to be attempting to access other parts of the filesystem' % path))
                     return build_result(errors, warnings)
 
@@ -157,13 +162,13 @@ def run_tests(spec):
                 dest = path
                 if not isinstance(dest, str):
                     dest = dest.decode('utf-8', 'strict')
+                dest = dest.replace('\\', '/')
 
                 # If there was only a single directory in the package, we remove
                 # that folder name from the paths as we extract entries
                 if skip_root_dir:
                     dest = dest[len(root_level_paths[0]):]
 
-                dest = dest.replace('\\', '/')
                 dest = os.path.join(tmp_package_dir, dest)
 
                 dest = os.path.abspath(dest)
