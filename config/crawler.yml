@@ -3,6 +3,7 @@ debug: true
 timeout: 10
 user_agent: Package Control Default Channel Server
 http_cache: true
+http_cache_length: 5184000
 install_prereleases: true
 downloader_precedence: 
     windows: [wininet, oscrypto]
