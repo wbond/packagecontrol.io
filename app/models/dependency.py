@@ -44,7 +44,7 @@ def all(limit_one_per_dependency=False):
             WHERE
                 is_missing != TRUE AND
                 removed != TRUE AND
-                needs_review = TRUE
+                needs_review != TRUE
             ORDER BY
                 repository ASC,
                 LOWER(name) ASC

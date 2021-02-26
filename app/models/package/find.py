@@ -79,7 +79,7 @@ def all(limit_one_per_package=False, only_package_control=False):
                     ON p.name = ps.package
             WHERE
                 ps.is_missing != TRUE AND
-                ps.removed != TRUE
+                ps.removed != TRUE AND
                 ps.needs_review != TRUE
                 """ + where_condition + """
             ORDER BY
@@ -126,7 +126,7 @@ def all(limit_one_per_package=False, only_package_control=False):
                     ON p.name = ps.package
             WHERE
                 ps.is_missing != TRUE AND
-                ps.removed != TRUE
+                ps.removed != TRUE AND
                 ps.needs_review != TRUE
                 """ + where_condition + """
             ORDER BY
