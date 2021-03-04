@@ -154,6 +154,18 @@
 		of your repository will prevent Package Control from keeping your
 		package packed as a <tt>.sublime-package</tt> file in ST3.
 	</li>
+	<li>
+		<b>Optionally, add a
+		<a href="https://www.git-scm.com/docs/gitattributes"><tt>.gitattributes</tt></a>
+		file.</b>  If your repository includes any files that are not necessary
+		for end-users, such as tests, they can be omitted from the package by
+		setting the <tt>export-ignore</tt> attribute.  You can use
+		<a href="https://git-scm.com/docs/git-archive"><tt>git archive</tt></a>
+		to test your attributes.  Note that this will affect all archives
+		created for your repo, including the release archives downloadable from
+		GitHub.  If you want to include the tests in those archives, this
+		solution is not appropriate for you.
+	</li>
 </ol>
 
 <h2 id="Step_6">6. Add Your Repository to the Default Channel</h2>
