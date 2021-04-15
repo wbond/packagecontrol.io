@@ -37,6 +37,11 @@ def server_html(filename):
     return add_version(response)
 
 
+@bottle.route('/opensearch.xml')
+def server_opensearch():
+    return bottle.static_file('opensearch.xml', root=public_root, mimetype='application/opensearchdescription+xml')
+
+
 @bottle.route('/favicon.ico')
 def server_fav():
     return bottle.static_file('favicon.ico', root=public_root)
