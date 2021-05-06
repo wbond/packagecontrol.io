@@ -245,6 +245,16 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     (error_message, str_cls(e), url)
                 )
 
+            except (socket.gaierror) as e:
+                # Error looking up address information
+                self.close()
+                error_string = text.format(
+                    '''
+                    %s URL error host not found (%s) downloading %s.
+                    ''',
+                    (error_message, str_cls(e), url)
+                )
+
             except (socket.error):
                 # Handle broken pipes/reset connections by creating a new opener, and
                 # thus getting new handlers and a new connection

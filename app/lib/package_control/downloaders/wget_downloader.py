@@ -198,6 +198,9 @@ class WgetDownloader(CliDownloader, DecodingDownloader, LimitingDownloader, Cach
                             )
                         continue
 
+                    if download_error.find('unable to resolve host address') != -1:
+                        download_error = 'URL error host not found (%s)' % download_error
+
                 error_string = u'%s %s downloading %s.' % (error_message, download_error, url)
 
             break
