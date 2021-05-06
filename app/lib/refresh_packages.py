@@ -34,6 +34,15 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
         settings['query_string_params']['api.github.com']['client_secret'] = \
             config.read_secret('github_client_secret')
 
+
+    def needs_review(exception):
+        if 'HTTP error 404' in exception.args[0]:
+            return True
+        if 'URL error host not found' in exception.args[0]:
+            return True
+        return False
+
+
     def clean_url(exception):
         error = exception.args[0]
         for param, value in settings['query_string_params']['api.github.com'].items():
@@ -42,10 +51,12 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
             error = error.replace(search, replace)
         return error
 
+
     def resolve_path(path):
         dirname = os.path.dirname(os.path.abspath(__file__))
         dirname = os.path.join(dirname, path)
         return os.path.realpath(dirname)
+
 
     channel_settings = config.read('channel')
 
@@ -152,14 +163,14 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
                     print('-' * 60, file=sys.stderr)
 
             for source, exception in provider.get_failed_sources():
-                package.modify.mark_missing(source, clean_url(exception))
-                dependency.mark_missing(source, clean_url(exception))
+                package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
+                dependency.mark_missing(source, clean_url(exception), needs_review(exception))
 
             for package_name, exception in provider.get_broken_packages():
-                package.modify.mark_missing_by_name(package_name, clean_url(exception))
+                package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
 
             for dependency_name, exception in provider.get_broken_dependencies():
-                dependency.mark_missing_by_name(dependency_name, clean_url(exception))
+                dependency.mark_missing_by_name(dependency_name, clean_url(exception), needs_review(exception))
 
             break
 

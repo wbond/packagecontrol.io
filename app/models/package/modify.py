@@ -297,12 +297,18 @@ def mark_found(package):
         """, [package])
 
 
-def mark_missing(source, error):
+def mark_missing(source, error, needs_review):
     """
     Marks all packages from a source as currently missing
 
     :param source:
         The URL of the source that could not be contacted
+
+    :param error:
+        A unicode string of the error
+
+    :param needs_review:
+        A bool if the package needs to be reviewed
     """
 
     with connection() as cursor:
@@ -312,21 +318,27 @@ def mark_missing(source, error):
             SET
                 is_missing = TRUE,
                 missing_error = %s,
-                needs_review = TRUE
+                needs_review = %s
             FROM
                 packages AS p
             WHERE
                 p.name = package_stats.package AND
                 p.sources @> ARRAY[%s]::varchar[]
-        """, [error, source])
+        """, [error, needs_review, source])
 
 
-def mark_missing_by_name(package, error):
+def mark_missing_by_name(package, error, needs_review):
     """
     Marks a package as missing
 
     :param package:
         The name of the package
+
+    :param error:
+        A unicode string of the error
+
+    :param needs_review:
+        A bool if the package needs to be reviewed
     """
 
     with connection() as cursor:
@@ -336,10 +348,10 @@ def mark_missing_by_name(package, error):
             SET
                 is_missing = TRUE,
                 missing_error = %s,
-                needs_review = TRUE
+                needs_review = %s
             WHERE
                 package = %s
-        """, [error, package])
+        """, [error, needs_review, package])
 
 
 def mark_removed(package):

@@ -262,12 +262,18 @@ def mark_found(dependencies):
         """, [dependencies])
 
 
-def mark_missing(source, error):
+def mark_missing(source, error, needs_review):
     """
     Marks all dependencies from a source as currently missing
 
     :param source:
         The URL of the source that could not be contacted
+
+    :param error:
+        A unicode string of the error
+
+    :param needs_review:
+        A bool if the dependency needs to be reviewed
     """
 
     with connection() as cursor:
@@ -277,18 +283,24 @@ def mark_missing(source, error):
             SET
                 is_missing = TRUE,
                 missing_error = %s,
-                needs_review = TRUE
+                needs_review = %s
             WHERE
                 sources @> ARRAY[%s]::varchar[]
-        """, [error, source])
+        """, [error, needs_review, source])
 
 
-def mark_missing_by_name(dependency, error):
+def mark_missing_by_name(dependency, error, needs_review):
     """
     Marks a dependency as missing
 
     :param dependency:
         The name of the dependency
+
+    :param error:
+        A unicode string of the error
+
+    :param needs_review:
+        A bool if the dependency needs to be reviewed
     """
 
     with connection() as cursor:
@@ -298,10 +310,10 @@ def mark_missing_by_name(dependency, error):
             SET
                 is_missing = TRUE,
                 missing_error = %s,
-                needs_review = TRUE
+                needs_review = %s
             WHERE
                 name = %s
-        """, [error, dependency])
+        """, [error, needs_review, dependency])
 
 
 def mark_removed(dependency):
