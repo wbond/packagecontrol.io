@@ -27,12 +27,22 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
     """
 
     settings = config.read('crawler')
-    if 'query_string_params' in settings and \
-            'api.github.com' in settings['query_string_params']:
-        settings['query_string_params']['api.github.com']['client_id'] = \
-            config.read_secret('github_client_id')
-        settings['query_string_params']['api.github.com']['client_secret'] = \
-            config.read_secret('github_client_secret')
+    if 'http_basic_auth' in settings:
+        if 'api.github.com' in settings['http_basic_auth']:
+            settings['http_basic_auth']['api.github.com'] = [
+                settings['http_basic_auth']['api.github.com'][0],
+                config.read_secret('github_access_token_wbond')
+            ]
+        if 'gitlab.com' in settings['http_basic_auth']:
+            settings['http_basic_auth']['gitlab.com'] = [
+                settings['http_basic_auth']['gitlab.com'][0],
+                config.read_secret('gitlab_access_token_wbond')
+            ]
+        if 'api.bitbucket.org' in settings['http_basic_auth']:
+            settings['http_basic_auth']['api.bitbucket.org'] = [
+                settings['http_basic_auth']['api.bitbucket.org'][0],
+                config.read_secret('bitbucket_app_password_wbond')
+            ]
 
 
     def needs_review(exception):
