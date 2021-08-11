@@ -17,6 +17,7 @@ from .oscrypto_downloader_exception import OscryptoDownloaderException
 from ..ca_certs import get_user_ca_bundle_path
 from .decoding_downloader import DecodingDownloader
 from .limiting_downloader import LimitingDownloader
+from .basic_auth_downloader import BasicAuthDownloader
 from .caching_downloader import CachingDownloader
 from .. import text
 
@@ -57,7 +58,7 @@ else:
     int_types = int
 
 
-class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader):
+class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader, BasicAuthDownloader):
 
     """
     A downloader that uses the Python oscrypto.tls module
@@ -150,6 +151,8 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     req_headers["User-Agent"] = user_agent
                 req_headers = self.add_conditional_headers(url, req_headers)
 
+                req_headers.update(self.build_auth_header(url))
+
                 request = 'GET '
                 url_info = urlparse(url)
                 if self.using_proxy:
@@ -241,16 +244,6 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 error_string = text.format(
                     '''
                     %s TLS error %s downloading %s.
-                    ''',
-                    (error_message, str_cls(e), url)
-                )
-
-            except (socket.gaierror) as e:
-                # Error looking up address information
-                self.close()
-                error_string = text.format(
-                    '''
-                    %s URL error host not found (%s) downloading %s.
                     ''',
                     (error_message, str_cls(e), url)
                 )
