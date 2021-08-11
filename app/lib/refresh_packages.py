@@ -28,20 +28,21 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
 
     settings = config.read('crawler')
     if 'http_basic_auth' in settings:
-        if 'api.github.com' in settings['http_basic_auth']:
+        auth = settings['http_basic_auth']
+        if 'api.github.com' in auth:
             settings['http_basic_auth']['api.github.com'] = [
-                settings['http_basic_auth']['api.github.com'][0],
-                config.read_secret('github_access_token_wbond')
+                auth['api.github.com'][0],
+                config.read_secret('github_access_token_%s' % auth['api.github.com'][0])
             ]
-        if 'gitlab.com' in settings['http_basic_auth']:
+        if 'gitlab.com' in auth:
             settings['http_basic_auth']['gitlab.com'] = [
-                settings['http_basic_auth']['gitlab.com'][0],
-                config.read_secret('gitlab_access_token_wbond')
+                auth['gitlab.com'][0],
+                config.read_secret('gitlab_access_token_%s' % auth['gitlab.com'][0])
             ]
-        if 'api.bitbucket.org' in settings['http_basic_auth']:
+        if 'api.bitbucket.org' in auth:
             settings['http_basic_auth']['api.bitbucket.org'] = [
-                settings['http_basic_auth']['api.bitbucket.org'][0],
-                config.read_secret('bitbucket_app_password_wbond')
+                auth['api.bitbucket.org'][0],
+                config.read_secret('bitbucket_app_password_%s' % auth['api.bitbucket.org'][0])
             ]
 
 
