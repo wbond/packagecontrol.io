@@ -10,6 +10,6 @@ downloader_precedence:
     osx: [oscrypto, urllib, curl]
     linux: [oscrypto, urllib, curl, wget]
 http_basic_auth:
-    api.github.com: ["wbond", "Use config.read_secret('github_access_token_USERNAME')"]
+    api.github.com: ["packagecontrol-bot", "Use config.read_secret('github_access_token_USERNAME')"]
     gitlab.com: ["wbond", "Use config.read_secret('gitlab_access_token_USERNAME')"]
     api.bitbucket.org: ["wbond", "Use config.read_secret('bitbucket_app_password_USERNAME')"]
