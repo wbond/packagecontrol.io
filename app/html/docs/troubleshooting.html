@@ -68,6 +68,47 @@
 </ol>
 
 
+<h2 id="Missing_deps_or_pkgs">Missing dependencies or packages</h2>
+
+<p>
+	When trying to install a package, if you receive an error message like<br>
+	<br>
+	<tt>
+		Package Control: The dependency 'backrefs' is not currently installed; installing...<br>
+		Package Control: The dependency 'backrefs' is not available<br>
+		Package Control: The dependency 'backrefs' could not be installed or updated<br>
+	</tt>
+	<br>
+
+	or if the package you're looking for is missing on the list of available
+	packages in Sublime Text, but exists in the
+	<a href="https://packagecontrol.io/browse">Package Control directory</a>, it
+	may be because the Package Control crawler is having trouble locating these
+	deps or packages and omitted them from
+	<a href="https://packagecontrol.io/channel_v3.json">channel_v3.json</a> in a
+	recent crawl.
+</p>
+<p>
+	A temporary fix for this is to use a backup channel like
+	<a href="https://github.com/irvingcode/channelV3">https://github.com/irvingcode/channelV3</a>
+	(this is an unofficial channel).
+</p>
+
+<ol>
+	<li>
+		Run <tt>Package Control: Add Channel</tt>.
+	</li>
+	<li>
+		Paste
+		<tt>https://raw.githubusercontent.com/irvingcode/channelV3/master/channel_v3.json</tt>.
+	</li>
+	<li>
+		Make a note to remove this temporary channel once the official Package
+		Control channel has been fixed.
+	</li>
+</ol>
+
+
 <h2 id="Purging_and_Reinstalling">Purging and Reinstalling</h2>
 
 <p>
