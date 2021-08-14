@@ -34,9 +34,8 @@ if explicit_package:
     valid_sources = package.sources.sources_for(explicit_package)
     valid_dependency_sources = []
 else:
-    # Limit each run to 400 packages
-    valid_sources = package.sources.outdated_sources(60, 400)
-    valid_dependency_sources = dependency.outdated_sources(60, 400)
+    valid_sources = package.sources.outdated_sources(60, 200)
+    valid_dependency_sources = dependency.outdated_sources(60, 200)
 
 invalid_sources = package.sources.invalid_sources(valid_sources)
 invalid_dependency_sources = dependency.invalid_sources(valid_dependency_sources)
