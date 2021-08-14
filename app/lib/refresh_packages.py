@@ -56,7 +56,7 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
 
     def clean_url(exception):
         error = exception.args[0]
-        for param, value in settings['query_string_params']['api.github.com'].items():
+        for param, value in settings.get('query_string_params', {}).get('api.github.com', {}).items():
             regex = '[?&]' + re.escape(param) + '=' + re.escape(value)
             error = re.sub(regex, '', error)
             error = error.replace(search, replace)
