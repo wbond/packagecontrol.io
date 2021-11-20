@@ -23,6 +23,7 @@ from .labels import labels_controller
 from .messaging import messaging_controller
 from .new import new_controller
 from .news import news_controller
+from .opensearch_suggestions import opensearch_suggestions_controller
 from .package import package_controller
 from .packages import packages_controller
 from .popular import popular_controller

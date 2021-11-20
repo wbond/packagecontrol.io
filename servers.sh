@@ -156,6 +156,13 @@ if [[ $TASK == "start" ]]; then
                 try_files  \$uri  @site;
             }
 
+            # Override OpenSearch content type
+            location /opensearch.xml {
+                types {
+                    application/opensearchdescription+xml xml;
+                }
+            }
+
             location @site {
                 access_by_lua_file  "$PROJ_DIR/realtime/record_web.lua";
                 proxy_pass http://localhost:9000;
