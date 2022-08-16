@@ -8,7 +8,7 @@ def dependent_sources(source):
     Fetches a list of sources needed to fully refresh all packages from the specified source
 
     :param source:
-        The string source (URL) to find the dependencies of
+        The string source (URL) to find the libraries of
 
     :return:
         A list of sources (URLs) for packages to be refreshed

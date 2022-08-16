@@ -84,9 +84,8 @@ CREATE TABLE packages (
 );
 
 
-CREATE TABLE dependencies (
+CREATE TABLE libraries (
     name                     varchar(500)  NOT NULL PRIMARY KEY,
-    load_order               varchar(2)    NOT NULL,
     description              varchar       NOT NULL DEFAULT '',
     authors                  varchar[],
     issues                   varchar       NOT NULL DEFAULT '',
@@ -99,14 +98,15 @@ CREATE TABLE dependencies (
 );
 
 
-CREATE TABLE dependency_releases (
-    dependency               varchar(500)  NOT NULL REFERENCES dependencies(name) ON DELETE CASCADE ON UPDATE CASCADE,
+CREATE TABLE library_releases (
+    library                  varchar(500)  NOT NULL REFERENCES libraries(name) ON DELETE CASCADE ON UPDATE CASCADE,
     platforms                varchar[]     NOT NULL,
+    python_versions          varchar[]     NOT NULL,
     sublime_text             varchar       NOT NULL,
     version                  varchar       NOT NULL,
     url                      varchar       NOT NULL,
     sha256                   varchar,
-    PRIMARY KEY(dependency, platforms, sublime_text, version)
+    PRIMARY KEY(library, platforms, sublime_text, version)
 );
 
 
@@ -118,7 +118,7 @@ CREATE TABLE releases (
     version                  varchar       NOT NULL,
     url                      varchar       NOT NULL,
     date                     timestamp     NOT NULL,
-    dependencies             varchar[],
+    libraries                varchar[],
     PRIMARY KEY(package, platforms, sublime_text, version)
 );
 
@@ -272,7 +272,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION array_unique(arr anyarray) RETURNS anyarray LANGUAGE sql AS $$
     SELECT array_agg(DISTINCT a)
     FROM (
-        SELECT unnest(arr) a 
+        SELECT unnest(arr) a
         ORDER BY a
     ) sq
 $$;

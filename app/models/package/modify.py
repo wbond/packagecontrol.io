@@ -568,7 +568,7 @@ def store(values):
                     version,
                     url,
                     date,
-                    dependencies
+                    libraries
                 ) VALUES (
                     %s,
                     %s,
@@ -587,7 +587,7 @@ def store(values):
                 release['version'],
                 release['url'],
                 release['date'],
-                release.get('dependencies', [])
+                release.get('libraries', [])
             ])
 
 
