@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 
 tmux has-session -t packagecontrol
 if [[ $? != 0 ]]; then
