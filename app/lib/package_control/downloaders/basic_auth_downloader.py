@@ -1,11 +1,6 @@
 import base64
 
-try:
-    # Python 3
-    from urllib.parse import urlparse
-except (ImportError):
-    # Python 2
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 class BasicAuthDownloader(object):
@@ -64,7 +59,6 @@ class BasicAuthDownloader(object):
         domain_name = urlparse(url).netloc
 
         auth_settings = self.settings.get('http_basic_auth')
-        domain_name = urlparse(url).netloc
         if auth_settings and isinstance(auth_settings, dict):
             params = auth_settings.get(domain_name)
             if params and isinstance(params, (list, tuple)) and len(params) == 2:

@@ -5,7 +5,7 @@ import gzip
 import bz2
 from urllib.parse import urlparse
 
-from ..models import package, dependency
+from ..models import package, library
 from ..lib.json_datetime_encoder import JsonDatetimeEncoder
 
 
@@ -40,8 +40,8 @@ for name, info in package_info.items():
 
     output['packages_cache'][repo].append(info)
 
-dependency_info = dependency.all(limit_one_per_dependency=True)
-for name, info in dependency_info.items():
+library_info = library.all(limit_one_per_library=True)
+for name, info in library_info.items():
     repo = info['repository']
     del info['repository']
 

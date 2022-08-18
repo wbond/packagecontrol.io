@@ -106,7 +106,6 @@ files = [
     'download_manager.py',
     'file_not_found_error.py',
     # CUSTOM 'http_cache.py',
-    'open_compat.py',
     '../readme.md',
     'semver.py',
     # CUSTOM 'show_error.py',

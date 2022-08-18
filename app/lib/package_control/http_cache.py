@@ -1,20 +1,19 @@
-# Not shared with Package Control
-
 import os
+import time
 
-from datetime import datetime, timedelta
-
-from ..connection import connection
+from .sys_path import pc_cache_dir
 
 
 class HttpCache(object):
+
     """
     A data store for caching HTTP response data.
     """
 
     def __init__(self, ttl):
+        self.base_path = os.path.join(pc_cache_dir(), 'http_cache')
+        os.makedirs(self.base_path, exist_ok=True)
         self.clear(int(ttl))
-
 
     def clear(self, ttl):
         """
@@ -25,11 +24,16 @@ class HttpCache(object):
         """
 
         ttl = int(ttl)
-        cutoff = datetime.utcnow() - timedelta(seconds=ttl)
 
-        with connection() as cursor:
-            cursor.execute("DELETE FROM http_cache_entries WHERE last_modified < %s", [cutoff])
-
+        for filename in os.listdir(self.base_path):
+            path = os.path.join(self.base_path, filename)
+            # There should not be any folders in the cache dir, but we
+            # ignore to prevent an exception
+            if os.path.isdir(path):
+                continue
+            mtime = os.stat(path).st_mtime
+            if mtime < time.time() - ttl:
+                os.unlink(path)
 
     def get(self, key):
         """
@@ -41,20 +45,16 @@ class HttpCache(object):
         :return:
             The (binary) cached value, or False
         """
-
-        with connection() as cursor:
-            cursor.execute("SELECT content FROM http_cache_entries WHERE key = %s", [key])
-            row = cursor.fetchone()
-            if not row:
-                return False
-
-            return row['content'].tobytes()
-
+        try:
+            cache_file = os.path.join(self.base_path, key)
+            with open(cache_file, 'rb') as fobj:
+                return fobj.read()
+        except FileNotFoundError:
+            return False
 
     def has(self, key):
-        with connection() as cursor:
-            cursor.execute("SELECT key FROM http_cache_entries WHERE key = %s", [key])
-            return cursor.fetchone() != None
+        cache_file = os.path.join(self.base_path, key)
+        return os.path.exists(cache_file)
 
     def path(self, key):
         """
@@ -67,7 +67,7 @@ class HttpCache(object):
             The absolute filesystem path to the cache file
         """
 
-        return "SELECT * FROM http_cache_entries WHERE key = '%s'" % key
+        return os.path.join(self.base_path, key)
 
     def set(self, key, content):
         """
@@ -80,10 +80,6 @@ class HttpCache(object):
             The (binary) content to cache
         """
 
-        if self.has(key):
-            sql = "UPDATE http_cache_entries SET content = %s, last_modified = CURRENT_TIMESTAMP WHERE key = %s"
-        else:
-            sql = "INSERT INTO http_cache_entries (content, last_modified, key) VALUES (%s, CURRENT_TIMESTAMP, %s)"
-
-        with connection() as cursor:
-            cursor.execute(sql, [content, key])
+        cache_file = os.path.join(self.base_path, key)
+        with open(cache_file, 'wb') as f:
+            f.write(content)

@@ -29,7 +29,6 @@ REQUIRED_PATHS = [
     'downloaders',
     'file_not_found_error.py',
     'http',
-    'open_compat.py',
     'providers',
     'semver.py',
     'text.py',
