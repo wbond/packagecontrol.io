@@ -23,7 +23,7 @@ for dir_ in os.environ['PATH'].split(os.pathsep):
         git_binary = path
         break
 
-args = [git_binary, 'pull', 'origin', 'master']
+args = [git_binary, 'pull', '--ff-only', 'origin', 'master']
 print(subprocess.check_output(args, cwd=dirname, encoding='utf-8'))
 
 if explicit_package:
