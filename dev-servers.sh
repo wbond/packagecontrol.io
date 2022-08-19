@@ -17,6 +17,13 @@ mkdir -p "$PROJ_DIR/data/pgsql"
 mkdir -p "$PROJ_DIR/data/redis"
 mkdir -p "$PROJ_DIR/data/logs"
 
+# Create run directory with elevated privileges
+PGSQL_RUN_DIR=/var/run/postgresql
+if [[ ! -d "$PGSQL_RUN_DIR" ]]; then
+    sudo mkdir -p "$PGSQL_RUN_DIR"
+    sudo chown -p $(whoami) "$PGSQL_RUN_DIR"
+fi
+
 if [[ ! -d "$PROJ_DIR/data/pgsql/base" ]]; then
     initdb "$PROJ_DIR/data/pgsql"
     createdb -U postgres -E 'UTF-8' package_control
