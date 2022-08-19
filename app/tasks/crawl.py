@@ -24,11 +24,7 @@ for dir_ in os.environ['PATH'].split(os.pathsep):
         break
 
 args = [git_binary, 'pull', 'origin', 'master']
-proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-    stderr=subprocess.STDOUT, cwd=dirname)
-output, _ = proc.communicate()
-print(output.decode(encoding='utf-8'))
-
+print(subprocess.check_output(args, cwd=dirname, encoding='utf-8'))
 
 if explicit_package:
     valid_sources = package.sources.sources_for(explicit_package)
