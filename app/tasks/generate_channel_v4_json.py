@@ -20,13 +20,13 @@ if not os.path.exists(assets_dir):
         'overridden by the environmental variable PACKAGE_CONTROL_ASSETS.')
 
 output = {
-    'schema_version': '3.0.0',
+    'schema_version': '4.0.0',
     'repositories': [],
     'packages_cache': {},
-    'dependencies_cache': {}
+    'libraries_cache': {}
 }
 
-package_info = package.find.all(limit_one_per_package=True, only_package_control=True)
+package_info = package.find.all(limit_one_per_package=True)
 for name, info in package_info.items():
     repo = info['repository']
     del info['repository']
@@ -40,14 +40,27 @@ for name, info in package_info.items():
 
     output['packages_cache'][repo].append(info)
 
+library_info = library.all(limit_one_per_library=True)
+for name, info in library_info.items():
+    repo = info['repository']
+    del info['repository']
+
+    if repo not in output['repositories']:
+        output['repositories'].append(repo)
+
+    if repo not in output['libraries_cache']:
+        output['libraries_cache'][repo] = []
+
+    output['libraries_cache'][repo].append(info)
+
 output['repositories'] = sorted(output['repositories'])
 
-new_json_path     = os.path.join(assets_dir, 'channel_v3.json-new')
-new_json_gz_path  = os.path.join(assets_dir, 'channel_v3.json.gz-new')
-new_json_bz2_path = os.path.join(assets_dir, 'channel_v3.json.bz2-new')
-json_path         = os.path.join(assets_dir, 'channel_v3.json')
-json_gz_path      = os.path.join(assets_dir, 'channel_v3.json.gz')
-json_bz2_path     = os.path.join(assets_dir, 'channel_v3.json.bz2')
+new_json_path     = os.path.join(assets_dir, 'channel_v4.json-new')
+new_json_gz_path  = os.path.join(assets_dir, 'channel_v4.json.gz-new')
+new_json_bz2_path = os.path.join(assets_dir, 'channel_v4.json.bz2-new')
+json_path         = os.path.join(assets_dir, 'channel_v4.json')
+json_gz_path      = os.path.join(assets_dir, 'channel_v4.json.gz')
+json_bz2_path     = os.path.join(assets_dir, 'channel_v4.json.bz2')
 
 encoded_json = json.dumps(output, cls=JsonDatetimeEncoder).encode('utf-8')
 
