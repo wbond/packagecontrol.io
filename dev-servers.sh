@@ -21,7 +21,7 @@ mkdir -p "$PROJ_DIR/data/logs"
 PGSQL_RUN_DIR=/var/run/postgresql
 if [[ ! -d "$PGSQL_RUN_DIR" ]]; then
     sudo mkdir -p "$PGSQL_RUN_DIR"
-    sudo chown -p $(whoami) "$PGSQL_RUN_DIR"
+    sudo chown $(whoami) "$PGSQL_RUN_DIR"
 fi
 
 HAS_DB=1
