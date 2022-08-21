@@ -104,12 +104,11 @@ def refresh_packages(invalid_package_sources=None, invalid_library_sources=None)
     if not invalid_library_sources:
         invalid_library_sources = None
 
+    repositories = []
     for provider_cls in CHANNEL_PROVIDERS:
-        if not provider_cls.match_url(channel):
-            continue
-        provider = provider_cls(channel, settings)
-        repositories = provider.get_repositories()
-        break
+        if provider_cls.match_url(channel):
+            repositories = provider_cls(channel, settings).get_repositories()
+            break
 
     affected_packages = []
     affected_libraries = []
