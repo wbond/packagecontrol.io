@@ -35,7 +35,7 @@ if [[ $TASK == "start" ]]; then
 
     if [[ ! -f "$PROJ_DIR/data/ssl/dhparam.pem" ]]; then
         echo -n "Generating dhparam for TLS ..."
-    	openssl dhparam -out $PROJ_DIR/data/ssl/dhparam.pem 2048
+        openssl dhparam -out $PROJ_DIR/data/ssl/dhparam.pem 2048
         echo " done"
     fi
 
@@ -97,17 +97,17 @@ if [[ $TASK == "start" ]]; then
             listen       443 ssl http2;
             server_name  dev.packagecontrol.io;
 
-			ssl_certificate  $PROJ_DIR/data/ssl/fullchain.pem;
-			ssl_certificate_key  $PROJ_DIR/data/ssl/privkey.pem;
-			ssl_dhparam  $PROJ_DIR/data/ssl/dhparam.pem;
-			ssl_protocols  TLSv1.2 TLSv1.1 TLSv1;
-			ssl_ciphers  'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS';
-			ssl_prefer_server_ciphers  on;
-			ssl_session_timeout  5m;
+            ssl_certificate  $PROJ_DIR/data/ssl/fullchain.pem;
+            ssl_certificate_key  $PROJ_DIR/data/ssl/privkey.pem;
+            ssl_dhparam  $PROJ_DIR/data/ssl/dhparam.pem;
+            ssl_protocols  TLSv1.2 TLSv1.1 TLSv1;
+            ssl_ciphers  'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS';
+            ssl_prefer_server_ciphers  on;
+            ssl_session_timeout  5m;
 
-			ssl_stapling  on;
-			ssl_stapling_verify  on;
-			ssl_trusted_certificate  $PROJ_DIR/data/ssl/fullchain.pem;
+            ssl_stapling  on;
+            ssl_stapling_verify  on;
+            ssl_trusted_certificate  $PROJ_DIR/data/ssl/fullchain.pem;
 
             root  $PROJ_DIR/public;
 
