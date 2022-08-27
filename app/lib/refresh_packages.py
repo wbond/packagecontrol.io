@@ -4,6 +4,7 @@ import sys
 import traceback
 
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
+from .package_control.downloaders.rate_limit_exception import RateLimitException, RateLimitSkipException
 from .package_control.download_manager import close_all_connections
 from .package_control.clients.readme_client import ReadmeClient
 from .. import config
@@ -110,6 +111,8 @@ def refresh_packages(invalid_package_sources=None, invalid_library_sources=None)
             repositories = provider_cls(channel, settings).get_repositories()
             break
 
+    accepted_errors = (RateLimitException, RateLimitSkipException)
+
     affected_packages = []
     affected_libraries = []
     for repository in repositories:
@@ -173,13 +176,19 @@ def refresh_packages(invalid_package_sources=None, invalid_library_sources=None)
                     print('-' * 60, file=sys.stderr)
 
             for source, exception in provider.get_failed_sources():
+                if isinstance(exception, accepted_errors):
+                    continue
                 package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
                 library.mark_missing(source, clean_url(exception), needs_review(exception))
 
             for package_name, exception in provider.get_broken_packages():
+                if isinstance(exception, accepted_errors):
+                    continue
                 package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
 
             for library_name, exception in provider.get_broken_libraries():
+                if isinstance(exception, accepted_errors):
+                    continue
                 library.mark_missing_by_name(library_name, clean_url(exception), needs_review(exception))
 
             break
