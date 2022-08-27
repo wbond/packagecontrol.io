@@ -1,63 +1,83 @@
 import re
 
-from .semver import SemVer
+from .deps.semver import SemVer
 from .console_write import console_write
 
 
-def semver_compat(v):
-    """
-    Converts a string version number into SemVer. If the version is based on
-    a date, converts to 0.0.1+yyyy.mm.dd.hh.mm.ss.
+class PackageVersion(SemVer):
 
-    :param v:
-        A string, dict with 'version' key, or a SemVer object
+    _date_pattern = re.compile(r'^(\d{4})\.(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})$')
+    _pre_semver_pattern = re.compile(r'^(\d+)(?:\.(\d+)(?:\.(\d+)(?:[T\.](\d+(\.\d+)*))?)?)?$')
 
-    :return:
-        A string that is a valid semantic version number
-    """
+    @classmethod
+    def _parse(cls, ver):
+        """
+        Converts a string version number into SemVer. If the version is based on
+        a date, converts to 0.0.1+yyyy.mm.dd.hh.mm.ss.
 
-    if isinstance(v, SemVer):
-        # SemVer only defined __str__, not __unicode__, so we always use str()
-        return str(v)
+        :param ver:
+            A string, dict with 'version' key, or a SemVer object
 
-    # Allowing passing in a dict containing info about a package
-    if isinstance(v, dict):
-        if 'version' not in v:
-            return '0'
-        v = v['version']
+        :raises:
+            TypeError, if ver is not one of: str, dict with version, SemVer
+            ValueError, if ver is no valid version string
 
-    # Trim v off of the front
-    v = re.sub('^v', '', v)
+        :return:
+            A list of 5 items representing a valid semantic version number
+        """
 
-    # We prepend 0 to all date-based version numbers so that developers
-    # may switch to explicit versioning from GitHub/BitBucket
-    # versioning based on commit dates.
-    #
-    # When translating dates into semver, the way to get each date
-    # segment into the version is to treat the year and month as
-    # minor and patch, and then the rest as a numeric build version
-    # with four different parts. The result looks like:
-    # 0.2012.11+10.31.23.59
-    date_match = re.match(r'(\d{4})\.(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})$', v)
-    if date_match:
-        v = '0.0.1+%s.%s.%s.%s.%s.%s' % date_match.groups()
+        # Allowing passing in a dict containing info about a package
+        if isinstance(ver, dict):
+            if 'version' not in ver:
+                raise TypeError("%s is not a package or library release" % ver)
+            ver = ver['version']
 
-    # This handles version that were valid pre-semver with 4+ dotted
-    # groups, such as 1.6.9.0
-    four_plus_match = re.match(r'(\d+\.\d+\.\d+)[T\.](\d+(\.\d+)*)$', v)
-    if four_plus_match:
-        v = '%s+%s' % (four_plus_match.group(1), four_plus_match.group(2))
+        if isinstance(ver, SemVer):
+            return ver
 
-    # Semver must have major, minor, patch
-    elif re.match(r'^\d+$', v):
-        v += '.0.0'
-    elif re.match(r'^\d+\.\d+$', v):
-        v += '.0'
-    return v
+        if not isinstance(ver, str):
+            raise TypeError("%r is not a string" % ver)
 
+        # Trim v off of the front
+        if ver.startswith('v'):
+            ver = ver[1:]
 
-def version_comparable(string):
-    return SemVer(semver_compat(string))
+        # Match semver compatible strings
+        match = cls._match_regex.match(ver)
+        if match:
+            g = list(match.groups())
+            for i in range(3):
+                g[i] = int(g[i])
+
+            return g
+
+        # We prepend 0 to all date-based version numbers so that developers
+        # may switch to explicit versioning from GitHub/GitLab/BitBucket
+        # versioning based on commit dates.
+        #
+        # The resulting semver is alwass 0.0.1 with timestamp being used
+        # as build number, so any explicitly choosen version (via tags) will
+        # be greater, once a package moves from branch to tag based releases.
+        #
+        # The result looks like:
+        # 0.0.1+2020.07.15.10.50.38
+        match = cls._date_pattern.match(ver)
+        if match:
+            return [0, 0, 1, None, '.'.join(match.groups())]
+
+        # This handles versions that were valid pre-semver with 1 to 4+ dotted
+        # groups, such as 1, 1.6, or 1.6.9.0
+        match = cls._pre_semver_pattern.match(ver)
+        if match:
+            return [
+                int(match.group(1) or 0),
+                int(match.group(2) or 0),
+                int(match.group(3) or 0),
+                None,
+                match.group(4)
+            ]
+
+        raise ValueError("'%s' is not a valid SemVer string" % ver)
 
 
 def version_exclude_prerelease(versions):
@@ -71,50 +91,33 @@ def version_exclude_prerelease(versions):
         The list of versions with pre-releases removed
     """
 
-    output = []
-    for version in versions:
-        if SemVer(semver_compat(version)).prerelease is not None:
-            continue
-        output.append(version)
-    return output
+    return [v for v in versions if not PackageVersion(v).prerelease]
 
 
-def version_process(versions, filter_prefix):
+def version_match_prefix(version, filter_prefix):
     """
-    Filter a list of versions to ones that are valid SemVers, if a prefix
-    is provided, only match versions starting with the prefix and split
+    Create a SemVer for a given version, if it matches filter_prefix.
 
-    :param versions:
-        The list of versions to filter
+    :param version:
+        The version string to match
 
     :param filter_prefix:
-        Remove this prefix from the version before checking if it is a valid
-        SemVer. If this prefix is not present, skip the version.
+        The prefix to match versions against
 
-    :return:
-        A list of dicts, each of which has the keys "version" and "prefix"
+    :returns:
+        SemVer, if version is valid and matches given filter_prefix
+        None, if version is invalid or doesn't match filter_prefix
     """
 
-    output = []
-    for version in versions:
-        prefix = ''
-
+    try:
         if filter_prefix:
-            if version[0:len(filter_prefix)] != filter_prefix:
-                continue
-            check_version = version[len(filter_prefix):]
-            prefix = filter_prefix
-
+            if version.startswith(filter_prefix):
+                return PackageVersion(version[len(filter_prefix):])
         else:
-            check_version = re.sub('^v', '', version)
-            if check_version != version:
-                prefix = 'v'
-
-        if not SemVer.valid(check_version):
-            continue
-
-        output.append({'version': check_version, 'prefix': prefix})
-    return output
+            return PackageVersion(version)
+    except ValueError:
+        pass
+    return None
 
 
 def version_sort(sortable, *fields, **kwargs):
@@ -137,7 +140,7 @@ def version_sort(sortable, *fields, **kwargs):
     """
 
     def _version_sort_key(item):
-        result = SemVer(semver_compat(item))
+        result = PackageVersion(item)
         if fields:
             values = [result]
             for field in fields:

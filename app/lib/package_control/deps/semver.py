@@ -246,6 +246,9 @@ class SemVer(namedtuple("_SemVer", 'major, minor, patch, prerelease, build')):
         return 'SemVer("%s")' % str(self)
         # return 'SemVer(%s)' % ', '.join('%s=%r' % (k, getattr(self, k)) for k in self._fields)
 
+    def __hash__(self):
+        return hash(str(self))
+
     def __len__(self):
         return 3 + (self.build is not None and 2 or self.prerelease is not None)
 
@@ -397,7 +400,7 @@ class SemVer(namedtuple("_SemVer", 'major, minor, patch, prerelease, build')):
         return 0
 
 
-class SemComparator(object):
+class SemComparator:
 
     """Holds a SemVer object and a comparing operator and can match these against a given version.
 

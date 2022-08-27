@@ -1,15 +1,43 @@
 import re
-from urllib.parse import quote
+from urllib.parse import urlencode, quote
 
 from ..downloaders.downloader_exception import DownloaderException
-from ..versions import version_process, version_sort
+from ..versions import version_match_prefix
 from .json_api_client import JSONApiClient
 
 
 class GitLabClient(JSONApiClient):
 
     @staticmethod
-    def make_repo_url(owner_name, repo_name):
+    def user_repo_branch(url):
+        """
+        Extract the username, repo and branch name from the URL
+
+        :param url:
+            The URL to extract the info from, in one of the forms:
+              https://gitlab.com/{user}
+              https://gitlab.com/{user}/{repo}
+              https://gitlab.com/{user}/{repo}.git
+              https://gitlab.com/{user}/{repo}/-/tree/{branch}
+
+        :return:
+            A tuple of
+                (user name, repo name, branch name) or
+                (user name, repo name, None) or
+                (user name, None, None) or
+                (None, None, None) if no match.
+
+            The branch name may be a branch name or a commit
+        """
+
+        match = re.match(r'^https?://gitlab\.com/([^/#?]+)(?:/([^/#?]+?)(?:\.git|/-/tree/([^/#?]+)/?|/?)|/?)$', url)
+        if match:
+            return match.groups()
+
+        return (None, None, None)
+
+    @staticmethod
+    def repo_url(user_name, repo_name):
         """
         Generate the tags URL for a GitHub repo if the value passed is a GitHub
         repository URL
@@ -24,48 +52,7 @@ class GitLabClient(JSONApiClient):
             The repositoy URL of given owner and repo name
         """
 
-        return 'https://gitlab.com/%s/%s' % (quote(owner_name), quote(repo_name))
-
-    @staticmethod
-    def make_tags_url(repo_url):
-        """
-        Generate the tags URL for a GitLab repo if the value passed is a GitLab
-        repository URL
-
-        :param repo_url:
-            The repository URL
-
-        :return:
-            The tags URL if repo_url was a GitLab repo, otherwise False
-        """
-
-        match = re.match('https?://gitlab.com/([^/]+/[^/]+)/?$', repo_url)
-        if not match:
-            return False
-
-        return 'https://gitlab.com/%s/-/tags' % match.group(1)
-
-    @staticmethod
-    def make_branch_url(repo_url, branch):
-        """
-        Generate the branch URL for a GitLab repo if the value passed is a GitLab
-        repository URL
-
-        :param repo_url:
-            The repository URL
-
-        :param branch:
-            The branch name
-
-        :return:
-            The branch URL if repo_url was a GitLab repo, otherwise False
-        """
-
-        match = re.match('https?://gitlab.com/([^/]+/[^/]+)/?$', repo_url)
-        if not match:
-            return False
-
-        return 'https://gitlab.com/%s/-/tree/%s' % (match.group(1), quote(branch))
+        return 'https://gitlab.com/%s/%s' % (quote(user_name), quote(repo_name))
 
     def download_info(self, url, tag_prefix=None):
         """
@@ -95,69 +82,120 @@ class GitLabClient(JSONApiClient):
               `date` - the ISO-8601 timestamp string when the version was published
         """
 
-        output = []
+        output = self.download_info_from_branch(url)
+        if output is None:
+            output = self.download_info_from_tags(url, tag_prefix)
+        return output
 
-        version = None
-        url_pattern = 'https://gitlab.com/%s/%s/-/archive/%s/%s-%s.zip'
+    def download_info_from_branch(self, url, default_branch=None):
+        """
+        Retrieve information about downloading a package
 
-        # tag based releases
-        tags_match = re.match('https?://gitlab.com/([^/]+)/([^/]+)/-/tags/?$', url)
-        if tags_match:
-            user_name, repo_name = tags_match.groups()
-            repo_id = '%s%%2F%s' % (user_name, repo_name)
-            tags_url = self._make_api_url(repo_id, '/repository/tags?per_page=100')
-            tags_json = self.fetch_json(tags_url)
-            tags_list = {
-                tag['name']: tag['commit']['committed_date'][0:19].replace('T', ' ')
-                for tag in tags_json
-            }
+        :param url:
+            The URL of the repository, in one of the forms:
+              https://gitlab.com/{user}/{repo}
+              https://gitlab.com/{user}/{repo}/-/tree/{branch}
 
-            tag_info = version_process(tags_list.keys(), tag_prefix)
-            tag_info = version_sort(tag_info, reverse=True)
-            if not tag_info:
-                return False
+        :param default_branch:
+            The branch to use, in case url is a repo url
 
-            max_releases = self.settings.get('max_releases', 0)
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
 
-            used_versions = set()
-            for info in tag_info:
-                version = info['version']
-                if version in used_versions:
-                    continue
+        :return:
+            None if no match, False if no commit, or a list of dicts with the
+            following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
 
-                tag = info['prefix'] + version
-                output.append({
-                    'url': url_pattern % (user_name, repo_name, tag, repo_name, tag),
-                    'version': version,
-                    'date': tags_list[tag]
-                })
-                used_versions.add(version)
-                if max_releases > 0 and len(used_versions) >= max_releases:
-                    break
+        user_name, repo_name, branch = self.user_repo_branch(url)
+        if not repo_name:
+            return None
 
-        # branch based releases
-        else:
-            user_repo, branch = self._user_repo_branch(url)
-            if not user_repo:
-                return None
+        repo_id = '%s%%2F%s' % (user_name, repo_name)
 
-            user_name, repo_name = user_repo.split('/')
-            repo_id = '%s%%2F%s' % (user_name, repo_name)
-
+        if branch is None:
+            branch = default_branch
             if branch is None:
-                repo_info = self.fetch_json(self._make_api_url(repo_id))
+                repo_info = self.fetch_json(self._api_url(repo_id))
                 branch = repo_info.get('default_branch', 'master')
 
-            branch_url = self._make_api_url(repo_id, '/repository/branches/%s' % branch)
-            branch_info = self.fetch_json(branch_url)
+        branch_url = self._api_url(repo_id, '/repository/branches/%s' % branch)
+        branch_info = self.fetch_json(branch_url)
 
-            timestamp = branch_info['commit']['committed_date'][0:19].replace('T', ' ')
+        timestamp = branch_info['commit']['committed_date'][0:19].replace('T', ' ')
+        version = re.sub(r'[\-: ]', '.', timestamp)
 
-            output = [{
-                'url': url_pattern % (user_name, repo_name, branch, repo_name, branch),
-                'version': re.sub(r'[\-: ]', '.', timestamp),
-                'date': timestamp
-            }]
+        return [self._make_download_info(user_name, repo_name, branch, version, timestamp)]
+
+    def download_info_from_tags(self, url, tag_prefix=None):
+        """
+        Retrieve information about downloading a package
+
+        :param url:
+            The URL of the repository, in one of the forms:
+              https://gitlab.com/{user}/{repo}
+              https://gitlab.com/{user}/{repo}/-/tags
+            Grabs the info from the newest tag(s) that is a valid semver version.
+
+        :param tag_prefix:
+            If the URL is a tags URL, only match tags that have this prefix.
+            If tag_prefix is None, match only tags without prefix.
+
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
+
+        :return:
+            None if no match, False if no commit, or a list of dicts with the
+            following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
+
+        tags_match = re.match(r'https?://gitlab\.com/([^/#?]+)/([^/#?]+)(?:/-/tags)?/?$', url)
+        if not tags_match:
+            return None
+
+        def _get_releases(user_repo, tag_prefix=None, page_size=100):
+            used_versions = set()
+            for page in range(100):
+                query_string = urlencode({'page': page * page_size, 'per_page': page_size})
+                tags_url = self._api_url(user_repo, '/repository/tags?%s' % query_string)
+                tags_json = self.fetch_json(tags_url)
+
+                for tag in tags_json:
+                    version = version_match_prefix(tag['name'], tag_prefix)
+                    if version and version not in used_versions:
+                        used_versions.add(version)
+                        yield (
+                            version,
+                            tag['name'],
+                            tag['commit']['committed_date'][0:19].replace('T', ' ')
+                        )
+
+                if len(tags_json) < page_size:
+                    return
+
+        user_name, repo_name = tags_match.groups()
+        user_repo = '%s%%2F%s' % (user_name, repo_name)
+
+        max_releases = self.settings.get('max_releases', 0)
+        num_releases = 0
+
+        output = []
+        for release in sorted(_get_releases(user_repo, tag_prefix), reverse=True):
+            version, tag, timestamp = release
+
+            output.append(self._make_download_info(user_name, repo_name, tag, str(version), timestamp))
+
+            num_releases += not version.prerelease
+            if max_releases > 0 and num_releases >= max_releases:
+                break
 
         return output
 
@@ -168,9 +206,11 @@ class GitLabClient(JSONApiClient):
             The URL to the repository, in one of the forms:
               https://gitlab.com/{user}/{repo}
               https://gitlab.com/{user}/{repo}/-/tree/{branch}
+
         :raises:
             DownloaderException: when there is an error downloading
             ClientException: when there is an error parsing the response
+
         :return:
             None if no match, or a dict with the following keys:
               `name`
@@ -180,15 +220,15 @@ class GitLabClient(JSONApiClient):
               `readme` - URL of the readme
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
-        user_repo, branch = self._user_repo_branch(url)
-        if not user_repo:
+        user_name, repo_name, branch = self.user_repo_branch(url)
+        if not repo_name:
             return None
 
-        user_name, repo_name = user_repo.split('/')
         repo_id = '%s%%2F%s' % (user_name, repo_name)
-        repo_url = self._make_api_url(repo_id)
+        repo_url = self._api_url(repo_id)
         repo_info = self.fetch_json(repo_url)
 
         if not branch:
@@ -218,9 +258,10 @@ class GitLabClient(JSONApiClient):
               `readme` - URL of the readme
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
-        user_match = re.match('https?://gitlab.com/([^/]+)/?$', url)
+        user_match = re.match(r'https?://gitlab\.com/([^/#?]+)/?$', url)
         if user_match is None:
             return None
 
@@ -256,6 +297,7 @@ class GitLabClient(JSONApiClient):
               `readme` - URL of the homepage
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
         user_name = result['owner']['username'] if result.get('owner') else result['namespace']['name']
@@ -276,9 +318,47 @@ class GitLabClient(JSONApiClient):
             'readme': readme_url,
             'issues': result.get('issues', None) if result.get('_links') else None,
             'donate': None,
+            'default_branch': branch
         }
 
-    def _make_api_url(self, project_id, suffix=''):
+    def _make_download_info(self, user_name, repo_name, ref_name, version, timestamp):
+        """
+        Generate a download_info record
+
+        :param user_name:
+            The owner of the repository
+
+        :param repo_name:
+            The name of the repository
+
+        :param ref_name:
+            The git reference (branch, commit, tag)
+
+        :param version:
+            The prefixed version to add to the record
+
+        :param timestamp:
+            The timestamp the revision was created
+
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
+
+        :return:
+            A dictionary with following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
+
+        return {
+            'url': 'https://gitlab.com/%s/%s/-/archive/%s/%s-%s.zip' % (
+                user_name, repo_name, ref_name, repo_name, ref_name),
+            'version': version,
+            'date': timestamp
+        }
+
+    def _api_url(self, project_id, suffix=''):
         """
         Generate a URL for the GitLab API
 
@@ -293,30 +373,6 @@ class GitLabClient(JSONApiClient):
         """
 
         return 'https://gitlab.com/api/v4/projects/%s%s' % (project_id, suffix)
-
-    def _user_repo_branch(self, url):
-        """
-        Extract the username/repo and branch name from the URL
-
-        :param url:
-            The URL to extract the info from, in one of the forms:
-              https://gitlab.com/{user}/{repo}
-              https://gitlab.com/{user}/{repo}/-/tree/{branch}
-
-        :return:
-            A tuple of (user/repo, branch name) or (None, None) if no match.
-            The branch name may be a branch name or a commit
-        """
-
-        branch_match = re.match('https?://gitlab.com/([^/]+/[^/]+)/-/tree/([^/]+)/?$', url)
-        if branch_match:
-            return branch_match.groups()
-
-        repo_match = re.match('https?://gitlab.com/([^/]+/[^/]+)(?:$|/.*$)', url)
-        if repo_match:
-            return (repo_match.group(1), None)
-
-        return (None, None)
 
     def _extract_user_id(self, username):
         """

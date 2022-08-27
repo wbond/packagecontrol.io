@@ -1,10 +1,12 @@
-import re
-
 from ..clients.client_exception import ClientException
 from ..clients.gitlab_client import GitLabClient
 from ..downloaders.downloader_exception import DownloaderException
 from .base_repository_provider import BaseRepositoryProvider
-from .provider_exception import ProviderException
+from .provider_exception import (
+    GitProviderDownloadInfoException,
+    GitProviderUserInfoException,
+    ProviderException,
+)
 
 
 class GitLabUserProvider(BaseRepositoryProvider):
@@ -35,9 +37,17 @@ class GitLabUserProvider(BaseRepositoryProvider):
     def match_url(cls, repo_url):
         """
         Indicates if this provider can handle the provided repo_url
-        """
 
-        return re.search('^https?://gitlab.com/[^/]+/?$', repo_url) is not None
+        :param repo_url:
+            The URL to the repository, in one of the forms:
+                https://gitlab.com/{user}
+                https://gitlab.com/{user}/
+
+        :return:
+            True if repo_url matches an supported scheme.
+        """
+        user, repo, _ = GitLabClient.user_repo_branch(repo_url)
+        return bool(user and not repo)
 
     def get_packages(self, invalid_sources=None):
         """
@@ -45,10 +55,6 @@ class GitLabUserProvider(BaseRepositoryProvider):
 
         :param invalid_sources:
             A list of URLs that should be ignored
-
-        :raises:
-            DownloaderException: when there is an issue download package info
-            ClientException: when there is an issue parsing package info
 
         :return:
             A generator of
@@ -87,50 +93,53 @@ class GitLabUserProvider(BaseRepositoryProvider):
             return
 
         if invalid_sources is not None and self.repo_url in invalid_sources:
-            raise StopIteration()
+            return
 
         client = GitLabClient(self.settings)
 
         try:
             user_repos = client.user_info(self.repo_url)
-        except (DownloaderException, ClientException) as e:
+            if not user_repos:
+                raise GitProviderUserInfoException(self)
+        except (DownloaderException, ClientException, ProviderException) as e:
             self.failed_sources[self.repo_url] = e
             self.cache['get_packages'] = {}
-            raise
+            return
 
         output = {}
         for repo_info in user_repos:
             author = repo_info['author']
             name = repo_info['name']
-            repo_url = client.make_repo_url(author, name)
+            repo_url = client.repo_url(author, name)
 
             try:
-                releases = []
-                for download in client.download_info(repo_url):
+                downloads = client.download_info_from_branch(repo_url, repo_info['default_branch'])
+                if not downloads:
+                    raise GitProviderDownloadInfoException(self)
+
+                for download in downloads:
                     download['sublime_text'] = '*'
                     download['platforms'] = ['*']
-                    releases.append(download)
 
                 details = {
                     'name': name,
                     'description': repo_info['description'],
                     'homepage': repo_info['homepage'],
                     'author': author,
-                    'last_modified': releases[0].get('date'),
-                    'releases': releases,
+                    'last_modified': downloads[0].get('date'),
+                    'releases': downloads,
                     'previous_names': [],
                     'labels': [],
                     'sources': [self.repo_url],
                     'readme': repo_info['readme'],
                     'issues': repo_info['issues'],
                     'donate': repo_info['donate'],
-                    'buy': None,
+                    'buy': None
                 }
                 output[name] = details
                 yield (name, details)
 
-            except (DownloaderException, ClientException,
-                    ProviderException) as e:
+            except (DownloaderException, ClientException, ProviderException) as e:
                 self.failed_sources[repo_url] = e
 
         self.cache['get_packages'] = output

@@ -1,10 +1,12 @@
-import re
-
 from ..clients.bitbucket_client import BitBucketClient
 from ..clients.client_exception import ClientException
 from ..downloaders.downloader_exception import DownloaderException
 from .base_repository_provider import BaseRepositoryProvider
-from .provider_exception import ProviderException
+from .provider_exception import (
+    GitProviderDownloadInfoException,
+    GitProviderRepoInfoException,
+    ProviderException,
+)
 
 
 class BitBucketRepositoryProvider(BaseRepositoryProvider):
@@ -34,9 +36,22 @@ class BitBucketRepositoryProvider(BaseRepositoryProvider):
 
     @classmethod
     def match_url(cls, repo_url):
-        """Indicates if this provider can handle the provided repo_url"""
+        """
+        Indicates if this provider can handle the provided repo_url
 
-        return re.search('^https?://bitbucket.org/([^/]+/[^/]+)/?$', repo_url) is not None
+        :param repo_url:
+            The URL to the repository, in one of the forms:
+                https://bitbucket.org/{user}/{repo}.git
+                https://bitbucket.org/{user}/{repo}
+                https://bitbucket.org/{user}/{repo}/
+                https://bitbucket.org/{user}/{repo}/src/{branch}
+                https://bitbucket.org/{user}/{repo}/src/{branch}/
+
+        :return:
+            True if repo_url matches an supported scheme.
+        """
+        user, repo, _ = BitBucketClient.user_repo_branch(repo_url)
+        return bool(user and repo)
 
     def get_packages(self, invalid_sources=None):
         """
@@ -44,10 +59,6 @@ class BitBucketRepositoryProvider(BaseRepositoryProvider):
 
         :param invalid_sources:
             A list of URLs that should be ignored
-
-        :raises:
-            DownloaderException: when there is an issue download package info
-            ClientException: when there is an issue parsing package info
 
         :return:
             A generator of
@@ -86,18 +97,22 @@ class BitBucketRepositoryProvider(BaseRepositoryProvider):
             return
 
         if invalid_sources is not None and self.repo_url in invalid_sources:
-            raise StopIteration()
+            return
 
         client = BitBucketClient(self.settings)
 
         try:
             repo_info = client.repo_info(self.repo_url)
+            if not repo_info:
+                raise GitProviderRepoInfoException(self)
 
-            releases = []
-            for download in client.download_info(self.repo_url):
+            downloads = client.download_info_from_branch(self.repo_url, repo_info['default_branch'])
+            if not downloads:
+                raise GitProviderDownloadInfoException(self)
+
+            for download in downloads:
                 download['sublime_text'] = '*'
                 download['platforms'] = ['*']
-                releases.append(download)
 
             name = repo_info['name']
             details = {
@@ -105,8 +120,8 @@ class BitBucketRepositoryProvider(BaseRepositoryProvider):
                 'description': repo_info['description'],
                 'homepage': repo_info['homepage'],
                 'author': repo_info['author'],
-                'last_modified': releases[0].get('date'),
-                'releases': releases,
+                'last_modified': downloads[0].get('date'),
+                'releases': downloads,
                 'previous_names': [],
                 'labels': [],
                 'sources': [self.repo_url],
@@ -121,4 +136,3 @@ class BitBucketRepositoryProvider(BaseRepositoryProvider):
         except (DownloaderException, ClientException, ProviderException) as e:
             self.failed_sources[self.repo_url] = e
             self.cache['get_packages'] = {}
-            raise StopIteration()

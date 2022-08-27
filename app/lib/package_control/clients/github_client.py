@@ -1,15 +1,40 @@
 import re
 from urllib.parse import urlencode, quote
 
-from ..versions import version_sort, version_process
-from .json_api_client import JSONApiClient
 from ..downloaders.downloader_exception import DownloaderException
+from ..versions import version_match_prefix
+from .json_api_client import JSONApiClient
 
 
 class GitHubClient(JSONApiClient):
 
     @staticmethod
-    def make_repo_url(owner_name, repo_name):
+    def user_repo_branch(url):
+        """
+        Extract the username, repo and branch name from the URL
+
+        :param url:
+            The URL to extract the info from, in one of the forms:
+              https://github.com/{user}
+              https://github.com/{user}/{repo}
+              https://github.com/{user}/{repo}.git
+              https://github.com/{user}/{repo}/tree/{branch}
+
+        :return:
+            A tuple of
+                (user name, repo name, branch name) or
+                (user name, repo name, None) or
+                (user name, None, None) or
+                (None, None, None) if no match.
+        """
+        match = re.match(r'^https?://github\.com/([^/#?]+)(?:/([^/#?]+?)(?:\.git|/tree/([^/#?]+)/?|/?)|/?)$', url)
+        if match:
+            return match.groups()
+
+        return (None, None, None)
+
+    @staticmethod
+    def repo_url(user_name, repo_name):
         """
         Generate the tags URL for a GitHub repo if the value passed is a GitHub
         repository URL
@@ -24,48 +49,7 @@ class GitHubClient(JSONApiClient):
             The repositoy URL of given owner and repo name
         """
 
-        return 'https://github.com/%s/%s' % (quote(owner_name), quote(repo_name))
-
-    @staticmethod
-    def make_tags_url(repo_url):
-        """
-        Generate the tags URL for a GitHub repo if the value passed is a GitHub
-        repository URL
-
-        :param repo_url:
-            The repository URL
-
-        :return:
-            The tags URL if repo was a GitHub repo_url, otherwise False
-        """
-
-        match = re.match('https?://github.com/([^/]+/[^/]+)/?$', repo_url)
-        if not match:
-            return False
-
-        return 'https://github.com/%s/tags' % match.group(1)
-
-    @staticmethod
-    def make_branch_url(repo_url, branch):
-        """
-        Generate the branch URL for a GitHub repo if the value passed is a GitHub
-        repository URL
-
-        :param repo_url:
-            The repository URL
-
-        :param branch:
-            The branch name
-
-        :return:
-            The branch URL if repo_url was a GitHub repo, otherwise False
-        """
-
-        match = re.match('https?://github.com/([^/]+/[^/]+)/?$', repo_url)
-        if not match:
-            return False
-
-        return 'https://github.com/%s/tree/%s' % (match.group(1), quote(branch))
+        return 'https://github.com/%s/%s' % (quote(user_name), quote(repo_name))
 
     def download_info(self, url, tag_prefix=None):
         """
@@ -95,64 +79,117 @@ class GitHubClient(JSONApiClient):
               `date` - the ISO-8601 timestamp string when the version was published
         """
 
-        output = []
+        output = self.download_info_from_branch(url)
+        if output is None:
+            output = self.download_info_from_tags(url, tag_prefix)
+        return output
 
-        version = None
-        url_pattern = 'https://codeload.github.com/%s/zip/%s'
+    def download_info_from_branch(self, url, default_branch=None):
+        """
+        Retrieve information about downloading a package
 
-        # tag based releases
-        tags_match = re.match('https?://github.com/([^/]+/[^/]+)/tags/?$', url)
-        if tags_match:
-            user_repo = tags_match.group(1)
-            tags_url = self._make_api_url(user_repo, '/tags?per_page=100')
-            tags_json = self.fetch_json(tags_url)
-            tag_urls = {tag['name']: tag['commit']['url'] for tag in tags_json}
-            tag_info = version_process(tag_urls.keys(), tag_prefix)
-            tag_info = version_sort(tag_info, reverse=True)
-            if not tag_info:
-                return False
+        :param url:
+            The URL of the repository, in one of the forms:
+              https://github.com/{user}/{repo}
+              https://github.com/{user}/{repo}/tree/{branch}
 
-            max_releases = self.settings.get('max_releases', 0)
+        :param default_branch:
+            The branch to use, in case url is a repo url
 
-            used_versions = set()
-            for info in tag_info:
-                version = info['version']
-                if version in used_versions:
-                    continue
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
 
-                tag = info['prefix'] + version
-                tag_info = self.fetch_json(tag_urls[tag])
-                timestamp = tag_info['commit']['committer']['date'][0:19].replace('T', ' ')
+        :return:
+            None if no match, False if no commit, or a list of dicts with the
+            following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
 
-                output.append({
-                    'url': url_pattern % (user_repo, tag),
-                    'version': version,
-                    'date': timestamp
-                })
-                used_versions.add(version)
-                if max_releases > 0 and len(used_versions) >= max_releases:
-                    break
+        user_name, repo_name, branch = self.user_repo_branch(url)
+        if not repo_name:
+            return None
 
-        # branch based releases
-        else:
-            user_repo, branch = self._user_repo_branch(url)
-            if not user_repo:
-                return None
+        user_repo = "%s/%s" % (user_name, repo_name)
 
+        if branch is None:
+            branch = default_branch
             if branch is None:
-                repo_info = self.fetch_json(self._make_api_url(user_repo))
+                repo_info = self.fetch_json(self._api_url(user_repo))
                 branch = repo_info.get('default_branch', 'master')
 
-            branch_url = self._make_api_url(user_repo, '/branches/%s' % branch)
-            branch_info = self.fetch_json(branch_url)
+        branch_url = self._api_url(user_repo, '/branches/%s' % branch)
+        branch_info = self.fetch_json(branch_url)
 
-            timestamp = branch_info['commit']['commit']['committer']['date'][0:19].replace('T', ' ')
+        timestamp = branch_info['commit']['commit']['committer']['date'][0:19].replace('T', ' ')
+        version = re.sub(r'[\-: ]', '.', timestamp)
 
-            output = [{
-                'url': url_pattern % (user_repo, branch),
-                'version': re.sub(r'[\-: ]', '.', timestamp),
-                'date': timestamp
-            }]
+        return [self._make_download_info(user_repo, branch, version, timestamp)]
+
+    def download_info_from_tags(self, url, tag_prefix=None):
+        """
+        Retrieve information about downloading a package
+
+        :param url:
+            The URL of the repository, in one of the forms:
+              https://github.com/{user}/{repo}
+              https://github.com/{user}/{repo}/tags
+            Grabs the info from the newest tag(s) that is a valid semver version.
+
+        :param tag_prefix:
+            If the URL is a tags URL, only match tags that have this prefix.
+            If tag_prefix is None, match only tags without prefix.
+
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
+
+        :return:
+            None if no match, False if no commit, or a list of dicts with the
+            following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
+
+        tags_match = re.match(r'https?://github\.com/([^/#?]+/[^/#?]+)(?:/tags)?/?$', url)
+        if not tags_match:
+            return None
+
+        def _get_releases(user_repo, tag_prefix=None, page_size=100):
+            used_versions = set()
+            for page in range(100):
+                query_string = urlencode({'page': page * page_size, 'per_page': page_size})
+                tags_url = self._api_url(user_repo, '/tags?%s' % query_string)
+                tags_json = self.fetch_json(tags_url)
+
+                for tag in tags_json:
+                    version = version_match_prefix(tag['name'], tag_prefix)
+                    if version and version not in used_versions:
+                        used_versions.add(version)
+                        yield (version, tag['name'], tag['commit']['url'])
+
+                if len(tags_json) < page_size:
+                    return
+
+        user_repo = tags_match.group(1)
+        max_releases = self.settings.get('max_releases', 0)
+        num_releases = 0
+
+        output = []
+        for release in sorted(_get_releases(user_repo, tag_prefix), reverse=True):
+            version, tag, tag_url = release
+
+            tag_info = self.fetch_json(tag_url)
+            timestamp = tag_info['commit']['committer']['date'][0:19].replace('T', ' ')
+
+            output.append(self._make_download_info(user_repo, tag, str(version), timestamp))
+
+            num_releases += not version.prerelease
+            if max_releases > 0 and num_releases >= max_releases:
+                break
 
         return output
 
@@ -178,13 +215,15 @@ class GitHubClient(JSONApiClient):
               `readme` - URL of the readme
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
-        user_repo, branch = self._user_repo_branch(url)
-        if not user_repo:
-            return user_repo
+        user_name, repo_name, branch = self.user_repo_branch(url)
+        if not repo_name:
+            return None
 
-        api_url = self._make_api_url(user_repo)
+        user_repo = "%s/%s" % (user_name, repo_name)
+        api_url = self._api_url(user_repo)
         repo_info = self.fetch_json(api_url)
 
         if branch is None:
@@ -214,9 +253,10 @@ class GitHubClient(JSONApiClient):
               `readme` - URL of the readme
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
-        user_match = re.match('https?://github.com/([^/]+)/?$', url)
+        user_match = re.match(r'https?://github\.com/([^/#?]+)/?$', url)
         if user_match is None:
             return None
 
@@ -249,6 +289,7 @@ class GitHubClient(JSONApiClient):
               `readme` - URL of the homepage
               `issues` - URL of bug tracker
               `donate` - URL of a donate page
+              `default_branch`
         """
 
         user_name = result['owner']['login']
@@ -266,10 +307,44 @@ class GitHubClient(JSONApiClient):
             'author': user_name,
             'readme': self._readme_url(user_repo, branch),
             'issues': issues_url,
-            'donate': None
+            'donate': None,
+            'default_branch': branch
         }
 
-    def _make_api_url(self, user_repo, suffix=''):
+    def _make_download_info(self, user_repo, ref_name, version, timestamp):
+        """
+        Generate a download_info record
+
+        :param user_repo:
+            The user/repo of the repository
+
+        :param ref_name:
+            The git reference (branch, commit, tag)
+
+        :param version:
+            The prefixed version to add to the record
+
+        :param timestamp:
+            The timestamp the revision was created
+
+        :raises:
+            DownloaderException: when there is an error downloading
+            ClientException: when there is an error parsing the response
+
+        :return:
+            A dictionary with following keys:
+              `version` - the version number of the download
+              `url` - the download URL of a zip file of the package
+              `date` - the ISO-8601 timestamp string when the version was published
+        """
+
+        return {
+            'url': 'https://codeload.github.com/%s/zip/%s' % (user_repo, ref_name),
+            'version': version,
+            'date': timestamp
+        }
+
+    def _api_url(self, user_repo, suffix=''):
         """
         Generate a URL for the BitBucket API
 
@@ -307,7 +382,7 @@ class GitHubClient(JSONApiClient):
         """
 
         query_string = urlencode({'ref': branch})
-        readme_url = self._make_api_url(user_repo, '/readme?%s' % query_string)
+        readme_url = self._api_url(user_repo, '/readme?%s' % query_string)
 
         try:
             readme_file = self.fetch_json(readme_url, prefer_cached).get('path')
@@ -319,26 +394,3 @@ class GitHubClient(JSONApiClient):
                 raise
 
         return None
-
-    def _user_repo_branch(self, url):
-        """
-        Extract the username/repo and branch name from the URL
-
-        :param url:
-            The URL to extract the info from, in one of the forms:
-              https://github.com/{user}/{repo}
-              https://github.com/{user}/{repo}/tree/{branch}
-
-        :return:
-            A tuple of (user/repo, branch name) or (None, None) if no match
-        """
-
-        branch_match = re.match('https?://github.com/([^/]+/[^/]+)/tree/([^/]+)/?$', url)
-        if branch_match:
-            return branch_match.groups()
-
-        repo_match = re.match('https?://github.com/([^/]+/[^/]+)(?:$|/.*$)', url)
-        if repo_match:
-            return (repo_match.group(1), None)
-
-        return (None, None)

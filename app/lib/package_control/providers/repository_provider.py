@@ -205,11 +205,6 @@ class RepositoryProvider(BaseRepositoryProvider):
         :param invalid_sources:
             A list of URLs that are permissible to fetch data from
 
-        :raises:
-            ProviderException: when an error occurs trying to open a file
-            DownloaderException: when there is an issue download package info
-            ClientException: when there is an issue parsing package info
-
         :return:
             A generator of
             (
@@ -242,7 +237,7 @@ class RepositoryProvider(BaseRepositoryProvider):
             return
 
         if invalid_sources is not None and self.repo_url in invalid_sources:
-            raise StopIteration()
+            return
 
         if not self.fetch():
             return
@@ -377,25 +372,23 @@ class RepositoryProvider(BaseRepositoryProvider):
                                 (info['name'], self.repo_url)
                             ))
 
-                        client = None
-                        extra = None
-                        url = None
+                        downloads = None
 
                         if tags:
+                            extra = None
                             if tags is not True:
                                 extra = tags
                             for client in clients:
-                                url = client.make_tags_url(base)
-                                if url:
+                                downloads = client.download_info_from_tags(base, extra)
+                                if downloads is not None:
                                     break
-
-                        if branch:
+                        else:
                             for client in clients:
-                                url = client.make_branch_url(base, branch)
-                                if url:
+                                downloads = client.download_info_from_branch(base, branch)
+                                if downloads is not None:
                                     break
 
-                        if not url:
+                        if downloads is None:
                             raise ProviderException(text.format(
                                 '''
                                 Invalid "base" value "%s" for one of the releases of the
@@ -404,14 +397,13 @@ class RepositoryProvider(BaseRepositoryProvider):
                                 (base, info['name'], self.repo_url)
                             ))
 
-                        downloads = client.download_info(url, extra)
                         if downloads is False:
                             raise ProviderException(text.format(
                                 '''
-                                No valid semver tags found at %s for the library
-                                "%s" in the repository %s.
+                                No valid semver tags found at %s for the
+                                library "%s" in the repository %s.
                                 ''',
-                                (url, info['name'], self.repo_url)
+                                (base, info['name'], self.repo_url)
                             ))
 
                         for download in downloads:
@@ -462,11 +454,6 @@ class RepositoryProvider(BaseRepositoryProvider):
         :param invalid_sources:
             A list of URLs that are permissible to fetch data from
 
-        :raises:
-            ProviderException: when an error occurs trying to open a file
-            DownloaderException: when there is an issue download package info
-            ClientException: when there is an issue parsing package info
-
         :return:
             A generator of
             (
@@ -505,7 +492,7 @@ class RepositoryProvider(BaseRepositoryProvider):
             return
 
         if invalid_sources is not None and self.repo_url in invalid_sources:
-            raise StopIteration()
+            return
 
         if not self.fetch():
             return
@@ -549,6 +536,9 @@ class RepositoryProvider(BaseRepositoryProvider):
                 if package.get(field):
                     info[field] = package.get(field)
 
+            details = None
+            releases = None
+
             # Schema version 2.0 allows for grabbing details about a package, or its
             # download from "details" urls. See the GitHubClient and BitBucketClient
             # classes for valid URLs.
@@ -570,14 +560,15 @@ class RepositoryProvider(BaseRepositoryProvider):
                             repo_info = client.repo_info(details)
                             if repo_info:
                                 break
-
-                        if not repo_info:
+                        else:
                             raise ProviderException(text.format(
                                 '''
                                 Invalid "details" value "%s" for one of the packages in the repository %s.
                                 ''',
                                 (details, self.repo_url)
                             ))
+
+                        del repo_info['default_branch']
 
                         # When grabbing details, prefer explicit field values over the values
                         # from the GitHub or BitBucket API
@@ -656,18 +647,27 @@ class RepositoryProvider(BaseRepositoryProvider):
                             download_details = release['details']
 
                             try:
-                                downloads = False
+                                downloads = None
 
                                 for client in clients:
                                     downloads = client.download_info(download_details)
                                     if downloads is not None:
                                         break
 
+                                if downloads is None:
+                                    raise ProviderException(text.format(
+                                        '''
+                                        Invalid "details" value "%s" for one of the releases of the
+                                        package "%s" in the repository %s.
+                                        ''',
+                                        (download_details, info['name'], self.repo_url)
+                                    ))
+
                                 if downloads is False:
                                     raise ProviderException(text.format(
                                         '''
-                                        Invalid "details" value "%s" under the "releases" key
-                                        for the package "%s" in the repository %s.
+                                        No valid semver tags found at %s for the
+                                        package "%s" in the repository %s.
                                         ''',
                                         (download_details, info['name'], self.repo_url)
                                     ))
@@ -704,25 +704,23 @@ class RepositoryProvider(BaseRepositoryProvider):
                                         (info['name'], self.repo_url)
                                     ))
 
-                                client = None
-                                extra = None
-                                url = None
+                                downloads = None
 
                                 if tags:
+                                    extra = None
                                     if tags is not True:
                                         extra = tags
                                     for client in clients:
-                                        url = client.make_tags_url(base)
-                                        if url:
+                                        downloads = client.download_info_from_tags(base, extra)
+                                        if downloads is not None:
                                             break
-
-                                if branch:
+                                else:
                                     for client in clients:
-                                        url = client.make_branch_url(base, branch)
-                                        if url:
+                                        downloads = client.download_info_from_branch(base, branch)
+                                        if downloads is not None:
                                             break
 
-                                if not url:
+                                if downloads is None:
                                     raise ProviderException(text.format(
                                         '''
                                         Invalid "base" value "%s" for one of the releases of the
@@ -731,14 +729,13 @@ class RepositoryProvider(BaseRepositoryProvider):
                                         (base, info['name'], self.repo_url)
                                     ))
 
-                                downloads = client.download_info(url, extra)
                                 if downloads is False:
                                     raise ProviderException(text.format(
                                         '''
                                         No valid semver tags found at %s for the
                                         package "%s" in the repository %s.
                                         ''',
-                                        (url, info['name'], self.repo_url)
+                                        (base, info['name'], self.repo_url)
                                     ))
 
                                 for download in downloads:
