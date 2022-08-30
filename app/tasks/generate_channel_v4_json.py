@@ -1,12 +1,10 @@
-import re
+import bz2
+import gzip
 import json
 import os
-import gzip
-import bz2
-from urllib.parse import urlparse
 
-from ..models import package, library
 from ..lib.json_datetime_encoder import JsonDatetimeEncoder
+from ..models import package, library
 
 
 if 'PACKAGE_CONTROL_ASSETS' not in os.environ:
