@@ -1,51 +1,86 @@
 import re
 import socket
-from threading import Lock, Timer
-from contextlib import contextmanager
 import sys
+from threading import Lock, Timer
 from urllib.parse import urlparse
 
 from . import __version__
-
-from .show_error import show_error
-from .console_write import console_write
-from .cache import set_cache, get_cache
 from . import text
+from .cache import set_cache, get_cache
+from .console_write import console_write
+from .show_error import show_error
 
 from .downloaders import DOWNLOADERS
-from .downloaders.urllib_downloader import UrlLibDownloader
 from .downloaders.binary_not_found_error import BinaryNotFoundError
+from .downloaders.downloader_exception import DownloaderException
+from .downloaders.oscrypto_downloader_exception import OscryptoDownloaderException
 from .downloaders.rate_limit_exception import RateLimitException
 from .downloaders.rate_limit_exception import RateLimitSkipException
-from .downloaders.downloader_exception import DownloaderException
+from .downloaders.urllib_downloader import UrlLibDownloader
 from .downloaders.win_downloader_exception import WinDownloaderException
-from .downloaders.oscrypto_downloader_exception import OscryptoDownloaderException
 from .http_cache import HttpCache
 
 
-# A dict of domains - each points to a list of downloaders
 _managers = {}
+"""A dict of domains - each points to a list of downloaders"""
 
-# How many managers are currently checked out
 _in_use = 0
+"""How many managers are currently checked out"""
 
-# Make sure connection management doesn't run into threading issues
 _lock = Lock()
+"""Make sure connection management doesn't run into threading issues"""
 
-# A timer used to disconnect all managers after a period of no usage
 _timer = None
+"""A timer used to disconnect all managers after a period of no usage"""
 
 
-@contextmanager
-def downloader(url, settings):
+def http_get(url, settings, error_message='', prefer_cached=False):
+    """
+    Performs a HTTP GET request using best matching downloader.
+
+    :param url:
+        The string URL to download
+
+    :param settings:
+        The dictionary with downloader settings.
+
+          - ``debug``
+          - ``downloader_precedence``
+          - ``http_basic_auth``
+          - ``http_cache``
+          - ``http_cache_length``
+          - ``http_proxy``
+          - ``https_proxy``
+          - ``proxy_username``
+          - ``proxy_password``
+          - ``user_agent``
+          - ``timeout``
+
+    :param error_message:
+        The error message to include if the download fails
+
+    :param prefer_cached:
+        If cached version of the URL content is preferred over a new request
+
+    :raises:
+        DownloaderException: if there was an error downloading the URL
+
+    :return:
+        The string contents of the URL
+    """
+
+    manager = None
+    result = None
+
     try:
-        manager = None
         manager = _grab(url, settings)
-        yield manager
+        result = manager.fetch(url, error_message, prefer_cached)
 
     finally:
         if manager:
             _release(url, manager)
+
+    return result
 
 
 def _grab(url, settings):
@@ -75,7 +110,10 @@ def _release(url, manager):
     global _managers, _lock, _in_use, _timer
 
     with _lock:
-        hostname = urlparse(url).hostname.lower()
+        parsed = urlparse(url)
+        if not parsed or not parsed.hostname:
+            raise DownloaderException('The URL "%s" is malformed' % url)
+        hostname = parsed.hostname.lower()
 
         # This means the package was reloaded between _grab and _release,
         # so the downloader is using old code and we want to discard it
@@ -103,7 +141,7 @@ def close_all_connections():
             _timer.cancel()
             _timer = None
 
-        for domain, managers in _managers.items():
+        for managers in _managers.values():
             for manager in managers:
                 manager.close()
         _managers = {}
@@ -154,11 +192,29 @@ class DownloadManager:
         # Cache the downloader for re-use
         self.downloader = None
 
-        user_agent = settings.get('user_agent')
-        if user_agent and user_agent.find('%s') != -1:
-            settings['user_agent'] = user_agent % __version__
+        keys_to_copy = {
+            'debug',
+            'downloader_precedence',
+            'http_basic_auth',
+            'http_proxy',
+            'https_proxy',
+            'proxy_username',
+            'proxy_password',
+            'user_agent',
+            'timeout',
+        }
 
-        self.settings = settings
+        # Copy required settings to avoid manipulating caller's environment.
+        # It's needed as e.g. `cache_length` is defined with different meaning in PackageManager's
+        # settings. Also `cache` object shouldn't be propagated to caller.
+        self.settings = {key: value for key, value in settings.items() if key in keys_to_copy}
+
+        # add package control version to user agent
+        user_agent = self.settings.get('user_agent')
+        if user_agent and '%s' in user_agent:
+            self.settings['user_agent'] = user_agent % __version__
+
+        # setup private http cache storage driver
         if settings.get('http_cache'):
             cache_length = settings.get('http_cache_length', 604800)
             self.settings['cache'] = HttpCache(cache_length)
@@ -205,7 +261,7 @@ class DownloadManager:
         downloader_precedence = self.settings.get(
             'downloader_precedence',
             {
-                "windows": ["wininet", "oscrypto"],
+                "windows": ["wininet", "oscrypto", "urllib"],
                 "osx": ["urllib", "oscrypto", "curl"],
                 "linux": ["urllib", "oscrypto", "curl", "wget"]
             }
@@ -227,15 +283,15 @@ class DownloadManager:
         if not self.downloader or (
                 (is_ssl and not self.downloader.supports_ssl())
                 or (not is_ssl and not self.downloader.supports_plaintext())):
+
             for downloader_name in downloader_list:
 
-                if downloader_name not in DOWNLOADERS:
-                    # We ignore oscrypto not being present on Linux since it
-                    # can't be used with on Linux with Sublime Text 3
-                    if sys.version_info[:2] == (3, 3) and \
-                            sys.platform == 'linux' and \
-                            downloader_name == 'oscrypto':
+                try:
+                    downloader_class = DOWNLOADERS[downloader_name]
+                    if downloader_class is None:
                         continue
+
+                except KeyError:
                     error_string = text.format(
                         '''
                         The downloader "%s" from the "downloader_precedence"
@@ -247,14 +303,15 @@ class DownloadManager:
                     raise DownloaderException(error_string)
 
                 try:
-                    downloader = DOWNLOADERS[downloader_name](self.settings)
+                    downloader = downloader_class(self.settings)
                     if is_ssl and not downloader.supports_ssl():
                         continue
                     if not is_ssl and not downloader.supports_plaintext():
                         continue
                     self.downloader = downloader
                     break
-                except (BinaryNotFoundError):
+
+                except BinaryNotFoundError:
                     pass
 
         if not self.downloader:
@@ -275,9 +332,11 @@ class DownloadManager:
             raise DownloaderException(error_string.replace('\n\n', ' '))
 
         url = url.replace(' ', '%20')
-        hostname = urlparse(url).hostname
-        if hostname:
-            hostname = hostname.lower()
+        parsed = urlparse(url)
+        if not parsed or not parsed.hostname:
+            raise DownloaderException('The URL "%s" is malformed' % url)
+        hostname = parsed.hostname.lower()
+
         timeout = self.settings.get('timeout', 3)
 
         rate_limited_domains = get_cache('rate_limited_domains', [])
@@ -328,16 +387,18 @@ class DownloadManager:
             return self.downloader.download(url, error_message, timeout, 3, prefer_cached)
 
         except (RateLimitException) as e:
-
             rate_limited_domains.append(hostname)
-            set_cache('rate_limited_domains', rate_limited_domains, self.settings.get('cache_length'))
+            set_cache(
+                'rate_limited_domains',
+                rate_limited_domains,
+                self.settings.get('cache_length', 604800)
+            )
 
             console_write(
                 '''
-                Hit rate limit of %s for %s. Skipping all futher download
-                requests for this domain.
+                %s Skipping all further download requests for this domain.
                 ''',
-                (e.limit, e.domain)
+                str(e)
             )
             raise
 
@@ -354,12 +415,11 @@ class DownloadManager:
             return self.fetch(url, error_message, prefer_cached)
 
         except (WinDownloaderException) as e:
-
             console_write(
                 '''
                 Attempting to use Urllib downloader due to WinINet error: %s
                 ''',
-                e
+                str(e)
             )
 
             # Here we grab the proxy info extracted from WinInet to fill in
