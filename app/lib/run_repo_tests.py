@@ -12,7 +12,7 @@ from urllib.error import URLError
 import imp
 
 from .package_control.providers import RepositoryProvider
-from .package_control.download_manager import downloader, close_all_connections
+from .package_control.download_manager import close_all_connections, http_get
 from .package_control.downloaders.downloader_exception import DownloaderException
 from .. import config
 from .st_package_reviewer.check import file as file_checkers
@@ -137,9 +137,9 @@ def run_tests(spec):
         tmp_package_path = os.path.join(tmpdir, '%s.sublime-package' % name)
         tmp_package_dir = os.path.join(tmpdir, name)
         os.mkdir(tmp_package_dir)
-        with open(tmp_package_path, 'wb') as package_file, downloader(url, settings) as manager:
+        with open(tmp_package_path, 'wb') as package_file:
             try:
-                package_file.write(manager.fetch(url, 'fetching package'))
+                package_file.write(http_get(url, settings, 'fetching package'))
             except DownloaderException as e:
                 errors.append(format_report(str(e)))
                 return build_result(errors, warnings)
@@ -509,13 +509,12 @@ def test_pull_request(pr):
                     output.append('  - ERROR: External repositories added to the default channel must be served over HTTPS')
                     # Continue with testing regardless
 
-                with downloader(repo, settings) as manager:
-                    try:
-                        raw_data = manager.fetch(repo, 'fetching repository')
-                    except DownloaderException as e:
-                        errors = True
-                        output.append('  - ERROR: %s' % str(e))
-                        continue
+                try:
+                    raw_data = http_get(repo, settings, 'fetching repository')
+                except DownloaderException as e:
+                    errors = True
+                    output.append('  - ERROR: %s' % str(e))
+                    continue
 
                 try:
                     raw_data = raw_data.decode('utf-8')
