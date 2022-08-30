@@ -1,2 +1,2 @@
-__version__ = "3.4.1"
-__version_info__ = (3, 4, 1)
+__version__ = "4.0.0-dev"
+__version_info__ = (4, 0, 0, 'dev')

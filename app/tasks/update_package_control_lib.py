@@ -18,21 +18,18 @@ if not src_path or not os.path.exists(src_path):
 
 
 REQUIRED_PATHS = [
+    'clients',
+    'deps',
+    'downloaders',
+    'http',
+    'providers',
     '__init__.py',
     'ca_certs.py',
     'cache.py',
-    'clients',
     'cmd.py',
     'console_write.py',
-    'deps',
     'download_manager.py',
-    'downloaders',
-    'file_not_found_error.py',
-    'http',
-    'providers',
-    'semver.py',
     'text.py',
-    'unicode.py',
     'versions.py',
 ]
 
