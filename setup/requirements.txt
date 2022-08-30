@@ -15,7 +15,7 @@ psycopg2==2.9.3; sys_platform != 'darwin' --no-binary=psycopg2
 pybars3==0.9.1
 Pygments==1.6
 PyMeta3==0.5.1
-python-creole==1.2.2
+python-creole==1.4.10
 python-dateutil==2.1
 python-mimeparse==0.1.4
 pytz==2013b0
