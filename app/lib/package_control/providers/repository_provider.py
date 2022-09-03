@@ -2,7 +2,7 @@ import json
 import re
 import os
 from itertools import chain
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from .. import text
 from ..clients.bitbucket_client import BitBucketClient
@@ -10,12 +10,11 @@ from ..clients.client_exception import ClientException
 from ..clients.github_client import GitHubClient
 from ..clients.gitlab_client import GitLabClient
 from ..console_write import console_write
-from ..download_manager import http_get, update_url
+from ..download_manager import http_get, resolve_urls, update_url
 from ..downloaders.downloader_exception import DownloaderException
 from ..versions import version_sort
 from .base_repository_provider import BaseRepositoryProvider
 from .provider_exception import ProviderException
-from .schema_compat import platforms_to_releases
 from .schema_compat import SchemaVersion
 
 
@@ -104,29 +103,7 @@ class RepositoryProvider(BaseRepositoryProvider):
             return
 
         # Allow repositories to include other repositories
-        scheme_match = re.match(r'(https?:)//', self.repo_url, re.I)
-        if scheme_match is None:
-            relative_base = os.path.dirname(self.repo_url)
-            is_http = False
-        else:
-            is_http = True
-
-        for include in self.repo_info.pop('includes', []):
-            if include.startswith('//'):
-                if scheme_match is not None:
-                    include = scheme_match.group(1) + include
-                else:
-                    include = 'https:' + include
-            elif include.startswith('/'):
-                # We don't allow absolute includes
-                continue
-            elif include.startswith('./') or include.startswith('../'):
-                if is_http:
-                    include = urljoin(self.repo_url, include)
-                else:
-                    include = os.path.join(relative_base, include)
-                    include = os.path.normpath(include)
-
+        for include in resolve_urls(self.repo_url, self.repo_info.pop('includes', [])):
             include_info = self.fetch_json(include)
             include_version = include_info['schema_version']
             if include_version != self.schema_version:
@@ -210,7 +187,6 @@ class RepositoryProvider(BaseRepositoryProvider):
                 'Library Name',
                 {
                     'name': name,
-                    'load_order': two digit string,
                     'description': description,
                     'author': author,
                     'issues': URL,
@@ -462,6 +438,13 @@ class RepositoryProvider(BaseRepositoryProvider):
                     'description': description,
                     'author': author,
                     'homepage': homepage,
+                    'previous_names': [old_name, ...],
+                    'labels': [label, ...],
+                    'sources': [url, ...],
+                    'readme': url,
+                    'issues': url,
+                    'donate': url,
+                    'buy': url,
                     'last_modified': last modified date,
                     'releases': [
                         {
@@ -473,13 +456,6 @@ class RepositoryProvider(BaseRepositoryProvider):
                             'libraries': [library name, ...]
                         }, ...
                     ]
-                    'previous_names': [old_name, ...],
-                    'labels': [label, ...],
-                    'sources': [url, ...],
-                    'readme': url,
-                    'issues': url,
-                    'donate': url,
-                    'buy': url
                 }
             )
             tuples
@@ -501,16 +477,6 @@ class RepositoryProvider(BaseRepositoryProvider):
         clients = [
             Client(self.settings) for Client in (GitHubClient, GitLabClient, BitBucketClient)
         ]
-
-        # Backfill the "previous_names" keys for old schemas
-        previous_names = {}
-        if self.schema_version.major < 2:
-            renamed = self.get_renamed_packages()
-            for old_name in renamed:
-                new_name = renamed[old_name]
-                if new_name not in previous_names:
-                    previous_names[new_name] = []
-                previous_names[new_name].append(old_name)
 
         output = {}
         for package in self.repo_info['packages']:
@@ -535,49 +501,42 @@ class RepositoryProvider(BaseRepositoryProvider):
                 if package.get(field):
                     info[field] = package.get(field)
 
-            details = None
-            releases = None
+            details = package.get('details')
+            releases = package.get('releases')
 
-            # Schema version 2.0 allows for grabbing details about a package, or its
-            # download from "details" urls. See the GitHubClient and BitBucketClient
-            # classes for valid URLs.
-            if self.schema_version.major >= 2:
-                details = package.get('details')
-                releases = package.get('releases')
+            # Try to grab package-level details from GitHub or BitBucket
+            if details:
+                if invalid_sources is not None and details in invalid_sources:
+                    continue
 
-                # Try to grab package-level details from GitHub or BitBucket
-                if details:
-                    if invalid_sources is not None and details in invalid_sources:
-                        continue
+                info['sources'].append(details)
 
-                    info['sources'].append(details)
+                try:
+                    repo_info = None
 
-                    try:
-                        repo_info = None
+                    for client in clients:
+                        repo_info = client.repo_info(details)
+                        if repo_info:
+                            break
+                    else:
+                        raise ProviderException(text.format(
+                            '''
+                            Invalid "details" value "%s" for one of the packages in the repository %s.
+                            ''',
+                            (details, self.repo_url)
+                        ))
 
-                        for client in clients:
-                            repo_info = client.repo_info(details)
-                            if repo_info:
-                                break
-                        else:
-                            raise ProviderException(text.format(
-                                '''
-                                Invalid "details" value "%s" for one of the packages in the repository %s.
-                                ''',
-                                (details, self.repo_url)
-                            ))
+                    del repo_info['default_branch']
 
-                        del repo_info['default_branch']
+                    # When grabbing details, prefer explicit field values over the values
+                    # from the GitHub or BitBucket API
+                    info = dict(chain(repo_info.items(), info.items()))
 
-                        # When grabbing details, prefer explicit field values over the values
-                        # from the GitHub or BitBucket API
-                        info = dict(chain(repo_info.items(), info.items()))
-
-                    except (DownloaderException, ClientException, ProviderException) as e:
-                        if 'name' in info:
-                            self.broken_packages[info['name']] = e
-                        self.failed_sources[details] = e
-                        continue
+                except (DownloaderException, ClientException, ProviderException) as e:
+                    if 'name' in info:
+                        self.broken_packages[info['name']] = e
+                    self.failed_sources[details] = e
+                    continue
 
             if 'name' not in info:
                 self.failed_sources[self.repo_url] = ProviderException(text.format(
@@ -594,164 +553,158 @@ class RepositoryProvider(BaseRepositoryProvider):
                 if not releases and details:
                     releases = [{'details': details}]
 
-            if self.schema_version.major >= 2:
-                if not releases:
-                    e = ProviderException(text.format(
-                        '''
-                        No "releases" value for the package "%s" in the repository %s.
-                        ''',
-                        (info['name'], self.repo_url)
-                    ))
-                    self.broken_packages[info['name']] = e
-                    continue
+            if not releases:
+                e = ProviderException(text.format(
+                    '''
+                    No "releases" value for the package "%s" in the repository %s.
+                    ''',
+                    (info['name'], self.repo_url)
+                ))
+                self.broken_packages[info['name']] = e
+                continue
 
-                if not isinstance(releases, list):
-                    e = ProviderException(text.format(
-                        '''
-                        The "releases" value is not an array or the package "%s" in the repository %s.
-                        ''',
-                        (info['name'], self.repo_url)
-                    ))
-                    self.broken_packages[info['name']] = e
-                    continue
+            if not isinstance(releases, list):
+                e = ProviderException(text.format(
+                    '''
+                    The "releases" value is not an array or the package "%s" in the repository %s.
+                    ''',
+                    (info['name'], self.repo_url)
+                ))
+                self.broken_packages[info['name']] = e
+                continue
 
-                # This allows developers to specify a GH or BB location to get releases from,
-                # especially tags URLs (https://github.com/user/repo/tags or
-                # https://bitbucket.org/user/repo#tags)
-                for release in releases:
-                    download_details = None
-                    download_info = {}
+            # This allows developers to specify a GH or BB location to get releases from,
+            # especially tags URLs (https://github.com/user/repo/tags or
+            # https://bitbucket.org/user/repo#tags)
+            for release in releases:
+                download_details = None
+                download_info = {}
 
-                    # Make sure that explicit fields are copied over
-                    for field in ['platforms', 'sublime_text', 'version', 'url', 'date', 'libraries']:
-                        if field in release:
-                            value = release[field]
-                            if field == 'url':
-                                value = update_url(value, debug)
-                            if field == 'platforms' and not isinstance(release['platforms'], list):
-                                value = [value]
-                            download_info[field] = value
+                # Make sure that explicit fields are copied over
+                for field in ['platforms', 'sublime_text', 'version', 'url', 'date', 'libraries']:
+                    if field in release:
+                        value = release[field]
+                        if field == 'url':
+                            value = update_url(value, debug)
+                        if field == 'platforms' and not isinstance(release['platforms'], list):
+                            value = [value]
+                        download_info[field] = value
 
-                    if self.schema_version.major < 4 and 'dependencies' in release:
-                        download_info['libraries'] = release['dependencies']
+                if self.schema_version.major < 4 and 'dependencies' in release:
+                    download_info['libraries'] = release['dependencies']
 
-                    if 'platforms' not in download_info:
-                        download_info['platforms'] = ['*']
+                if 'platforms' not in download_info:
+                    download_info['platforms'] = ['*']
 
-                    if self.schema_version.major == 2:
-                        if 'sublime_text' not in download_info:
-                            download_info['sublime_text'] = '<3000'
+                if self.schema_version.major == 2:
+                    if 'sublime_text' not in download_info:
+                        download_info['sublime_text'] = '<3000'
 
-                        if 'details' in release:
-                            download_details = release['details']
+                    if 'details' in release:
+                        download_details = release['details']
 
-                            try:
-                                downloads = None
+                        try:
+                            downloads = None
 
+                            for client in clients:
+                                downloads = client.download_info(download_details)
+                                if downloads is not None:
+                                    break
+
+                            if downloads is None:
+                                raise ProviderException(text.format(
+                                    '''
+                                    Invalid "details" value "%s" for one of the releases of the
+                                    package "%s" in the repository %s.
+                                    ''',
+                                    (download_details, info['name'], self.repo_url)
+                                ))
+
+                            if downloads is False:
+                                raise ProviderException(text.format(
+                                    '''
+                                    No valid semver tags found at %s for the
+                                    package "%s" in the repository %s.
+                                    ''',
+                                    (download_details, info['name'], self.repo_url)
+                                ))
+
+                            for download in downloads:
+                                new_download = download_info.copy()
+                                new_download.update(download)
+                                info['releases'].append(new_download)
+
+                        except (DownloaderException, ClientException, ProviderException) as e:
+                            self.broken_packages[info['name']] = e
+
+                    elif download_info:
+                        info['releases'].append(download_info)
+
+                elif self.schema_version.major >= 3:
+                    tags = release.get('tags')
+                    branch = release.get('branch')
+
+                    if tags or branch:
+                        try:
+                            base = None
+                            if 'base' in release:
+                                base = release['base']
+                            elif details:
+                                base = details
+
+                            if not base:
+                                raise ProviderException(text.format(
+                                    '''
+                                    Missing root-level "details" key, or release-level "base" key
+                                    for one of the releases of the package "%s" in the repository %s.
+                                    ''',
+                                    (info['name'], self.repo_url)
+                                ))
+
+                            downloads = None
+
+                            if tags:
+                                extra = None
+                                if tags is not True:
+                                    extra = tags
                                 for client in clients:
-                                    downloads = client.download_info(download_details)
+                                    downloads = client.download_info_from_tags(base, extra)
+                                    if downloads is not None:
+                                        break
+                            else:
+                                for client in clients:
+                                    downloads = client.download_info_from_branch(base, branch)
                                     if downloads is not None:
                                         break
 
-                                if downloads is None:
-                                    raise ProviderException(text.format(
-                                        '''
-                                        Invalid "details" value "%s" for one of the releases of the
-                                        package "%s" in the repository %s.
-                                        ''',
-                                        (download_details, info['name'], self.repo_url)
-                                    ))
+                            if downloads is None:
+                                raise ProviderException(text.format(
+                                    '''
+                                    Invalid "base" value "%s" for one of the releases of the
+                                    package "%s" in the repository %s.
+                                    ''',
+                                    (base, info['name'], self.repo_url)
+                                ))
 
-                                if downloads is False:
-                                    raise ProviderException(text.format(
-                                        '''
-                                        No valid semver tags found at %s for the
-                                        package "%s" in the repository %s.
-                                        ''',
-                                        (download_details, info['name'], self.repo_url)
-                                    ))
+                            if downloads is False:
+                                raise ProviderException(text.format(
+                                    '''
+                                    No valid semver tags found at %s for the
+                                    package "%s" in the repository %s.
+                                    ''',
+                                    (base, info['name'], self.repo_url)
+                                ))
 
-                                for download in downloads:
-                                    new_download = download_info.copy()
-                                    new_download.update(download)
-                                    info['releases'].append(new_download)
+                            for download in downloads:
+                                new_download = download_info.copy()
+                                new_download.update(download)
+                                info['releases'].append(new_download)
 
-                            except (DownloaderException, ClientException, ProviderException) as e:
-                                self.broken_packages[info['name']] = e
-
-                        elif download_info:
-                            info['releases'].append(download_info)
-
-                    elif self.schema_version.major >= 3:
-                        tags = release.get('tags')
-                        branch = release.get('branch')
-
-                        if tags or branch:
-                            try:
-                                base = None
-                                if 'base' in release:
-                                    base = release['base']
-                                elif details:
-                                    base = details
-
-                                if not base:
-                                    raise ProviderException(text.format(
-                                        '''
-                                        Missing root-level "details" key, or release-level "base" key
-                                        for one of the releases of the package "%s" in the repository %s.
-                                        ''',
-                                        (info['name'], self.repo_url)
-                                    ))
-
-                                downloads = None
-
-                                if tags:
-                                    extra = None
-                                    if tags is not True:
-                                        extra = tags
-                                    for client in clients:
-                                        downloads = client.download_info_from_tags(base, extra)
-                                        if downloads is not None:
-                                            break
-                                else:
-                                    for client in clients:
-                                        downloads = client.download_info_from_branch(base, branch)
-                                        if downloads is not None:
-                                            break
-
-                                if downloads is None:
-                                    raise ProviderException(text.format(
-                                        '''
-                                        Invalid "base" value "%s" for one of the releases of the
-                                        package "%s" in the repository %s.
-                                        ''',
-                                        (base, info['name'], self.repo_url)
-                                    ))
-
-                                if downloads is False:
-                                    raise ProviderException(text.format(
-                                        '''
-                                        No valid semver tags found at %s for the
-                                        package "%s" in the repository %s.
-                                        ''',
-                                        (base, info['name'], self.repo_url)
-                                    ))
-
-                                for download in downloads:
-                                    new_download = download_info.copy()
-                                    new_download.update(download)
-                                    info['releases'].append(new_download)
-
-                            except (DownloaderException, ClientException, ProviderException) as e:
-                                self.broken_packages[info['name']] = e
-                                continue
-                        elif download_info:
-                            info['releases'].append(download_info)
-
-            # Schema version 1.0, 1.1 and 1.2 just require that all values be
-            # explicitly specified in the package JSON
-            else:
-                info['releases'] = platforms_to_releases(package, debug)
+                        except (DownloaderException, ClientException, ProviderException) as e:
+                            self.broken_packages[info['name']] = e
+                            continue
+                    elif download_info:
+                        info['releases'].append(download_info)
 
             info['releases'] = version_sort(info['releases'], 'platforms', reverse=True)
 
@@ -816,9 +769,6 @@ class RepositoryProvider(BaseRepositoryProvider):
                         date = release['date']
                 info['last_modified'] = date
 
-            if info['name'] in previous_names:
-                info['previous_names'].extend(previous_names[info['name']])
-
             output[info['name']] = info
             yield (info['name'], info)
 
@@ -836,11 +786,10 @@ class RepositoryProvider(BaseRepositoryProvider):
             return []
 
         output = [self.repo_url]
-        if self.schema_version.major >= 2:
-            for package in self.repo_info['packages']:
-                details = package.get('details')
-                if details:
-                    output.append(details)
+        for package in self.repo_info['packages']:
+            details = package.get('details')
+            if details:
+                output.append(details)
         return output
 
     def get_renamed_packages(self):
@@ -848,9 +797,6 @@ class RepositoryProvider(BaseRepositoryProvider):
 
         if not self.fetch():
             return {}
-
-        if self.schema_version.major < 2:
-            return self.repo_info.get('renamed_packages', {})
 
         output = {}
         for package in self.repo_info['packages']:

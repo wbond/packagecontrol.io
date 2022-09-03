@@ -215,7 +215,8 @@ def all(limit_one_per_package=False, only_package_control=False):
                     package_minor_versions[minor_key] = 0
                 package_minor_versions[minor_key] += 1
 
-    return output
+    # return repos with at least one release
+    return {repo: info for repo, info in output if info['releases']}
 
 
 def old():
