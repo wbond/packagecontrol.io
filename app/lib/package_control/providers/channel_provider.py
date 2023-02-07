@@ -5,7 +5,7 @@ from itertools import chain
 
 from ..console_write import console_write
 from ..download_manager import http_get, resolve_urls, update_url
-from ..versions import version_sort
+from ..package_version import version_sort
 from .provider_exception import ProviderException
 from .schema_compat import SchemaVersion
 
@@ -16,6 +16,10 @@ class InvalidChannelFileException(ProviderException):
         super().__init__(
             'Channel %s does not appear to be a valid channel file because'
             ' %s' % (channel.channel_url, reason_message))
+
+
+class UncachedChannelRepositoryError(ProviderException):
+    pass
 
 
 class ChannelProvider:
@@ -183,8 +187,8 @@ class ChannelProvider:
             The URL of the repository to get the cached info of
 
         :raises:
-            ProviderException: when an error occurs with the channel contents
             DownloaderException: when an error occurs trying to open a URL
+            UncachedChannelRepositoryError when no cache entry exists for repo_url
 
         :return:
             A generator of
@@ -219,7 +223,11 @@ class ChannelProvider:
 
         self.fetch()
 
-        for package in self.channel_info.get('packages_cache', {}).get(repo_url, []):
+        packages_cache = self.channel_info.get('packages_cache', {})
+        if repo_url not in packages_cache:
+            raise UncachedChannelRepositoryError(repo_url)
+
+        for package in packages_cache[repo_url]:
             if package['releases']:
                 yield (package['name'], package)
 
@@ -231,8 +239,8 @@ class ChannelProvider:
             The URL of the repository to get the cached info of
 
         :raises:
-            ProviderException: when an error occurs with the channel contents
             DownloaderException: when an error occurs trying to open a URL
+            UncachedChannelRepositoryError when no cache entry exists for repo_url
 
         :return:
             A generator of
@@ -260,7 +268,11 @@ class ChannelProvider:
 
         self.fetch()
 
-        for library in self.channel_info.get('libraries_cache', {}).get(repo_url, []):
+        libraries_cache = self.channel_info.get('libraries_cache', {})
+        if repo_url not in libraries_cache:
+            raise UncachedChannelRepositoryError(repo_url)
+
+        for library in libraries_cache[repo_url]:
             if library['releases']:
                 yield (library['name'], library)
 

@@ -46,7 +46,7 @@ def create_cmd(args, basename_binary=False):
         return ' '.join(escaped_args)
 
 
-class Cli(object):
+class Cli:
 
     """
     Base class for running command line apps
@@ -137,6 +137,8 @@ class Cli(object):
                 is_vcs = True
             elif re.search('hg', binary_name):
                 is_vcs = True
+            else:
+                is_vcs = False
 
             if sublime:
                 def kill_proc():

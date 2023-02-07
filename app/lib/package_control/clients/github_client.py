@@ -2,7 +2,7 @@ import re
 from urllib.parse import urlencode, quote
 
 from ..downloaders.downloader_exception import DownloaderException
-from ..versions import version_match_prefix
+from ..package_version import version_match_prefix
 from .json_api_client import JSONApiClient
 
 
@@ -27,7 +27,10 @@ class GitHubClient(JSONApiClient):
                 (user name, None, None) or
                 (None, None, None) if no match.
         """
-        match = re.match(r'^https?://github\.com/([^/#?]+)(?:/([^/#?]+?)(?:\.git|/tree/([^/#?]+)/?|/?)|/?)$', url)
+        match = re.match(
+            r'^https?://github\.com/([^/#?]+)(?:/([^/#?]+?)(?:\.git|/tree/([^#?]*[^/#?])/?|/?)|/?)$',
+            url
+        )
         if match:
             return match.groups()
 
