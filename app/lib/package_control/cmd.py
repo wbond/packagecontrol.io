@@ -165,16 +165,13 @@ class Cli:
                             prompt. Please ensure %s works without a prompt, or
                             change the "ignore_vcs_packages" Package Control
                             setting to true.
-
-                            Sublime Text will need to be restarted once these
-                            changes are made.
                             ''',
                             binary_name
                         )
                     show_error(message)
                 sublime.set_timeout(kill_proc, 60000)
 
-            output, _ = proc.communicate(input)
+            output, error = proc.communicate(input)
 
             stuck = False
 
@@ -182,7 +179,10 @@ class Cli:
             output = output.replace('\r\n', '\n').rstrip(' \n\r')
 
             if proc.returncode not in self.ok_returncodes:
-                if not ignore_errors or re.search(ignore_errors, output) is None:
+                if error:
+                    error = error.decode(encoding)
+                    error = error.replace('\r\n', '\n').rstrip(' \n\r')
+                if not ignore_errors or re.search(ignore_errors, error or output) is None:
                     message = text.format(
                         '''
                         Error executing: %s
@@ -191,20 +191,17 @@ class Cli:
 
                         %s
                         ''',
-                        (create_cmd(args), orig_cwd, output)
-                    )
+                        (create_cmd(args), orig_cwd, error or output)
+                    ).rstrip()
                     if is_vcs:
                         message += text.format(
                             '''
 
                             VCS-based packages can be ignored by changing the
                             "ignore_vcs_packages" setting to true.
-
-                            Sublime Text will need to be restarted once the
-                            setting is changed.
                             '''
                         )
-                    show_error(message)
+                    console_write(message)
                     return False
 
             if meaningful_output and self.debug and len(output) > 0:
