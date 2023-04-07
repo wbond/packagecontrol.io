@@ -533,7 +533,7 @@ def store(values):
             else:
                 st_versions.extend([2, 3, 4])
 
-        st_versions = sorted(list(set(st_versions)))
+        st_versions = sorted(set(st_versions))
 
         if not isinstance(values['author'], list):
             authors = re.split(r'\s*,\s*', values['author'])
@@ -564,12 +564,14 @@ def store(values):
                 INSERT INTO releases (
                     package,
                     platforms,
+                    python_versions,
                     sublime_text,
                     version,
                     url,
                     date,
                     libraries
                 ) VALUES (
+                    %s,
                     %s,
                     %s,
                     %s,
@@ -583,6 +585,7 @@ def store(values):
             cursor.execute(sql, [
                 name,
                 release['platforms'],
+                release['python_versions'],
                 _normalize_st_version(release['sublime_text']),
                 release['version'],
                 release['url'],

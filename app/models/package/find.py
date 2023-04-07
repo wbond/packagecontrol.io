@@ -41,6 +41,7 @@ def all(limit_one_per_package=False, only_package_control=False):
                 'releases': [
                     {
                         'platforms': ['*'],
+                        'python_versions': ['3.3', '3.8'],
                         'sublime_text': '*',
                         'version': '1.0.0',
                         'url': 'http://example.com/package.zip',
@@ -107,6 +108,7 @@ def all(limit_one_per_package=False, only_package_control=False):
             SELECT
                 r.package,
                 r.platforms,
+                r.python_versions,
                 r.sublime_text,
                 r.version,
                 r.url,
@@ -198,6 +200,9 @@ def all(limit_one_per_package=False, only_package_control=False):
                 'url':          row['url'],
                 'date':         row['date']
             }
+
+            if row['python_versions']:
+                release['python_versions'] = row['python_versions']
 
             if row['libraries']:
                 release['libraries'] = row['libraries']

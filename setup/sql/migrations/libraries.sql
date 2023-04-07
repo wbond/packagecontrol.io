@@ -1,3 +1,4 @@
+ALTER TABLE releases ADD COLUMN python_versions varchar[];
 ALTER TABLE releases RENAME dependencies TO libraries;
 
 ALTER TABLE dependencies RENAME TO libraries;
