@@ -144,6 +144,10 @@ span.versions {
 		background-color: $green;
 		color: $white;
 	}
+	&.latest {
+		background-color: $green;
+		color: $white;
+	}
 }
 
 span.platforms,
