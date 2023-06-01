@@ -66,6 +66,13 @@
                 </span>
             {{else}}
                 <span>{{versions.[0].version}}</span>
+                {{#if versions.[0].prerelease_version}}
+                    <div>
+                        {{>version_qualifiers platforms=versions.[0].platforms}}
+                        <span class="versions only" title="Prerelease">PRE</span>
+                        {{versions.[0].prerelease_version}}
+                    </div>
+                {{/if}}
             {{/length}}
         </li>
         <li class="homepage">
