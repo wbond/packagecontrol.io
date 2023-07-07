@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import sys
 
@@ -29,8 +28,9 @@ REQUIRED_PATHS = [
     'cmd.py',
     'console_write.py',
     'download_manager.py',
+    'http_cache.py',
+    'package_versions.py',
     'text.py',
-    'versions.py',
 ]
 
 PRESERVE_PATHS = [
