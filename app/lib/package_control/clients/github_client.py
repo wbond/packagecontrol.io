@@ -49,7 +49,7 @@ class GitHubClient(JSONApiClient):
             The repository name
 
         :return:
-            The repositoy URL of given owner and repo name
+            The repository URL of given owner and repo name
         """
 
         return 'https://github.com/%s/%s' % (quote(user_name), quote(repo_name))
@@ -161,9 +161,9 @@ class GitHubClient(JSONApiClient):
         if not tags_match:
             return None
 
-        def _get_releases(user_repo, tag_prefix=None, page_size=100):
+        def _get_releases(user_repo, tag_prefix=None, page_size=1000):
             used_versions = set()
-            for page in range(100):
+            for page in range(10):
                 query_string = urlencode({'page': page * page_size, 'per_page': page_size})
                 tags_url = self._api_url(user_repo, '/tags?%s' % query_string)
                 tags_json = self.fetch_json(tags_url)
@@ -187,7 +187,7 @@ class GitHubClient(JSONApiClient):
             version, tag, tag_url = release
 
             if is_client:
-                timestamp = 0
+                timestamp = '1970-01-01 00:00:00'
             else:
                 tag_info = self.fetch_json(tag_url)
                 timestamp = tag_info['commit']['committer']['date'][0:19].replace('T', ' ')
