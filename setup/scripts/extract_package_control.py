@@ -94,8 +94,8 @@ files = [
     'providers/channel_provider.py',
     'providers/github_repository_provider.py',
     'providers/github_user_provider.py',
+    'providers/json_repository_provider.py',
     'providers/provider_exception.py',
-    'providers/repository_provider.py',
     'providers/schema_compat.py',
 
     '__init__.py',
