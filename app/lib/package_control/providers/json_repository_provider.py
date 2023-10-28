@@ -16,6 +16,14 @@ from .base_repository_provider import BaseRepositoryProvider
 from .provider_exception import ProviderException
 from .schema_version import SchemaVersion
 
+try:
+    # running within ST
+    from ..selectors import is_compatible_platform, is_compatible_version
+    IS_ST = True
+except ImportError:
+    # running on CLI or server
+    IS_ST = False
+
 
 class InvalidRepoFileException(ProviderException):
     def __init__(self, repo, reason_message):
@@ -236,24 +244,25 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
         if not self.fetch():
             return
 
+        if not self.repo_info:
+            return
+
         if self.schema_version.major >= 4:
             allowed_library_keys = {
                 'name', 'description', 'author', 'homepage', 'issues', 'releases'
             }
             allowed_release_keys = {  # todo: remove 'branch'
-                'base', 'version', 'sublime_text', 'platforms', 'python_versions', 'branch', 'tags', 'url', 'sha256'
+                'base', 'version', 'sublime_text', 'platforms', 'python_versions',
+                'branch', 'tags', 'asset', 'url', 'sha256'
             }
         else:
             allowed_library_keys = {
                 'name', 'description', 'author', 'issues', 'load_order', 'releases'
             }
             allowed_release_keys = {
-                'base', 'version', 'sublime_text', 'platforms', 'branch', 'tags', 'url', 'sha256'
+                'base', 'version', 'sublime_text', 'platforms',
+                'branch', 'tags', 'url', 'sha256'
             }
-
-        required_library_keys = {
-            'description', 'author', 'issues', 'releases'
-        }
 
         copied_library_keys = ('name', 'description', 'author', 'homepage', 'issues')
         copied_release_keys = ('date', 'version', 'sha256')
@@ -268,7 +277,7 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
         ]
 
         output = {}
-        for library in self.repo_info['libraries']:
+        for library in self.repo_info.get('libraries', []):
             info = {
                 'releases': [],
                 'sources': [self.repo_url]
@@ -303,6 +312,8 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         ' in repository {}.'.format(info['name'], self.repo_url)
                     )
 
+                staged_releases = {}
+
                 for release in releases:
                     download_info = {}
 
@@ -331,6 +342,9 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         value = [value]
                     elif not isinstance(value, list):
                         raise InvalidLibraryReleaseKeyError(self.repo_url, info['name'], key)
+                    # ignore incompatible release (avoid downloading/evaluating further information)
+                    if IS_ST and not is_compatible_platform(value):
+                        continue
                     download_info[key] = value
 
                     # Validate supported python_versions
@@ -347,6 +361,9 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                     value = release.get(key, default_sublime_text)
                     if not isinstance(value, str):
                         raise InvalidLibraryReleaseKeyError(self.repo_url, info['name'], key)
+                    # ignore incompatible release (avoid downloading/evaluating further information)
+                    if IS_ST and not is_compatible_version(value):
+                        continue
                     download_info[key] = value
 
                     # Validate url
@@ -387,13 +404,23 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                     downloads = None
 
                     # Evaluate and resolve "tags" and "branch" release templates
-                    tags = release.get('tags')
+                    asset = release.get('asset')
                     branch = release.get('branch')
+                    tags = release.get('tags')
+                    extra = None if tags is True else tags
 
-                    if tags:
-                        extra = None
-                        if tags is not True:
-                            extra = tags
+                    if asset:
+                        if branch:
+                            raise ProviderException(
+                                'Illegal "asset" key "{}" for branch based release of library "{}"'
+                                ' in repository "{}".'.format(base, info['name'], self.repo_url)
+                            )
+                        # group releases with assets by base_url and tag-prefix
+                        # to prepare gathering download_info with a single API call
+                        staged_releases.setdefault((base_url, extra), []).append((asset, download_info))
+                        continue
+
+                    elif tags:
                         for client in clients:
                             downloads = client.download_info_from_tags(base_url, extra)
                             if downloads is not None:
@@ -426,13 +453,25 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         download.update(download_info)
                         info['releases'].append(download)
 
+                # gather download_info from releases
+                for (base_url, extra), asset_templates in staged_releases.items():
+                    for client in clients:
+                        downloads = client.download_info_from_releases(base_url, asset_templates, extra)
+                        if downloads is not None:
+                            info['releases'].extend(downloads)
+                            break
+
                 # check required library keys
-                for key in required_library_keys:
+                for key in ('description', 'author', 'issues'):
                     if not info.get(key):
                         raise ProviderException(
                             'Missing or invalid "{}" key for library "{}"'
                             ' in repository "{}".'.format(key, info['name'], self.repo_url)
                         )
+
+                # Empty releases means package is unavailable on current platform or for version of ST
+                if not info['releases']:
+                    continue
 
                 info['releases'] = version_sort(info['releases'], 'platforms', reverse=True)
 
@@ -494,7 +533,8 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
         if not self.fetch():
             return
 
-        required_package_keys = {'author', 'releases'}
+        if not self.repo_info:
+            return
 
         copied_package_keys = (
             'name',
@@ -520,7 +560,7 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
         ]
 
         output = {}
-        for package in self.repo_info['packages']:
+        for package in self.repo_info.get('packages', []):
             info = {
                 'releases': [],
                 'sources': [self.repo_url]
@@ -574,14 +614,19 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                 continue
 
             try:
+                if not info.get('author'):
+                    raise ProviderException(
+                        'Missing or invalid "author" key for package "{}"'
+                        ' in repository "{}".'.format(info['name'], self.repo_url)
+                    )
+
                 # evaluate releases
 
                 releases = package.get('releases')
 
-                if self.schema_version.major == 2:
-                    # If no releases info was specified, also grab the download info from GH or BB
-                    if not releases and details:
-                        releases = [{'details': details}]
+                # If no releases info was specified, also grab the download info from GH or BB
+                if self.schema_version.major == 2 and not releases and details:
+                    releases = [{'details': details}]
 
                 if not releases:
                     raise ProviderException(
@@ -594,6 +639,8 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         'The "releases" value is not an array for the package "{}"'
                         ' in the repository {}.'.format(info['name'], self.repo_url)
                     )
+
+                staged_releases = {}
 
                 # This allows developers to specify a GH or BB location to get releases from,
                 # especially tags URLs (https://github.com/user/repo/tags or
@@ -617,22 +664,24 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         value = [value]
                     elif not isinstance(value, list):
                         raise InvalidPackageReleaseKeyError(self.repo_url, info['name'], key)
+                    # ignore incompatible release (avoid downloading/evaluating further information)
+                    if IS_ST and not is_compatible_platform(value):
+                        continue
                     download_info[key] = value
 
-                    # Validate supported python_versions
-                    if self.schema_version.major >= 4:
-                        key = 'python_versions'
-                        value = release.get(key)
-                        if value:
-                            # Package releases may optionally contain `python_versions` list to tell
-                            # which python version they are compatibilible with.
-                            # The main purpose is to be able to opt-in unmaintained packages to python 3.8
-                            # if they are known not to cause trouble.
-                            if isinstance(value, str):
-                                value = [value]
-                            elif not isinstance(value, list):
-                                raise InvalidPackageReleaseKeyError(self.repo_url, info['name'], key)
-                            download_info[key] = value
+                    # Validate supported python_versions (requires scheme 4.0.0!)
+                    key = 'python_versions'
+                    value = release.get(key)
+                    if value:
+                        # Package releases may optionally contain `python_versions` list to tell
+                        # which python version they are compatibilible with.
+                        # The main purpose is to be able to opt-in unmaintained packages to python 3.8
+                        # if they are known not to cause trouble.
+                        if isinstance(value, str):
+                            value = [value]
+                        elif not isinstance(value, list):
+                            raise InvalidPackageReleaseKeyError(self.repo_url, info['name'], key)
+                        download_info[key] = value
 
                     if self.schema_version.major >= 3:
                         # Validate supported ST version
@@ -641,6 +690,9 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         value = release.get(key, default_sublime_text)
                         if not isinstance(value, str):
                             raise InvalidPackageReleaseKeyError(self.repo_url, info['name'], key)
+                        # ignore incompatible release (avoid downloading/evaluating further information)
+                        if IS_ST and not is_compatible_version(value):
+                            continue
                         download_info[key] = value
 
                         # Validate url
@@ -680,17 +732,28 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                         base_url = resolve_url(self.repo_url, base)
                         downloads = None
 
-                        tags = release.get('tags')
+                        asset = release.get('asset')
                         branch = release.get('branch')
+                        tags = release.get('tags')
+                        extra = None if tags is True else tags
 
-                        if tags:
-                            extra = None
-                            if tags is not True:
-                                extra = tags
+                        if asset:
+                            if branch:
+                                raise ProviderException(
+                                    'Illegal "asset" key "{}" for branch based release of library "{}"'
+                                    ' in repository "{}".'.format(base, info['name'], self.repo_url)
+                                )
+                            # group releases with assets by base_url and tag-prefix
+                            # to prepare gathering download_info with a single API call
+                            staged_releases.setdefault((base_url, extra), []).append((asset, download_info))
+                            continue
+
+                        elif tags:
                             for client in clients:
                                 downloads = client.download_info_from_tags(base_url, extra)
                                 if downloads is not None:
                                     break
+
                         elif branch:
                             for client in clients:
                                 downloads = client.download_info_from_branch(base_url, branch)
@@ -726,6 +789,9 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                             continue
                         if not isinstance(value, str):
                             raise InvalidPackageReleaseKeyError(self.repo_url, info['name'], key)
+                        # ignore incompatible release (avoid downloading/evaluating further information)
+                        if IS_ST and not is_compatible_version(value):
+                            continue
                         download_info[key] = value
 
                         # Validate url
@@ -780,13 +846,17 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
                             download.update(download_info)
                             info['releases'].append(download)
 
-                # check required package keys
-                for key in required_package_keys:
-                    if not info.get(key):
-                        raise ProviderException(
-                            'Missing or invalid "{}" key for package "{}"'
-                            ' in repository "{}".'.format(key, info['name'], self.repo_url)
-                        )
+                # gather download_info from releases
+                for (base_url, extra), asset_templates in staged_releases.items():
+                    for client in clients:
+                        downloads = client.download_info_from_releases(base_url, asset_templates, extra)
+                        if downloads is not None:
+                            info['releases'].extend(downloads)
+                            break
+
+                # Empty releases means package is unavailable on current platform or for version of ST
+                if not info['releases']:
+                    continue
 
                 info['releases'] = version_sort(info['releases'], 'platforms', reverse=True)
 
