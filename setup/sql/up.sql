@@ -114,6 +114,7 @@ CREATE TABLE library_releases (
 CREATE TABLE releases (
     package                  varchar(500)  NOT NULL REFERENCES packages(name) ON DELETE CASCADE ON UPDATE CASCADE,
     platforms                varchar[]     NOT NULL,
+    python_versions          varchar[]     NOT NULL,
     sublime_text             varchar       NOT NULL,
     version                  varchar       NOT NULL,
     url                      varchar       NOT NULL,
