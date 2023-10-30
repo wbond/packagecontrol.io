@@ -11,9 +11,26 @@ class HttpCache:
     """
 
     def __init__(self, ttl):
+        """
+        Constructs a new instance.
+
+        :param ttl:
+            The number of seconds a cache entry should be valid for
+        """
+        self.ttl = int(ttl)    
         self.base_path = os.path.join(sys_path.pc_cache_dir(), 'http_cache')
         os.makedirs(self.base_path, exist_ok=True)
-        self.clear(int(ttl))
+
+    def __del__(self):
+        """
+        Delete an existing instance.
+
+        Remove outdated cache files, when cache object is deleted.
+        All files which have been accessed by deleted instance keep untouched.
+        """
+
+        if self.ttl > 0:
+            self.clear(self.ttl)
 
     def clear(self, ttl):
         """
@@ -46,9 +63,18 @@ class HttpCache:
             The (binary) cached value, or False
         """
         try:
+            content = None
             cache_file = os.path.join(self.base_path, key)
             with open(cache_file, 'rb') as fobj:
-                return fobj.read()
+                content = fobj.read()
+
+            # update filetime to prevent unmodified cache files
+            # from being deleted, if they are frequently accessed.
+            now = time.time()
+            os.utime(cache_file, (now, now))
+
+            return content
+
         except FileNotFoundError:
             return False
 
