@@ -11,7 +11,7 @@ import base64
 from urllib.error import URLError
 import imp
 
-from .package_control.providers import RepositoryProvider
+from .package_control.providers import JsonRepositoryProvider
 from .package_control.download_manager import close_all_connections, http_get
 from .package_control.downloaders.downloader_exception import DownloaderException
 from .. import config
@@ -246,7 +246,7 @@ def fetch_package_metadata(spec):
             error = re.sub(regex, '', error)
         return error.replace(' in the repository https://example.com', '')
 
-    provider = RepositoryProvider('https://example.com', settings)
+    provider = JsonRepositoryProvider('https://example.com', settings)
     provider.schema_version = '3.0.0'
     provider.schema_major_version = 3
     provider.repo_info = {'schema_version': '3.0.0', 'packages': [spec], 'dependencies': []}
