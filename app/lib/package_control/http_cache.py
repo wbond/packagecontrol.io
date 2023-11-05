@@ -17,7 +17,7 @@ class HttpCache:
         :param ttl:
             The number of seconds a cache entry should be valid for
         """
-        self.ttl = int(ttl)    
+        self.ttl = int(ttl)
         self.base_path = os.path.join(sys_path.pc_cache_dir(), 'http_cache')
         os.makedirs(self.base_path, exist_ok=True)
 
