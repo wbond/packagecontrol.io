@@ -1,9 +1,8 @@
-import bz2
-import gzip
 import json
 import os
 
 from ..lib.json_datetime_encoder import JsonDatetimeEncoder
+from ..lib.store_asset import store_asset
 from ..models import package
 
 
@@ -40,26 +39,12 @@ for name, info in package_info.items():
 
 output['repositories'] = sorted(output['repositories'])
 
-new_json_path     = os.path.join(assets_dir, 'channel_v3.json-new')
-new_json_gz_path  = os.path.join(assets_dir, 'channel_v3.json.gz-new')
-new_json_bz2_path = os.path.join(assets_dir, 'channel_v3.json.bz2-new')
-json_path         = os.path.join(assets_dir, 'channel_v3.json')
-json_gz_path      = os.path.join(assets_dir, 'channel_v3.json.gz')
-json_bz2_path     = os.path.join(assets_dir, 'channel_v3.json.bz2')
-
-encoded_json = json.dumps(output, cls=JsonDatetimeEncoder).encode('utf-8')
-
-with open(new_json_path, 'wb') as f:
-    f.write(encoded_json)
-
-os.rename(new_json_path, json_path)
-
-with gzip.open(new_json_gz_path, 'w') as f:
-    f.write(encoded_json)
-
-os.rename(new_json_gz_path, json_gz_path)
-
-with bz2.open(new_json_bz2_path, 'w') as f:
-    f.write(encoded_json)
-
-os.rename(new_json_bz2_path, json_bz2_path)
+store_asset(
+    os.path.join(assets_dir, 'channel_v4.json'),
+    json.dumps(
+        output,
+        cls=JsonDatetimeEncoder,
+        check_circular=False,
+        sort_keys=True
+    )
+)
