@@ -2,15 +2,12 @@ import os
 import re
 
 import glob2
-from gears.exceptions import ImproperlyConfigured, FileNotFound
-from gears.utils import safe_join
 
-from gears.environment import Environment, DEFAULT_PUBLIC_ASSETS
+from gears.environment import Environment
 from gears.finders import FileSystemFinder
 from gears_libsass import LibsassCompiler
 from gears_coffeescript import CoffeeScriptCompiler
 from gears_handlebars import HandlebarsCompiler
-from gears_uglifyjs import UglifyJSCompressor
 from gears_clean_css import CleanCSSCompressor
 
 from . import env

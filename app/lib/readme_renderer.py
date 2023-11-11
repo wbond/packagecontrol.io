@@ -3,9 +3,9 @@ import os
 
 import textile
 from creole import creole2html
-from creole.rest2html.clean_writer import rest2html
+from creole.rest_tools.clean_writer import rest2html
 import misaka
-from misaka import HtmlRenderer, SmartyPants
+from misaka import HtmlRenderer
 from pygments import highlight, lexers, formatters
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
@@ -74,7 +74,7 @@ def render(readme_info):
     return output
 
 
-class _HighlighterRenderer(HtmlRenderer, SmartyPants):
+class _HighlighterRenderer(HtmlRenderer):
     def block_code(self, text, lang):
         s = ''
         if not lang:
@@ -93,8 +93,7 @@ class _HighlighterRenderer(HtmlRenderer, SmartyPants):
 
 
 def _markdown(text):
-    render_flags = misaka.HTML_SKIP_STYLE
-    renderer = _HighlighterRenderer(flags=render_flags)
+    renderer = _HighlighterRenderer()
 
     extensions = misaka.EXT_FENCED_CODE | misaka.EXT_NO_INTRA_EMPHASIS | \
         misaka.EXT_TABLES | misaka.EXT_AUTOLINK | misaka.EXT_STRIKETHROUGH | \
@@ -113,13 +112,13 @@ def _markdown(text):
     last_line_blank = True
     lines = []
     for line in text.splitlines():
-        if re.match('\s*(```|~~~)', line):
+        if re.match(r'\s*(```|~~~)', line):
             if not in_block and not last_line_blank:
                 line = "\n" + line
                 in_block = True
             else:
                 in_block = False
         lines.append(line)
-        last_line_blank = re.match('^\s*$', line) != None
+        last_line_blank = re.match(r'^\s*$', line) != None
 
-    return md.render("\n".join(lines))
+    return md("\n".join(lines))

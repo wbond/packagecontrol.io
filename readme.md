@@ -8,8 +8,8 @@ packages.
 
 The Package Control website runs on an architecture of:
 
- - Python 3.6.8
- - PostgreSQL 11
+ - Python 3.9
+ - PostgreSQL 13
  - nginx
  - redis
 

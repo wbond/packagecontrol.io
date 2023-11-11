@@ -25,7 +25,7 @@ def read(name, load_env_key=False):
             # Try to use the libyaml loader
             config = yaml.load(f, Loader=yaml.CLoader)
         except (AttributeError):
-            config = yaml.load(f)
+            config = yaml.load(f, Loader=yaml.SafeLoader)
 
     if load_env_key:
         return config[env.name]
@@ -70,6 +70,6 @@ def read_secret(name, default=None):
                 # Try to use the libyaml loader
                 _secrets = yaml.load(f, Loader=yaml.CLoader)
             except (AttributeError):
-                _secrets = yaml.load(f)
+                _secrets = yaml.load(f, Loader=yaml.SafeLoader)
 
     return _secrets.get(name, default)

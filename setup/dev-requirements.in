@@ -1,0 +1,11 @@
+pip-tools
+watchdog
+gears
+gears-coffeescript
+gears-handlebars
+gears-uglifyjs
+gears-clean-css
+libsass
+git+https://github.com/wbond/gears-libsass
+paramiko
+oscrypto
