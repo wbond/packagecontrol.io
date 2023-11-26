@@ -3,8 +3,7 @@ import os
 
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .. import config
-from .connection import connection
-from ..models import package, dependency
+from ..models import package, library
 
 
 
@@ -41,7 +40,7 @@ def mark():
             package.modify.mark_removed(info['name'])
             print('Package "%s" marked as removed' % info['name'])
 
-    for info in dependency.old():
+    for info in library.old():
         mark_removed = False
 
         for source in info['sources']:
@@ -53,8 +52,8 @@ def mark():
             mark_removed = True
 
         if mark_removed:
-            dependency.mark_removed(info['name'])
-            print('Dependency "%s" marked as removed' % info['name'])
+            library.mark_removed(info['name'])
+            print('library "%s" marked as removed' % info['name'])
 
 
 def find_active_sources():
