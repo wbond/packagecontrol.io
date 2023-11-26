@@ -12,6 +12,7 @@ from urllib.error import URLError
 import imp
 
 from .package_control.providers import JsonRepositoryProvider
+from .package_control.providers.schema_version import SchemaVersion
 from .package_control.download_manager import close_all_connections, http_get
 from .package_control.downloaders.downloader_exception import DownloaderException
 from .. import config
@@ -247,9 +248,8 @@ def fetch_package_metadata(spec):
         return error.replace(' in the repository https://example.com', '')
 
     provider = JsonRepositoryProvider('https://example.com', settings)
-    provider.schema_version = '3.0.0'
-    provider.schema_major_version = 3
-    provider.repo_info = {'schema_version': '3.0.0', 'packages': [spec], 'dependencies': []}
+    provider.schema_version = SchemaVersion('4.0.0')
+    provider.repo_info = {'schema_version': '4.0.0', 'packages': [spec], 'libraries': []}
 
     try:
         for name, info in provider.get_packages():
@@ -540,9 +540,9 @@ def test_pull_request(pr):
                     errors = True
                     continue
 
-                if repo_json['schema_version'] != '3.0.0':
+                if repo_json['schema_version'] not in('3.0.0', '4.0.0'):
                     errors = True
-                    output.append('  - ERROR: "schema_version" must be "3.0.0"')
+                    output.append('  - ERROR: "schema_version" must be "3.0.0" or "4.0.0"')
                     continue
 
                 num_pkgs = 0
