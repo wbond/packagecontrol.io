@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import sys
 
@@ -18,23 +17,20 @@ if not src_path or not os.path.exists(src_path):
 
 
 REQUIRED_PATHS = [
+    'clients',
+    'deps',
+    'downloaders',
+    'http',
+    'providers',
     '__init__.py',
     'ca_certs.py',
     'cache.py',
-    'clients',
     'cmd.py',
     'console_write.py',
-    'deps',
     'download_manager.py',
-    'downloaders',
-    'file_not_found_error.py',
-    'http',
-    'open_compat.py',
-    'providers',
-    'semver.py',
+    'http_cache.py',
+    'package_versions.py',
     'text.py',
-    'unicode.py',
-    'versions.py',
 ]
 
 PRESERVE_PATHS = [

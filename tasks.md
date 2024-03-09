@@ -33,6 +33,9 @@ current list of valid tasks:
  - `generate_channel_v3_json` - builds the `channel_v3.json` file that contains
    the `3.0.0` schema version channel info used by Package Control 3.x.
 
+ - `generate_channel_v4_json` - builds the `channel_v4.json` file that contains
+   the `4.0.0` schema version channel info used by Package Control 4.x.
+
  - `generate_legacy_channel_json` - build the `repositories.json` file that
    contains the `1.2` schema version channel info used by Package Control 1.x.
 

@@ -41,11 +41,12 @@ def all(limit_one_per_package=False, only_package_control=False):
                 'releases': [
                     {
                         'platforms': ['*'],
+                        'python_versions': ['3.3', '3.8'],
                         'sublime_text': '*',
                         'version': '1.0.0',
                         'url': 'http://example.com/package.zip',
                         'date': '2015-01-01 10:15:00',
-                        'dependencies': []
+                        'libraries': []
                     },
                     ...
                 ]
@@ -107,11 +108,12 @@ def all(limit_one_per_package=False, only_package_control=False):
             SELECT
                 r.package,
                 r.platforms,
+                r.python_versions,
                 r.sublime_text,
                 r.version,
                 r.url,
                 r.date,
-                r.dependencies,
+                r.libraries,
                 CASE
                     WHEN r.version ~ E'^\\\\d+\\\\.\\\\d+\\\\.\\\\d+-'
                         then -1
@@ -199,8 +201,11 @@ def all(limit_one_per_package=False, only_package_control=False):
                 'date':         row['date']
             }
 
-            if row['dependencies']:
-                release['dependencies'] = row['dependencies']
+            if row['python_versions']:
+                release['python_versions'] = row['python_versions']
+
+            if row['libraries']:
+                release['libraries'] = row['libraries']
 
             output[package]['releases'].append(release)
 
@@ -215,7 +220,8 @@ def all(limit_one_per_package=False, only_package_control=False):
                     package_minor_versions[minor_key] = 0
                 package_minor_versions[minor_key] += 1
 
-    return output
+    # return repos with at least one release
+    return {repo: info for repo, info in output.items() if info['releases']}
 
 
 def old():

@@ -4,8 +4,6 @@ import re
 
 from .package_control.cmd import Cli
 from .package_control.ca_certs import get_system_ca_bundle_path
-from .package_control.open_compat import open_compat, read_compat
-
 
 
 def find_root_ca_cert(settings, domain):
@@ -50,8 +48,8 @@ def find_root_ca_cert(settings, domain):
 def get_ca_cert_by_subject(settings, subject):
     bundle_path = get_system_ca_bundle_path(settings)
 
-    with open_compat(bundle_path, 'r') as f:
-        contents = read_compat(f)
+    with open(bundle_path, 'r', encoding='utf-8') as f:
+        contents = f.read()
 
     temp = []
 

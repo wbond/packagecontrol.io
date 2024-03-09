@@ -5,6 +5,7 @@ user_agent: Package Control Default Channel Server
 http_cache: true
 http_cache_length: 5184000
 install_prereleases: true
+max_releases: 1
 downloader_precedence: 
     windows: [wininet, oscrypto]
     osx: [oscrypto, urllib, curl]
