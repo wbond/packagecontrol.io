@@ -1,6 +1,5 @@
 import re
-import sys
-import urllib.request as urllib_compat
+import ssl
 from http.client import HTTPException, BadStatusLine
 from urllib.request import (
     build_opener,
@@ -14,7 +13,7 @@ from urllib.error import HTTPError, URLError
 from socket import error as ConnectionError
 
 from .. import text
-from ..ca_certs import get_ca_bundle_path
+from ..ca_certs import get_ca_bundle_path, get_user_ca_bundle_path
 from ..console_write import console_write
 from ..http.validating_https_handler import ValidatingHTTPSHandler
 from ..http.debuggable_http_handler import DebuggableHTTPHandler
@@ -124,6 +123,9 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                 result = self.decode_response(encoding, result)
 
                 return self.cache_result('get', url, http_file.getcode(), http_file.headers, result)
+
+            except (ssl.CertificateError) as e:
+                error_string = 'Certificate validation for %s failed: %s' % (url, str(e))
 
             except (HTTPException) as e:
                 # Since we use keep-alives, it is possible the other end closed
@@ -269,11 +271,11 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                 if https_proxy:
                     password_manager.add_password(None, https_proxy, proxy_username, proxy_password)
 
-            handlers = [proxy_handler]
-
-            basic_auth_handler = ProxyBasicAuthHandler(password_manager)
-            digest_auth_handler = ProxyDigestAuthHandler(password_manager)
-            handlers.extend([digest_auth_handler, basic_auth_handler])
+            handlers = [
+                proxy_handler,
+                ProxyBasicAuthHandler(password_manager),
+                ProxyDigestAuthHandler(password_manager)
+            ]
 
             debug = self.settings.get('debug')
 
@@ -291,16 +293,31 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
 
             secure_url_match = re.match(r'^https://([^/#?]+)', url)
             if secure_url_match is not None:
-                bundle_path = get_ca_bundle_path(self.settings)
-                bundle_path = bundle_path.encode(sys.getfilesystemencoding())
-                handlers.append(ValidatingHTTPSHandler(
-                    ca_certs=bundle_path,
-                    debug=debug,
-                    passwd=password_manager,
-                    user_agent=self.settings.get('user_agent')
-                ))
+                if hasattr(ssl.SSLContext, 'load_default_certs'):
+                    # python 3.8 ssl module is able to load CA from native OS
+                    # certificate stores, just need to merge in user defined CA
+                    # No need to create home grown merged CA bundle anymore.
+                    handlers.append(ValidatingHTTPSHandler(
+                        ca_certs=None,
+                        extra_ca_certs=get_user_ca_bundle_path(self.settings),
+                        debug=debug,
+                        passwd=password_manager,
+                        user_agent=self.settings.get('user_agent')
+                    ))
+
+                else:
+                    # python 3.3 ssl module is not able to access OS cert stores
+                    handlers.append(ValidatingHTTPSHandler(
+                        ca_certs=get_ca_bundle_path(self.settings),
+                        extra_ca_certs=None,
+                        debug=debug,
+                        passwd=password_manager,
+                        user_agent=self.settings.get('user_agent')
+                    ))
+
             else:
-                handlers.append(DebuggableHTTPHandler(debug=debug, passwd=password_manager))
+                handlers.append(DebuggableHTTPHandler(debug=debug))
+
             self.opener = build_opener(*handlers)
 
     def supports_ssl(self):
@@ -310,7 +327,7 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
         :return:
             If the object supports HTTPS requests
         """
-        return 'ssl' in sys.modules and hasattr(urllib_compat, 'HTTPSHandler')
+        return True
 
     def supports_plaintext(self):
         """

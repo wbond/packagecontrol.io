@@ -14,13 +14,11 @@ from .show_error import show_error
 from .downloaders import DOWNLOADERS
 from .downloaders.binary_not_found_error import BinaryNotFoundError
 from .downloaders.downloader_exception import DownloaderException
-from .downloaders.oscrypto_downloader_exception import OscryptoDownloaderException
 from .downloaders.rate_limit_exception import RateLimitException
 from .downloaders.rate_limit_exception import RateLimitSkipException
-from .downloaders.urllib_downloader import UrlLibDownloader
-from .downloaders.win_downloader_exception import WinDownloaderException
 from .http_cache import HttpCache
 
+_http_cache = None
 
 _managers = {}
 """A dict of domains - each points to a list of downloaders"""
@@ -85,7 +83,7 @@ def http_get(url, settings, error_message='', prefer_cached=False):
 
 
 def _grab(url, settings):
-    global _managers, _lock, _in_use, _timer
+    global _http_cache, _managers, _lock, _in_use, _timer
 
     with _lock:
         if _timer:
@@ -100,7 +98,15 @@ def _grab(url, settings):
             _managers[hostname] = []
 
         if not _managers[hostname]:
-            _managers[hostname].append(DownloadManager(settings))
+            http_cache = None
+            if settings.get('http_cache'):
+                # first call defines http cache settings
+                # It is safe to assume all calls share same settings.
+                if not _http_cache:
+                    _http_cache = HttpCache(settings.get('http_cache_length', 604800))
+                http_cache = _http_cache
+
+            _managers[hostname].append(DownloadManager(settings, http_cache))
 
         _in_use += 1
 
@@ -135,12 +141,16 @@ def _release(url, manager):
 
 
 def close_all_connections():
-    global _managers, _lock, _in_use, _timer
+    global _http_cache, _managers, _lock, _in_use, _timer
 
     with _lock:
         if _timer:
             _timer.cancel()
             _timer = None
+
+        if _http_cache:
+            _http_cache.prune()
+            _http_cache = None
 
         for managers in _managers.values():
             for manager in managers:
@@ -266,7 +276,7 @@ def update_url(url, debug):
 
 class DownloadManager:
 
-    def __init__(self, settings):
+    def __init__(self, settings, http_cache=None):
         # Cache the downloader for re-use
         self.downloader = None
 
@@ -292,11 +302,10 @@ class DownloadManager:
         if user_agent and '%s' in user_agent:
             self.settings['user_agent'] = user_agent % __version__
 
-        # setup private http cache storage driver
-        if settings.get('http_cache'):
-            cache_length = settings.get('http_cache_length', 604800)
-            self.settings['cache'] = HttpCache(cache_length)
-            self.settings['cache_length'] = cache_length
+        # assign global http cache storage driver
+        if http_cache:
+            self.settings['cache'] = http_cache
+            self.settings['cache_length'] = http_cache.ttl
 
     def close(self):
         if self.downloader:
@@ -479,52 +488,3 @@ class DownloadManager:
                 str(e)
             )
             raise
-
-        except (OscryptoDownloaderException) as e:
-            console_write(
-                '''
-                Attempting to use Urllib downloader due to Oscrypto error: %s
-                ''',
-                str(e)
-            )
-
-            self.downloader = UrlLibDownloader(self.settings)
-            # Try again with the new downloader!
-            return self.fetch(url, error_message, prefer_cached)
-
-        except (WinDownloaderException) as e:
-            console_write(
-                '''
-                Attempting to use Urllib downloader due to WinINet error: %s
-                ''',
-                str(e)
-            )
-
-            # Here we grab the proxy info extracted from WinInet to fill in
-            # the Package Control settings if those are not present. This should
-            # hopefully make a seamless fallback for users who run into weird
-            # windows errors related to network communication.
-            wininet_proxy = self.downloader.proxy or ''
-            wininet_proxy_username = self.downloader.proxy_username or ''
-            wininet_proxy_password = self.downloader.proxy_password or ''
-
-            http_proxy = self.settings.get('http_proxy', '')
-            https_proxy = self.settings.get('https_proxy', '')
-            proxy_username = self.settings.get('proxy_username', '')
-            proxy_password = self.settings.get('proxy_password', '')
-
-            settings = self.settings.copy()
-            if not http_proxy and wininet_proxy:
-                settings['http_proxy'] = wininet_proxy
-            if not https_proxy and wininet_proxy:
-                settings['https_proxy'] = wininet_proxy
-
-            has_proxy = settings.get('http_proxy') or settings.get('https_proxy')
-            if has_proxy and not proxy_username and wininet_proxy_username:
-                settings['proxy_username'] = wininet_proxy_username
-            if has_proxy and not proxy_password and wininet_proxy_password:
-                settings['proxy_password'] = wininet_proxy_password
-
-            self.downloader = UrlLibDownloader(settings)
-            # Try again with the new downloader!
-            return self.fetch(url, error_message, prefer_cached)
