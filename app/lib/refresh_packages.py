@@ -6,6 +6,7 @@ import traceback
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .package_control.download_manager import downloader, close_all_connections
 from .package_control.clients.readme_client import ReadmeClient
+from .package_control.downloaders.rate_limit_exception import RateLimitException
 from .. import config
 from ..models import package, dependency
 from .readme_renderer import render
@@ -174,8 +175,10 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
                     print('-' * 60, file=sys.stderr)
 
             for source, exception in provider.get_failed_sources():
-                package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
-                dependency.mark_missing(source, clean_url(exception), needs_review(exception))
+                # Don't mark a package as missing if we run out of requests
+                if not isinstance(exception, RateLimitException):
+                    package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
+                    dependency.mark_missing(source, clean_url(exception), needs_review(exception))
 
             for package_name, exception in provider.get_broken_packages():
                 package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
