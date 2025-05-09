@@ -1,11 +1,10 @@
-import re
 import os
+import re
 
-from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .. import config
-from .connection import connection
 from ..models import package, dependency
-
+from .connection import connection
+from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 
 
 def mark():
@@ -17,44 +16,30 @@ def mark():
     active_sources = find_active_sources()
 
     for info in package.find.old():
-        mark_removed = False
+        # If there was an error trying to get information about a package,
+        # which is indicated by the is_missing field, don't mark it as removed
+        # because we want people to see that something is broken so that
+        # someone fixes it.
+        if info['is_missing']:
+            continue
 
-        # If one of the sources for a package is no longer part of the channel,
+        # If none of the sources for a package is part of the channel,
         # we can deduce that the package was purposefully removed.
-        for source in info['sources']:
-            if source not in active_sources:
-                mark_removed = True
-                break
+        if bool(set(info['sources']) & active_sources):
+            continue
 
-        # Packages that have not been seen in hours, but have no error indicates
-        # that they were purposefully removed from a source that is still part
-        # of the channel.
-        if not info['is_missing']:
-            mark_removed = True
-
-        # The other possible situation is that there was an error trying to
-        # get information about a package - which is indicated by the
-        # is_missing field. We don't mark those as removed because we want
-        # people to see that something is broken so that someone fixes it.
-
-        if mark_removed:
-            package.modify.mark_removed(info['name'])
-            print('Package "%s" marked as removed' % info['name'])
+        package.modify.mark_removed(info['name'])
+        print('Package "%s" marked as removed' % info['name'])
 
     for info in dependency.old():
-        mark_removed = False
+        if info['is_missing']:
+            continue
 
-        for source in info['sources']:
-            if source not in active_sources:
-                mark_removed = True
-                break
+        if bool(set(info['sources']) & active_sources):
+            continue
 
-        if not info['is_missing']:
-            mark_removed = True
-
-        if mark_removed:
-            dependency.mark_removed(info['name'])
-            print('Dependency "%s" marked as removed' % info['name'])
+        dependency.mark_removed(info['name'])
+        print('Dependency "%s" marked as removed' % info['name'])
 
 
 def find_active_sources():
@@ -92,12 +77,12 @@ def find_active_sources():
     # We also scan local repositories
     repositories_to_scan = []
 
-    sources = {}
+    sources = set()
     for source in channel_provider.get_sources():
         if not re.match('^https?://', source):
             repositories_to_scan.append(source)
         source = source.replace(search, replace)
-        sources[source] = True
+        sources.add(source)
 
     for repository in repositories_to_scan:
         for provider_cls in REPOSITORY_PROVIDERS:
@@ -107,7 +92,7 @@ def find_active_sources():
             repo_provider = provider_cls(repository, settings)
             for source in repo_provider.get_sources():
                 source = source.replace(search, replace)
-                sources[source] = True
+                sources.add(source)
 
             break
 
