@@ -181,11 +181,14 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
                     dependency.mark_missing(source, clean_url(exception), needs_review(exception))
 
             for package_name, exception in provider.get_broken_packages():
-                package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
+                # Don't mark a package as missing if we run out of requests
+                if not isinstance(exception, RateLimitException):
+                    package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
 
             for dependency_name, exception in provider.get_broken_dependencies():
-                dependency.mark_missing_by_name(dependency_name, clean_url(exception), needs_review(exception))
-
+                # Don't mark a package as missing if we run out of requests
+                if not isinstance(exception, RateLimitException):
+                    dependency.mark_missing_by_name(dependency_name, clean_url(exception), needs_review(exception))
             break
 
     close_all_connections()
