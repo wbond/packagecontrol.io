@@ -34,8 +34,8 @@ if explicit_package:
     valid_package_sources = package.sources.sources_for(explicit_package)
     valid_library_sources = []
 else:
-    valid_package_sources = package.sources.outdated_sources(60, 200)
-    valid_library_sources = library.outdated_sources(60, 200)
+    valid_package_sources = package.sources.outdated_sources(120, 600)
+    valid_library_sources = library.outdated_sources(120, 600)
 
 invalid_package_sources = package.sources.invalid_sources(valid_package_sources)
 invalid_library_sources = library.invalid_sources(valid_library_sources)

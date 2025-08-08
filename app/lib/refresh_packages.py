@@ -7,6 +7,7 @@ from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
 from .package_control.downloaders.rate_limit_exception import RateLimitException, RateLimitSkipException
 from .package_control.download_manager import close_all_connections
 from .package_control.clients.readme_client import ReadmeClient
+from .package_control.downloaders.rate_limit_exception import RateLimitException
 from .. import config
 from ..models import package, library
 from .readme_renderer import render
