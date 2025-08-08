@@ -4,24 +4,25 @@ import sys
 import traceback
 
 from .package_control.providers import REPOSITORY_PROVIDERS, CHANNEL_PROVIDERS
-from .package_control.download_manager import downloader, close_all_connections
+from .package_control.downloaders.rate_limit_exception import RateLimitException, RateLimitSkipException
+from .package_control.download_manager import close_all_connections
 from .package_control.clients.readme_client import ReadmeClient
 from .package_control.downloaders.rate_limit_exception import RateLimitException
 from .. import config
-from ..models import package, dependency
+from ..models import package, library
 from .readme_renderer import render
 from .readme_images import cache
 
 
-def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
+def refresh_packages(invalid_package_sources=None, invalid_library_sources=None):
     """
     Refresh the package information in the database
 
-    :param invalid_sources:
+    :param invalid_package_sources:
         A list of source URLs to ignore
 
-    :param invalid_dependency_sources:
-        A list of dependency source URLs to ignore
+    :param invalid_library_sources:
+        A list of library source URLs to ignore
 
     :return:
         A list of the names of all of the packages that were refreshed
@@ -84,43 +85,44 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
 
     readme_client = ReadmeClient(settings)
 
-    if invalid_sources:
+    if invalid_package_sources:
         if search and replace:
             mapped_invalid_sources = []
-            for source in invalid_sources:
+            for source in invalid_package_sources:
                 if source not in ignore:
                     source = source.replace(replace, search)
                 mapped_invalid_sources.append(source)
-            invalid_sources = mapped_invalid_sources
+            invalid_package_sources = mapped_invalid_sources
 
-    if invalid_dependency_sources:
+    if invalid_library_sources:
         if search and replace:
-            mapped_invalid_dependency_sources = []
-            for source in invalid_dependency_sources:
+            mapped_invalid_library_sources = []
+            for source in invalid_library_sources:
                 if source not in ignore:
                     source = source.replace(replace, search)
-                mapped_invalid_dependency_sources.append(source)
-            invalid_dependency_sources = mapped_invalid_dependency_sources
+                mapped_invalid_library_sources.append(source)
+            invalid_library_sources = mapped_invalid_library_sources
 
-    if not invalid_dependency_sources:
-        invalid_dependency_sources = None
+    if not invalid_library_sources:
+        invalid_library_sources = None
 
+    repositories = []
     for provider_cls in CHANNEL_PROVIDERS:
-        if not provider_cls.match_url(channel):
-            continue
-        provider = provider_cls(channel, settings)
-        repositories = provider.get_repositories()
-        break
+        if provider_cls.match_url(channel):
+            repositories = provider_cls(channel, settings).get_repositories()
+            break
+
+    accepted_errors = (RateLimitException, RateLimitSkipException)
 
     affected_packages = []
-    affected_dependencies = []
+    affected_libraries = []
     for repository in repositories:
         for provider_cls in REPOSITORY_PROVIDERS:
             if not provider_cls.match_url(repository):
                 continue
 
             provider = provider_cls(repository, settings)
-            for name, info in provider.get_packages(invalid_sources):
+            for name, info in provider.get_packages(invalid_package_sources):
                 try:
                     if search and replace:
                         mapped_sources = []
@@ -156,7 +158,7 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
                     traceback.print_exc(file=sys.stderr)
                     print('-' * 60, file=sys.stderr)
 
-            for name, info in provider.get_dependencies(invalid_dependency_sources):
+            for name, info in provider.get_libraries(invalid_library_sources):
                 try:
                     if search and replace:
                         mapped_sources = []
@@ -164,32 +166,33 @@ def refresh_packages(invalid_sources=None, invalid_dependency_sources=None):
                             mapped_sources.append(source.replace(search, replace))
                         info['sources'] = mapped_sources
 
-                    dependency.mark_found(name)
-                    dependency.store(info)
-                    affected_dependencies.append(name)
+                    library.mark_found(name)
+                    library.store(info)
+                    affected_libraries.append(name)
 
                 except (Exception) as e:
-                    print('Exception processing dependency "%s":' % name, file=sys.stderr)
+                    print('Exception processing library "%s":' % name, file=sys.stderr)
                     print('-' * 60, file=sys.stderr)
                     traceback.print_exc(file=sys.stderr)
                     print('-' * 60, file=sys.stderr)
 
             for source, exception in provider.get_failed_sources():
-                # Don't mark a package as missing if we run out of requests
-                if not isinstance(exception, RateLimitException):
-                    package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
-                    dependency.mark_missing(source, clean_url(exception), needs_review(exception))
+                if isinstance(exception, accepted_errors):
+                    continue
+                package.modify.mark_missing(source, clean_url(exception), needs_review(exception))
+                library.mark_missing(source, clean_url(exception), needs_review(exception))
 
             for package_name, exception in provider.get_broken_packages():
-                # Don't mark a package as missing if we run out of requests
-                if not isinstance(exception, RateLimitException):
-                    package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
+                if isinstance(exception, accepted_errors):
+                    continue
+                package.modify.mark_missing_by_name(package_name, clean_url(exception), needs_review(exception))
 
-            for dependency_name, exception in provider.get_broken_dependencies():
-                # Don't mark a package as missing if we run out of requests
-                if not isinstance(exception, RateLimitException):
-                    dependency.mark_missing_by_name(dependency_name, clean_url(exception), needs_review(exception))
+            for library_name, exception in provider.get_broken_libraries():
+                if isinstance(exception, accepted_errors):
+                    continue
+                library.mark_missing_by_name(library_name, clean_url(exception), needs_review(exception))
+
             break
 
     close_all_connections()
-    return (affected_packages, affected_dependencies)
+    return (affected_packages, affected_libraries)

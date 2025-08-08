@@ -1,10 +1,8 @@
 import os
 import subprocess
 import re
-import sys
 
 from .console_write import console_write
-from .unicode import unicode_from_os
 from .show_error import show_error
 from . import text
 
@@ -17,13 +15,6 @@ try:
     import sublime
 except (ImportError):
     sublime = None
-
-try:
-    # Python 2
-    str_cls = unicode
-except (NameError):
-    # Python 3
-    str_cls = str
 
 
 def create_cmd(args, basename_binary=False):
@@ -50,12 +41,12 @@ def create_cmd(args, basename_binary=False):
         escaped_args = []
         for arg in args:
             if re.search('^[a-zA-Z0-9/_^\\-\\.:=]+$', arg) is None:
-                arg = u"'" + arg.replace(u"'", u"'\\''") + u"'"
+                arg = "'" + arg.replace("'", "'\\''") + "'"
             escaped_args.append(arg)
-        return u' '.join(escaped_args)
+        return ' '.join(escaped_args)
 
 
-class Cli(object):
+class Cli:
 
     """
     Base class for running command line apps
@@ -119,15 +110,13 @@ class Cli(object):
 
         if self.debug:
             console_write(
-                u'''
+                '''
                 Executing %s [%s]
                 ''',
                 (create_cmd(args), cwd)
             )
 
         try:
-            if sys.platform == 'win32' and sys.version_info < (3,):
-                cwd = cwd.encode('mbcs')
             proc = subprocess.Popen(
                 args,
                 stdin=subprocess.PIPE,
@@ -138,82 +127,45 @@ class Cli(object):
                 env=os.environ
             )
 
-            if input and isinstance(input, str_cls):
+            if input and isinstance(input, str):
                 input = input.encode(encoding)
-
-            stuck = True
 
             binary_name = os.path.basename(args[0])
             if re.search('git', binary_name):
                 is_vcs = True
             elif re.search('hg', binary_name):
                 is_vcs = True
+            else:
+                is_vcs = False
 
-            if sublime:
-                def kill_proc():
-                    if not stuck:
-                        return
-                    # This doesn't actually work!
-                    proc.kill()
-
-                    message = text.format(
-                        u'''
-                        The process %s seems to have gotten stuck.
-
-                        Command: %s
-
-                        Working directory: %s
-                        ''',
-                        (binary_name, create_cmd(args), orig_cwd)
-                    )
-                    if is_vcs:
-                        message += text.format(
-                            u'''
-
-                            This is likely due to a password or passphrase
-                            prompt. Please ensure %s works without a prompt, or
-                            change the "ignore_vcs_packages" Package Control
-                            setting to true.
-
-                            Sublime Text will need to be restarted once these
-                            changes are made.
-                            ''',
-                            binary_name
-                        )
-                    show_error(message)
-                sublime.set_timeout(kill_proc, 60000)
-
-            output, _ = proc.communicate(input)
-
-            stuck = False
-
+            output, error = proc.communicate(input, timeout=60.0)
             output = output.decode(encoding)
             output = output.replace('\r\n', '\n').rstrip(' \n\r')
 
             if proc.returncode not in self.ok_returncodes:
-                if not ignore_errors or re.search(ignore_errors, output) is None:
+                if error:
+                    error = error.decode(encoding)
+                    error = error.replace('\r\n', '\n').rstrip(' \n\r')
+                if not ignore_errors or re.search(ignore_errors, error or output) is None:
                     message = text.format(
-                        u'''
+                        '''
                         Error executing: %s
 
                         Working directory: %s
 
                         %s
                         ''',
-                        (create_cmd(args), orig_cwd, output)
-                    )
+                        (create_cmd(args), orig_cwd, error or output)
+                    ).rstrip()
                     if is_vcs:
                         message += text.format(
                             '''
 
                             VCS-based packages can be ignored by changing the
                             "ignore_vcs_packages" setting to true.
-
-                            Sublime Text will need to be restarted once the
-                            setting is changed.
                             '''
                         )
-                    show_error(message)
+                    console_write(message)
                     return False
 
             if meaningful_output and self.debug and len(output) > 0:
@@ -221,16 +173,43 @@ class Cli(object):
 
             return output
 
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+
+            message = text.format(
+                '''
+                The process %s seems to have gotten stuck.
+
+                Command: %s
+
+                Working directory: %s
+                ''',
+                (binary_name, create_cmd(args), orig_cwd)
+            )
+            if is_vcs:
+                message += text.format(
+                    '''
+
+                    This is likely due to a password or passphrase
+                    prompt. Please ensure %s works without a prompt, or
+                    change the "ignore_vcs_packages" Package Control
+                    setting to true.
+                    ''',
+                    binary_name
+                )
+            show_error(message)
+            return False
+
         except (OSError) as e:
             show_error(
-                u'''
+                '''
                 Error executing: %s
 
                 %s
 
                 Try checking your "%s_binary" setting?
                 ''',
-                (create_cmd(args), unicode_from_os(e), self.cli_name)
+                (create_cmd(args), str(e), self.cli_name)
             )
             return False
 
@@ -283,7 +262,7 @@ class Cli(object):
 
         if self.debug:
             console_write(
-                u'''
+                '''
                 Looking for %s at: "%s"
                 ''',
                 (self.cli_name, '", "'.join(check_binaries))
@@ -293,7 +272,7 @@ class Cli(object):
             if os.path.exists(path) and not os.path.isdir(path) and os.access(path, os.X_OK):
                 if self.debug:
                     console_write(
-                        u'''
+                        '''
                         Found %s at "%s"
                         ''',
                         (self.cli_name, path)
@@ -303,7 +282,7 @@ class Cli(object):
 
         if self.debug:
             console_write(
-                u'''
+                '''
                 Could not find %s on your machine
                 ''',
                 self.cli_name

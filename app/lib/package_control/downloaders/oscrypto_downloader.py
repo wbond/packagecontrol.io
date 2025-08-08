@@ -3,59 +3,27 @@
 from __future__ import unicode_literals, division, absolute_import, print_function
 
 import base64
-import re
-import sys
-import os
 import hashlib
+import os
+import re
 import socket
+from urllib.parse import urlparse
+from urllib.request import parse_keqv_list, parse_http_list
 
-from ..console_write import console_write
-from ..unicode import unicode_from_os
-from ..open_compat import open_compat, read_compat
-from .downloader_exception import DownloaderException
-from .oscrypto_downloader_exception import OscryptoDownloaderException
-from ..ca_certs import get_user_ca_bundle_path
-from .decoding_downloader import DecodingDownloader
-from .limiting_downloader import LimitingDownloader
-from .basic_auth_downloader import BasicAuthDownloader
-from .caching_downloader import CachingDownloader
 from .. import text
-
+from ..ca_certs import get_user_ca_bundle_path
+from ..console_write import console_write
 from ..deps.asn1crypto.util import OrderedDict
 from ..deps.asn1crypto import pem, x509
-from ..deps.oscrypto import use_ctypes, use_openssl
-
-use_ctypes()
-
-# On Linux we need to use the version of OpenSSL included with Sublime Text
-# to prevent conflicts between two different versions of OpenSSL being
-# dynamically linked. On ST3, we can't use oscrypto for OpenSSL stuff since
-# it has OpenSSL statically linked, and we can't dlopen() that.
-# ST 4081 broke sys.executable to return "sublime_text", but other 4xxx builds
-# will contain "plugin_host".
-if sys.version_info == (3, 8) and sys.platform == 'linux' and (
-        'sublime_text' in sys.executable or
-        'plugin_host' in sys.executable):
-    install_dir = os.path.dirname(sys.executable)
-    use_openssl(
-        os.path.join(install_dir, 'libcrypto.so.1.1'),
-        os.path.join(install_dir, 'libssl.so.1.1')
-    )
+from .downloader_exception import DownloaderException
+from .oscrypto_downloader_exception import OscryptoDownloaderException
+from .basic_auth_downloader import BasicAuthDownloader
+from .caching_downloader import CachingDownloader
+from .decoding_downloader import DecodingDownloader
+from .limiting_downloader import LimitingDownloader
 
 from ..deps.oscrypto import tls  # noqa
 from ..deps.oscrypto import errors as oscrypto_errors  # noqa
-
-if sys.version_info < (3,):
-    from urlparse import urlparse
-
-    from urllib2 import parse_keqv_list, parse_http_list
-    str_cls = unicode  # noqa
-    int_types = (int, long)  # noqa
-else:
-    from urllib.parse import urlparse
-    from urllib.request import parse_keqv_list, parse_http_list
-    str_cls = str
-    int_types = int
 
 
 class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader, BasicAuthDownloader):
@@ -89,7 +57,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         self.socket = None
         self.using_proxy = False
 
-    def download(self, url, error_message, timeout, tries, prefer_cached=False):
+    def download(self, url, error_message, timeout, tries):
         """
         Downloads a URL and returns the contents
 
@@ -111,9 +79,6 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
             The int number of times to try and download the URL in the case of
             a timeout or HTTP 503 error
 
-        :param prefer_cached:
-            If a cached version should be returned instead of trying a new request
-
         :raises:
             RateLimitException: when a rate limit is hit
             DownloaderException: when any other download error occurs
@@ -122,7 +87,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
             The string contents of the URL
         """
 
-        if prefer_cached:
+        if self.is_cache_fresh(url):
             cached = self.retrieve_cached(url)
             if cached:
                 return cached
@@ -181,15 +146,15 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 if code == 304:
                     return self.cache_result('get', url, code, resp_headers, b'')
 
-                if code == 301:
+                if code == 301 or code == 302:
                     location = resp_headers.get('location')
-                    if not isinstance(location, str_cls):
+                    if not isinstance(location, str):
                         raise OscryptoDownloaderException('Missing or duplicate Location HTTP header')
                     if not re.match(r'https?://', location):
                         if not location.startswith('/'):
                             location = os.path.dirname(url_info.path) + location
                         location = url_info.scheme + '://' + url_info.netloc + location
-                    return self.download(location, error_message, timeout, tried, prefer_cached)
+                    return self.download(location, error_message, timeout, tried)
 
                 # Make sure we obey Github's rate limiting headers
                 self.handle_rate_limit(resp_headers, url)
@@ -224,7 +189,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     '''
                     %s TLS verification error %s downloading %s.
                     ''',
-                    (error_message, str_cls(e), url)
+                    (error_message, str(e), url)
                 )
 
             except (oscrypto_errors.TLSDisconnectError):
@@ -245,7 +210,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     '''
                     %s TLS error %s downloading %s.
                     ''',
-                    (error_message, str_cls(e), url)
+                    (error_message, str(e), url)
                 )
 
             except (socket.error):
@@ -269,7 +234,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     '''
                     %s OS error %s downloading %s.
                     ''',
-                    (error_message, unicode_from_os(e), url)
+                    (error_message, str(e), url)
                 )
                 raise
 
@@ -360,8 +325,8 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         user_ca_bundle_path = get_user_ca_bundle_path(self.settings)
         if os.path.exists(user_ca_bundle_path):
             try:
-                with open_compat(user_ca_bundle_path, 'rb') as f:
-                    file_data = read_compat(f)
+                with open(user_ca_bundle_path, 'rb') as fobj:
+                    file_data = fobj.read()
                 if len(file_data) > 0:
                     for type_name, headers, der_bytes in pem.unarmor(file_data, multiple=True):
                         extra_trust_roots.append(x509.Certificate.load(der_bytes))
@@ -371,7 +336,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                     Oscrypto Debug General
                       Error parsing certs file %s: %s
                     ''',
-                    (user_ca_bundle_path, str_cls(e))
+                    (user_ca_bundle_path, str(e))
                 )
         session = tls.TLSSession(extra_trust_roots=extra_trust_roots)
 
@@ -518,7 +483,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         """
 
         content_length = headers.get('content-length')
-        if isinstance(content_length, str_cls) and len(content_length) > 0:
+        if isinstance(content_length, str) and len(content_length) > 0:
             content_length = int(content_length)
         return content_length
 
@@ -600,7 +565,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
                 if curve_info[0] == 'named':
                     public_key_algo += ' ' + curve_info[1]
             else:
-                public_key_algo += ' ' + str_cls(cert.public_key.bit_size)
+                public_key_algo += ' ' + str(cert.public_key.bit_size)
             console_write(
                 '''
                 Oscrypto Server TLS Certificate
@@ -647,7 +612,7 @@ class OscryptoDownloader(DecodingDownloader, LimitingDownloader, CachingDownload
         close = False
         for header in ('connection', 'proxy-connection'):
             value = resp_headers.get(header)
-            if isinstance(value, str_cls) and value.lower() == 'close':
+            if isinstance(value, str) and value.lower() == 'close':
                 close = True
 
         if close:

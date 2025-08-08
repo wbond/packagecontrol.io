@@ -1,54 +1,27 @@
 import re
-import sys
+import ssl
+from http.client import HTTPException, BadStatusLine
+from urllib.request import (
+    build_opener,
+    HTTPPasswordMgrWithDefaultRealm,
+    ProxyBasicAuthHandler,
+    ProxyDigestAuthHandler,
+    ProxyHandler,
+    Request,
+)
+from urllib.error import HTTPError, URLError
+from socket import error as ConnectionError
 
-# Monkey patches various Python 2 issues with urllib2
-from .. import http  # noqa
-
-try:
-    # Python 3
-    from http.client import HTTPException, BadStatusLine
-    from urllib.request import (
-        build_opener,
-        HTTPPasswordMgrWithDefaultRealm,
-        ProxyBasicAuthHandler,
-        ProxyDigestAuthHandler,
-        ProxyHandler,
-        Request,
-    )
-    from urllib.error import HTTPError, URLError
-    import urllib.request as urllib_compat
-except (ImportError):
-    # Python 2
-    from httplib import HTTPException, BadStatusLine
-    from urllib2 import (
-        build_opener,
-        HTTPPasswordMgrWithDefaultRealm,
-        ProxyBasicAuthHandler,
-        ProxyDigestAuthHandler,
-        ProxyHandler,
-        Request,
-    )
-    from urllib2 import HTTPError, URLError
-    import urllib2 as urllib_compat
-
-try:
-    # Python 3.3
-    import ConnectionError
-except (ImportError):
-    # Python 2.6-3.2
-    from socket import error as ConnectionError
-
+from .. import text
+from ..ca_certs import get_ca_bundle_path, get_user_ca_bundle_path
 from ..console_write import console_write
-from ..unicode import unicode_from_os
 from ..http.validating_https_handler import ValidatingHTTPSHandler
 from ..http.debuggable_http_handler import DebuggableHTTPHandler
 from .downloader_exception import DownloaderException
-from ..ca_certs import get_ca_bundle_path
-from .decoding_downloader import DecodingDownloader
-from .limiting_downloader import LimitingDownloader
 from .basic_auth_downloader import BasicAuthDownloader
 from .caching_downloader import CachingDownloader
-from .. import text
+from .decoding_downloader import DecodingDownloader
+from .limiting_downloader import LimitingDownloader
 
 
 class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader, BasicAuthDownloader):
@@ -77,7 +50,7 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
             handler.close()
         self.opener = None
 
-    def download(self, url, error_message, timeout, tries, prefer_cached=False):
+    def download(self, url, error_message, timeout, tries):
         """
         Downloads a URL and returns the contents
 
@@ -99,9 +72,6 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
             The int number of times to try and download the URL in the case of
             a timeout or HTTP 503 error
 
-        :param prefer_cached:
-            If a cached version should be returned instead of trying a new request
-
         :raises:
             RateLimitException: when a rate limit is hit
             DownloaderException: when any other download error occurs
@@ -110,7 +80,7 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
             The string contents of the URL
         """
 
-        if prefer_cached:
+        if self.is_cache_fresh(url):
             cached = self.retrieve_cached(url)
             if cached:
                 return cached
@@ -151,6 +121,9 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
 
                 return self.cache_result('get', url, http_file.getcode(), http_file.headers, result)
 
+            except (ssl.CertificateError) as e:
+                error_string = 'Certificate validation for %s failed: %s' % (url, str(e))
+
             except (HTTPException) as e:
                 # Since we use keep-alives, it is possible the other end closed
                 # the connection, and we may just need to re-open
@@ -164,10 +137,10 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
 
                 exception_type = e.__class__.__name__
                 error_string = text.format(
-                    u'''
+                    '''
                     %s HTTP exception %s (%s) downloading %s.
                     ''',
-                    (error_message, exception_type, unicode_from_os(e), url)
+                    (error_message, exception_type, str(e), url)
                 )
 
             except (HTTPError) as e:
@@ -179,14 +152,14 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                 self.handle_rate_limit(e.headers, url)
 
                 # Handle cached responses
-                if unicode_from_os(e.code) == '304':
+                if str(e.code) == '304':
                     return self.cache_result('get', url, int(e.code), e.headers, b'')
 
                 # Bitbucket and Github return 503 a decent amount
-                if unicode_from_os(e.code) == '503' and tries != 0:
+                if str(e.code) == '503' and tries != 0:
                     if tries and debug:
                         console_write(
-                            u'''
+                            '''
                             Downloading %s was rate limited, trying again
                             ''',
                             url
@@ -194,20 +167,20 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                     continue
 
                 error_string = text.format(
-                    u'''
+                    '''
                     %s HTTP error %s downloading %s.
                     ''',
-                    (error_message, unicode_from_os(e.code), url)
+                    (error_message, str(e.code), url)
                 )
 
             except (URLError) as e:
 
                 # Bitbucket and Github timeout a decent amount
-                if unicode_from_os(e.reason) == 'The read operation timed out' \
-                        or unicode_from_os(e.reason) == 'timed out':
+                if str(e.reason) == 'The read operation timed out' \
+                        or str(e.reason) == 'timed out':
                     if tries and debug:
                         console_write(
-                            u'''
+                            '''
                             Downloading %s timed out, trying again
                             ''',
                             url
@@ -215,10 +188,10 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                     continue
 
                 error_string = text.format(
-                    u'''
+                    '''
                     %s URL error %s downloading %s.
                     ''',
-                    (error_message, unicode_from_os(e.reason), url)
+                    (error_message, str(e.reason), url)
                 )
 
             except (ConnectionError):
@@ -226,7 +199,7 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                 # thus getting new handlers and a new connection
                 if debug:
                     console_write(
-                        u'''
+                        '''
                         Connection went away while trying to download %s, trying again
                         ''',
                         url
@@ -240,8 +213,8 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
             break
 
         if error_string is None:
-            plural = u's' if tried > 1 else u''
-            error_string = u'Unable to download %s after %d attempt%s' % (url, tried, plural)
+            plural = 's' if tried > 1 else ''
+            error_string = 'Unable to download %s after %d attempt%s' % (url, tried, plural)
 
         raise DownloaderException(error_string)
 
@@ -295,17 +268,17 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                 if https_proxy:
                     password_manager.add_password(None, https_proxy, proxy_username, proxy_password)
 
-            handlers = [proxy_handler]
-
-            basic_auth_handler = ProxyBasicAuthHandler(password_manager)
-            digest_auth_handler = ProxyDigestAuthHandler(password_manager)
-            handlers.extend([digest_auth_handler, basic_auth_handler])
+            handlers = [
+                proxy_handler,
+                ProxyBasicAuthHandler(password_manager),
+                ProxyDigestAuthHandler(password_manager)
+            ]
 
             debug = self.settings.get('debug')
 
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Urllib Debug Proxy
                       http_proxy: %s
                       https_proxy: %s
@@ -315,18 +288,33 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
                     (http_proxy, https_proxy, proxy_username, proxy_password)
                 )
 
-            secure_url_match = re.match('^https://([^/]+)', url)
+            secure_url_match = re.match(r'^https://([^/#?]+)', url)
             if secure_url_match is not None:
-                bundle_path = get_ca_bundle_path(self.settings)
-                bundle_path = bundle_path.encode(sys.getfilesystemencoding())
-                handlers.append(ValidatingHTTPSHandler(
-                    ca_certs=bundle_path,
-                    debug=debug,
-                    passwd=password_manager,
-                    user_agent=self.settings.get('user_agent')
-                ))
+                if hasattr(ssl.SSLContext, 'load_default_certs'):
+                    # python 3.8 ssl module is able to load CA from native OS
+                    # certificate stores, just need to merge in user defined CA
+                    # No need to create home grown merged CA bundle anymore.
+                    handlers.append(ValidatingHTTPSHandler(
+                        ca_certs=None,
+                        extra_ca_certs=get_user_ca_bundle_path(self.settings),
+                        debug=debug,
+                        passwd=password_manager,
+                        user_agent=self.settings.get('user_agent')
+                    ))
+
+                else:
+                    # python 3.3 ssl module is not able to access OS cert stores
+                    handlers.append(ValidatingHTTPSHandler(
+                        ca_certs=get_ca_bundle_path(self.settings),
+                        extra_ca_certs=None,
+                        debug=debug,
+                        passwd=password_manager,
+                        user_agent=self.settings.get('user_agent')
+                    ))
+
             else:
-                handlers.append(DebuggableHTTPHandler(debug=debug, passwd=password_manager))
+                handlers.append(DebuggableHTTPHandler(debug=debug))
+
             self.opener = build_opener(*handlers)
 
     def supports_ssl(self):
@@ -336,7 +324,7 @@ class UrlLibDownloader(DecodingDownloader, LimitingDownloader, CachingDownloader
         :return:
             If the object supports HTTPS requests
         """
-        return 'ssl' in sys.modules and hasattr(urllib_compat, 'HTTPSHandler')
+        return True
 
     def supports_plaintext(self):
         """

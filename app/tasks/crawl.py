@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from ..models import package
-from ..models import dependency
+from ..models import library
 from ..lib.refresh_packages import refresh_packages
 
 
@@ -31,18 +31,18 @@ print(output.decode(encoding='utf-8'))
 
 
 if explicit_package:
-    valid_sources = package.sources.sources_for(explicit_package)
-    valid_dependency_sources = []
+    valid_package_sources = package.sources.sources_for(explicit_package)
+    valid_library_sources = []
 else:
-    valid_sources = package.sources.outdated_sources(120, 600)
-    valid_dependency_sources = dependency.outdated_sources(120, 600)
+    valid_package_sources = package.sources.outdated_sources(120, 600)
+    valid_library_sources = library.outdated_sources(120, 600)
 
-invalid_sources = package.sources.invalid_sources(valid_sources)
-invalid_dependency_sources = dependency.invalid_sources(valid_dependency_sources)
+invalid_package_sources = package.sources.invalid_sources(valid_package_sources)
+invalid_library_sources = library.invalid_sources(valid_library_sources)
 
-affected_packages, affected_dependencies = refresh_packages(invalid_sources, invalid_dependency_sources)
+affected_packages, affected_libraries = refresh_packages(invalid_package_sources, invalid_library_sources)
 
 print('AFFECTED PACKAGES')
 print(affected_packages)
-print('\nAFFECTED DEPENDENCIES')
-print(affected_dependencies)
+print('\nAFFECTED LIBRARIES')
+print(affected_libraries)

@@ -4,20 +4,39 @@ import hashlib
 
 from ..console_write import console_write
 
-try:
-    # Python 2
-    str_cls = unicode
-except (NameError):
-    # Python 3
-    str_cls = str
 
-
-class CachingDownloader(object):
+class CachingDownloader:
 
     """
     A base downloader that will use a caching backend to cache HTTP requests
     and make conditional requests.
     """
+
+    def is_cache_fresh(self, url):
+        """
+        Determines if cache fresh.
+
+        :param url:
+            The url of the request
+        :param max_age:
+            The maximum age of a cache until it is considdered fresh.
+
+        :returns:
+            True if cache is still fresh.
+        """
+        cache = self.settings.get('cache')
+        if not cache:
+            return False
+
+        info_key = self.generate_key(url)
+        age = cache.age(info_key)
+        is_fresh = age < self.settings.get('max_age', 600)
+        if self.settings.get('debug'):
+            if is_fresh:
+                console_write('Cached repsonse for "%s" is fresh (%ds).', (url, age))
+            else:
+                console_write('Cached repsonse for "%s" is %ds old, needs validation.', (url, age))
+        return is_fresh
 
     def add_conditional_headers(self, url, headers):
         """
@@ -89,7 +108,7 @@ class CachingDownloader(object):
         if not cache:
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Skipping cache since there is no cache object
                     '''
                 )
@@ -98,7 +117,7 @@ class CachingDownloader(object):
         if method.lower() != 'get':
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Skipping cache since the HTTP method != GET
                     '''
                 )
@@ -110,7 +129,7 @@ class CachingDownloader(object):
         if status not in (200, 304):
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Skipping cache since the HTTP status code not one of: 200, 304
                     '''
                 )
@@ -123,11 +142,12 @@ class CachingDownloader(object):
             if cached_content:
                 if debug:
                     console_write(
-                        u'''
+                        '''
                         Using cached content for %s from %s
                         ''',
                         (url, cache.path(key))
                     )
+                cache.touch(key)
                 return cached_content
 
             # If we got a 304, but did not have the cached content
@@ -148,7 +168,7 @@ class CachingDownloader(object):
         if headers.get('content-type') in ('application/zip', 'application/octet-stream'):
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Skipping cache since the response is a zip file
                     '''
                 )
@@ -166,7 +186,7 @@ class CachingDownloader(object):
         info_key = self.generate_key(url, '.info')
         if debug:
             console_write(
-                u'''
+                '''
                 Caching %s in %s
                 ''',
                 (url, cache.path(key))
@@ -191,7 +211,7 @@ class CachingDownloader(object):
             A string key for the URL
         """
 
-        if isinstance(url, str_cls):
+        if isinstance(url, str):
             url = url.encode('utf-8')
 
         key = hashlib.md5(url).hexdigest()
@@ -214,7 +234,7 @@ class CachingDownloader(object):
         if not cache:
             if debug:
                 console_write(
-                    u'''
+                    '''
                     Skipping cache since there is no cache object
                     '''
                 )
@@ -225,7 +245,7 @@ class CachingDownloader(object):
         cached_content = cache.get(key)
         if cached_content and debug:
             console_write(
-                u'''
+                '''
                 Using cached content for %s from %s
                 ''',
                 (url, cache.path(key))

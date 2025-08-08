@@ -1,35 +1,78 @@
-# Not shared with Package Control
-
 import os
+import time
 
-from datetime import datetime, timedelta
-
-from ..connection import connection
+from . import sys_path
 
 
-class HttpCache(object):
+class HttpCache:
+
     """
     A data store for caching HTTP response data.
     """
 
     def __init__(self, ttl):
-        self.clear(int(ttl))
+        """
+        Constructs a new instance.
 
+        :param ttl:
+            The number of seconds a cache entry should be valid for
+        """
+        self.ttl = float(ttl)
+        self.base_path = os.path.join(sys_path.pc_cache_dir(), 'http_cache')
+        os.makedirs(self.base_path, exist_ok=True)
 
-    def clear(self, ttl):
+    def age(self, key):
+        """
+        Return time since last modification.
+
+        :param key:
+            The key to fetch the cache for
+                """
+        try:
+            cache_file = os.path.join(self.base_path, key)
+            return time.time() - os.stat(cache_file).st_mtime
+        except FileNotFoundError:
+            return 2 ** 32
+
+    def touch(self, key):
+        """
+        Update modification time
+
+        :param key:
+            The key to fetch the cache for
+        """
+        now = time.time()
+
+        try:
+            cache_file = os.path.join(self.base_path, key)
+            os.utime(cache_file, (now, now))
+        except FileNotFoundError:
+            pass
+        try:
+            cache_file = os.path.join(self.base_path, key + '.info')
+            os.utime(cache_file, (now, now))
+        except FileNotFoundError:
+            pass
+
+    def prune(self):
         """
         Removes all cache entries older than the TTL
 
         :param ttl:
             The number of seconds a cache entry should be valid for
         """
+        try:
+            for filename in os.listdir(self.base_path):
+                path = os.path.join(self.base_path, filename)
+                # There should not be any folders in the cache dir, but we
+                # ignore to prevent an exception
+                if os.path.isdir(path):
+                    continue
+                if os.stat(path).st_atime < time.time() - self.ttl:
+                    os.unlink(path)
 
-        ttl = int(ttl)
-        cutoff = datetime.utcnow() - timedelta(seconds=ttl)
-
-        with connection() as cursor:
-            cursor.execute("DELETE FROM http_cache_entries WHERE last_modified < %s", [cutoff])
-
+        except FileNotFoundError:
+            pass
 
     def get(self, key):
         """
@@ -41,20 +84,23 @@ class HttpCache(object):
         :return:
             The (binary) cached value, or False
         """
+        try:
+            cache_file = os.path.join(self.base_path, key)
 
-        with connection() as cursor:
-            cursor.execute("SELECT content FROM http_cache_entries WHERE key = %s", [key])
-            row = cursor.fetchone()
-            if not row:
-                return False
+            # update filetime to prevent unmodified cache files
+            # from being deleted, if they are frequently accessed.
+            # NOTE: try to rely on OS updating access time (`os.stat(path).st_atime`)
+            # os.utime(cache_file)
 
-            return row['content'].tobytes()
+            with open(cache_file, 'rb') as fobj:
+                return fobj.read()
 
+        except FileNotFoundError:
+            return False
 
     def has(self, key):
-        with connection() as cursor:
-            cursor.execute("SELECT key FROM http_cache_entries WHERE key = %s", [key])
-            return cursor.fetchone() != None
+        cache_file = os.path.join(self.base_path, key)
+        return os.path.exists(cache_file)
 
     def path(self, key):
         """
@@ -67,7 +113,7 @@ class HttpCache(object):
             The absolute filesystem path to the cache file
         """
 
-        return "SELECT * FROM http_cache_entries WHERE key = '%s'" % key
+        return os.path.join(self.base_path, key)
 
     def set(self, key, content):
         """
@@ -80,10 +126,6 @@ class HttpCache(object):
             The (binary) content to cache
         """
 
-        if self.has(key):
-            sql = "UPDATE http_cache_entries SET content = %s, last_modified = CURRENT_TIMESTAMP WHERE key = %s"
-        else:
-            sql = "INSERT INTO http_cache_entries (content, last_modified, key) VALUES (%s, CURRENT_TIMESTAMP, %s)"
-
-        with connection() as cursor:
-            cursor.execute(sql, [content, key])
+        cache_file = os.path.join(self.base_path, key)
+        with open(cache_file, 'wb') as f:
+            f.write(content)
