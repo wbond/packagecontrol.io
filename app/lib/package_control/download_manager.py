@@ -3,7 +3,7 @@ import re
 import socket
 import sys
 from threading import Lock, Timer
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote_to_bytes, urljoin, urlparse
 
 from . import __version__
 from . import text
@@ -33,7 +33,7 @@ _timer = None
 """A timer used to disconnect all managers after a period of no usage"""
 
 
-def http_get(url, settings, error_message='', prefer_cached=False):
+def http_get(url, settings, error_message=''):
     """
     Performs a HTTP GET request using best matching downloader.
 
@@ -58,9 +58,6 @@ def http_get(url, settings, error_message='', prefer_cached=False):
     :param error_message:
         The error message to include if the download fails
 
-    :param prefer_cached:
-        If cached version of the URL content is preferred over a new request
-
     :raises:
         DownloaderException: if there was an error downloading the URL
 
@@ -68,18 +65,52 @@ def http_get(url, settings, error_message='', prefer_cached=False):
         The string contents of the URL
     """
 
+    if url[:8].lower() == "file:///":
+        try:
+            with open(from_uri(url), "rb") as f:
+                return f.read()
+        except OSError as e:
+            raise DownloaderException(str(e))
+
     manager = None
     result = None
 
     try:
         manager = _grab(url, settings)
-        result = manager.fetch(url, error_message, prefer_cached)
+        result = manager.fetch(url, error_message)
 
     finally:
         if manager:
             _release(url, manager)
 
     return result
+
+
+def from_uri(uri: str) -> str:  # roughly taken from Python 3.13
+    """Return a new path from the given 'file' URI."""
+    if not uri.lower().startswith('file:'):
+        raise ValueError("URI does not start with 'file:': {uri!r}".format(uri=uri))
+    path = os.fsdecode(unquote_to_bytes(uri))
+    path = path[5:]
+    if path[:3] == '///':
+        # Remove empty authority
+        path = path[2:]
+    elif path[:12].lower() == '//localhost/':
+        # Remove 'localhost' authority
+        path = path[11:]
+    if path[:3] == '///' or (path[:1] == '/' and path[2:3] in ':|'):
+        # Remove slash before DOS device/UNC path
+        path = path[1:]
+        path = path[0].upper() + path[1:]
+    if path[1:2] == '|':
+        # Replace bar with colon in DOS drive
+        path = path[:1] + ':' + path[2:]
+    if not os.path.isabs(path):
+        raise ValueError(
+            "URI is not absolute: {uri!r}. Parsed so far: {path!r}"
+            .format(uri=uri, path=path)
+        )
+    return path
 
 
 def _grab(url, settings):
@@ -172,11 +203,7 @@ def resolve_urls(root_url, uris):
         A generator of resolved URLs
     """
 
-    scheme_match = re.match(r'(https?:)//', root_url, re.I)
-    if scheme_match is None:
-        root_dir = os.path.dirname(root_url)
-    else:
-        root_dir = ''
+    scheme_match = re.match(r'^(file:/|https?:)//', root_url, re.I)
 
     for url in uris:
         if not url:
@@ -190,10 +217,7 @@ def resolve_urls(root_url, uris):
             # We don't allow absolute repositories
             continue
         elif url.startswith('./') or url.startswith('../'):
-            if root_dir:
-                url = os.path.normpath(os.path.join(root_dir, url))
-            else:
-                url = urljoin(root_url, url)
+            url = urljoin(root_url, url)
         yield url
 
 
@@ -214,23 +238,15 @@ def resolve_url(root_url, url):
     if not url:
         return url
 
-    scheme_match = re.match(r'(https?:)//', root_url, re.I)
-    if scheme_match is None:
-        root_dir = os.path.dirname(root_url)
-    else:
-        root_dir = ''
-
     if url.startswith('//'):
+        scheme_match = re.match(r'^(file:/|https?:)//', root_url, re.I)
         if scheme_match is not None:
             return scheme_match.group(1) + url
         else:
             return 'https:' + url
 
     elif url.startswith('./') or url.startswith('../'):
-        if root_dir:
-            return os.path.normpath(os.path.join(root_dir, url))
-        else:
-            return urljoin(root_url, url)
+        return urljoin(root_url, url)
 
     return url
 
@@ -305,14 +321,20 @@ class DownloadManager:
         # assign global http cache storage driver
         if http_cache:
             self.settings['cache'] = http_cache
-            self.settings['cache_length'] = http_cache.ttl
+
+            # specify maximum time a local cache is considdered fresh
+            # currently uses values from 'cache_length' setting to keep in sync
+            # with in-memory key-value cache layer.
+            max_age = settings.get('cache_length')
+            if max_age is not None and 0 <= max_age <= 24 * 60 * 60:
+                self.settings['max_age'] = max_age
 
     def close(self):
         if self.downloader:
             self.downloader.close()
             self.downloader = None
 
-    def fetch(self, url, error_message, prefer_cached=False):
+    def fetch(self, url, error_message):
         """
         Downloads a URL and returns the contents
 
@@ -321,9 +343,6 @@ class DownloadManager:
 
         :param error_message:
             The error message to include if the download fails
-
-        :param prefer_cached:
-            If cached version of the URL content is preferred over a new request
 
         :raises:
             DownloaderException: if there was an error downloading the URL
@@ -471,15 +490,13 @@ class DownloadManager:
             raise exception
 
         try:
-            return self.downloader.download(url, error_message, timeout, 3, prefer_cached)
+            return self.downloader.download(url, error_message, timeout, 3)
 
         except (RateLimitException) as e:
+            # rate limits are normally reset after an hour
+            # store rate limited domain for this time to avoid further requests
             rate_limited_domains.append(hostname)
-            set_cache(
-                'rate_limited_domains',
-                rate_limited_domains,
-                self.settings.get('cache_length', 604800)
-            )
+            set_cache('rate_limited_domains', rate_limited_domains, 3610)
 
             console_write(
                 '''

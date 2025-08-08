@@ -1,6 +1,4 @@
 import json
-import re
-import os
 from itertools import chain
 from urllib.parse import urlparse
 
@@ -9,7 +7,6 @@ from ..clients.client_exception import ClientException
 from ..clients.github_client import GitHubClient
 from ..clients.gitlab_client import GitLabClient
 from ..clients.pypi_client import PyPiClient
-from ..console_write import console_write
 from ..download_manager import http_get, resolve_url, resolve_urls, update_url
 from ..downloaders.downloader_exception import DownloaderException
 from ..package_version import version_sort
@@ -130,25 +127,7 @@ class JsonRepositoryProvider(BaseRepositoryProvider):
 
         self.included_urls.add(location)
 
-        if re.match(r'https?://', location, re.I):
-            json_string = http_get(location, self.settings, 'Error downloading repository.')
-
-        # Anything that is not a URL is expected to be a filesystem path
-        else:
-            if not os.path.exists(location):
-                raise ProviderException('Error, file %s does not exist' % location)
-
-            if self.settings.get('debug'):
-                console_write(
-                    '''
-                    Loading %s as a repository
-                    ''',
-                    location
-                )
-
-            # We open as binary so we get bytes like the DownloadManager
-            with open(location, 'rb') as f:
-                json_string = f.read()
+        json_string = http_get(location, self.settings, 'Error downloading repository.')
 
         try:
             repo_info = json.loads(json_string.decode('utf-8'))
