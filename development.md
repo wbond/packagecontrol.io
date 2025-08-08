@@ -1,6 +1,6 @@
 # Development Environment
 
-This site is built using Python 3.6.8, PostgreSQL 11, Redis and Nginx.
+This site is built using Python 3.9, PostgreSQL 13, Redis and Nginx.
 
 In addition, to install the lxml package, the following C libraries' development
 header are necessary to be installed. Here are some example commands:
