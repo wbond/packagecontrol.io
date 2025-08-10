@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+<ShortName>Package Control</ShortName>
+<Description>The Sublime Text package manager that makes it exceedingly simple to find, install and keep packages up-to-date</Description>
+<Url type="text/html" method="GET" template="https://packagecontrol.io/search/{searchTerms}" />
+<Url type="application/opensearchdescription+xml" rel="self" template="https://packagecontrol.io/opensearch.xml" />
+<Url type="application/x-suggestions+json" method="get" template="https://packagecontrol.io/opensearch_suggestions/{searchTerms}.json" />
+<Image height="64" width="64" type="image/x-icon">https://packagecontrol.io/favicon.ico</Image>
+<Language>en-US</Language>
+<moz:SearchForm>https://packagecontrol.io/search</moz:SearchForm>
+</OpenSearchDescription>
