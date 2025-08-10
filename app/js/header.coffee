@@ -122,6 +122,7 @@ class App.Header extends Backbone.View
     # Allow users to use ctrl+shift+p or cmd+shift+p to focus search
     window.keymaster('command+shift+p, ctrl+shift+p', (e) =>
       @$search.focus()
+      e.preventDefault()
     )
 
     window.keymaster('enter', 'search', (e) =>
